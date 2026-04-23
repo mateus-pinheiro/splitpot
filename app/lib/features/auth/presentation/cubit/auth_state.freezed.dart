@@ -55,14 +55,15 @@ extension AuthStatePatterns on AuthState {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AuthUnauthenticated value)?  unauthenticated,TResult Function( AuthAuthenticating value)?  authenticating,TResult Function( AuthAuthenticated value)?  authenticated,TResult Function( AuthNeedsProfile value)?  needsProfile,TResult Function( AuthError value)?  error,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AuthUnauthenticated value)?  unauthenticated,TResult Function( AuthAuthenticating value)?  authenticating,TResult Function( AuthAuthenticated value)?  authenticated,TResult Function( AuthNeedsProfile value)?  needsProfile,TResult Function( AuthUpdatingProfile value)?  updatingProfile,TResult Function( AuthError value)?  error,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case AuthUnauthenticated() when unauthenticated != null:
 return unauthenticated(_that);case AuthAuthenticating() when authenticating != null:
 return authenticating(_that);case AuthAuthenticated() when authenticated != null:
 return authenticated(_that);case AuthNeedsProfile() when needsProfile != null:
-return needsProfile(_that);case AuthError() when error != null:
+return needsProfile(_that);case AuthUpdatingProfile() when updatingProfile != null:
+return updatingProfile(_that);case AuthError() when error != null:
 return error(_that);case _:
   return orElse();
 
@@ -81,14 +82,15 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AuthUnauthenticated value)  unauthenticated,required TResult Function( AuthAuthenticating value)  authenticating,required TResult Function( AuthAuthenticated value)  authenticated,required TResult Function( AuthNeedsProfile value)  needsProfile,required TResult Function( AuthError value)  error,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AuthUnauthenticated value)  unauthenticated,required TResult Function( AuthAuthenticating value)  authenticating,required TResult Function( AuthAuthenticated value)  authenticated,required TResult Function( AuthNeedsProfile value)  needsProfile,required TResult Function( AuthUpdatingProfile value)  updatingProfile,required TResult Function( AuthError value)  error,}){
 final _that = this;
 switch (_that) {
 case AuthUnauthenticated():
 return unauthenticated(_that);case AuthAuthenticating():
 return authenticating(_that);case AuthAuthenticated():
 return authenticated(_that);case AuthNeedsProfile():
-return needsProfile(_that);case AuthError():
+return needsProfile(_that);case AuthUpdatingProfile():
+return updatingProfile(_that);case AuthError():
 return error(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
@@ -103,14 +105,15 @@ return error(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AuthUnauthenticated value)?  unauthenticated,TResult? Function( AuthAuthenticating value)?  authenticating,TResult? Function( AuthAuthenticated value)?  authenticated,TResult? Function( AuthNeedsProfile value)?  needsProfile,TResult? Function( AuthError value)?  error,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AuthUnauthenticated value)?  unauthenticated,TResult? Function( AuthAuthenticating value)?  authenticating,TResult? Function( AuthAuthenticated value)?  authenticated,TResult? Function( AuthNeedsProfile value)?  needsProfile,TResult? Function( AuthUpdatingProfile value)?  updatingProfile,TResult? Function( AuthError value)?  error,}){
 final _that = this;
 switch (_that) {
 case AuthUnauthenticated() when unauthenticated != null:
 return unauthenticated(_that);case AuthAuthenticating() when authenticating != null:
 return authenticating(_that);case AuthAuthenticated() when authenticated != null:
 return authenticated(_that);case AuthNeedsProfile() when needsProfile != null:
-return needsProfile(_that);case AuthError() when error != null:
+return needsProfile(_that);case AuthUpdatingProfile() when updatingProfile != null:
+return updatingProfile(_that);case AuthError() when error != null:
 return error(_that);case _:
   return null;
 
@@ -128,13 +131,14 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  unauthenticated,TResult Function()?  authenticating,TResult Function( User user)?  authenticated,TResult Function()?  needsProfile,TResult Function( Failure failure)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  unauthenticated,TResult Function()?  authenticating,TResult Function( User user)?  authenticated,TResult Function( String suggestedName)?  needsProfile,TResult Function( String suggestedName)?  updatingProfile,TResult Function( Failure failure)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case AuthUnauthenticated() when unauthenticated != null:
 return unauthenticated();case AuthAuthenticating() when authenticating != null:
 return authenticating();case AuthAuthenticated() when authenticated != null:
 return authenticated(_that.user);case AuthNeedsProfile() when needsProfile != null:
-return needsProfile();case AuthError() when error != null:
+return needsProfile(_that.suggestedName);case AuthUpdatingProfile() when updatingProfile != null:
+return updatingProfile(_that.suggestedName);case AuthError() when error != null:
 return error(_that.failure);case _:
   return orElse();
 
@@ -153,13 +157,14 @@ return error(_that.failure);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  unauthenticated,required TResult Function()  authenticating,required TResult Function( User user)  authenticated,required TResult Function()  needsProfile,required TResult Function( Failure failure)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  unauthenticated,required TResult Function()  authenticating,required TResult Function( User user)  authenticated,required TResult Function( String suggestedName)  needsProfile,required TResult Function( String suggestedName)  updatingProfile,required TResult Function( Failure failure)  error,}) {final _that = this;
 switch (_that) {
 case AuthUnauthenticated():
 return unauthenticated();case AuthAuthenticating():
 return authenticating();case AuthAuthenticated():
 return authenticated(_that.user);case AuthNeedsProfile():
-return needsProfile();case AuthError():
+return needsProfile(_that.suggestedName);case AuthUpdatingProfile():
+return updatingProfile(_that.suggestedName);case AuthError():
 return error(_that.failure);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -174,13 +179,14 @@ return error(_that.failure);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  unauthenticated,TResult? Function()?  authenticating,TResult? Function( User user)?  authenticated,TResult? Function()?  needsProfile,TResult? Function( Failure failure)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  unauthenticated,TResult? Function()?  authenticating,TResult? Function( User user)?  authenticated,TResult? Function( String suggestedName)?  needsProfile,TResult? Function( String suggestedName)?  updatingProfile,TResult? Function( Failure failure)?  error,}) {final _that = this;
 switch (_that) {
 case AuthUnauthenticated() when unauthenticated != null:
 return unauthenticated();case AuthAuthenticating() when authenticating != null:
 return authenticating();case AuthAuthenticated() when authenticated != null:
 return authenticated(_that.user);case AuthNeedsProfile() when needsProfile != null:
-return needsProfile();case AuthError() when error != null:
+return needsProfile(_that.suggestedName);case AuthUpdatingProfile() when updatingProfile != null:
+return updatingProfile(_that.suggestedName);case AuthError() when error != null:
 return error(_that.failure);case _:
   return null;
 
@@ -332,33 +338,133 @@ $UserCopyWith<$Res> get user {
 
 
 class AuthNeedsProfile implements AuthState {
-  const AuthNeedsProfile();
+  const AuthNeedsProfile({required this.suggestedName});
   
 
+ final  String suggestedName;
 
-
+/// Create a copy of AuthState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AuthNeedsProfileCopyWith<AuthNeedsProfile> get copyWith => _$AuthNeedsProfileCopyWithImpl<AuthNeedsProfile>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthNeedsProfile);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthNeedsProfile&&(identical(other.suggestedName, suggestedName) || other.suggestedName == suggestedName));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,suggestedName);
 
 @override
 String toString() {
-  return 'AuthState.needsProfile()';
+  return 'AuthState.needsProfile(suggestedName: $suggestedName)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class $AuthNeedsProfileCopyWith<$Res> implements $AuthStateCopyWith<$Res> {
+  factory $AuthNeedsProfileCopyWith(AuthNeedsProfile value, $Res Function(AuthNeedsProfile) _then) = _$AuthNeedsProfileCopyWithImpl;
+@useResult
+$Res call({
+ String suggestedName
+});
 
 
+
+
+}
+/// @nodoc
+class _$AuthNeedsProfileCopyWithImpl<$Res>
+    implements $AuthNeedsProfileCopyWith<$Res> {
+  _$AuthNeedsProfileCopyWithImpl(this._self, this._then);
+
+  final AuthNeedsProfile _self;
+  final $Res Function(AuthNeedsProfile) _then;
+
+/// Create a copy of AuthState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? suggestedName = null,}) {
+  return _then(AuthNeedsProfile(
+suggestedName: null == suggestedName ? _self.suggestedName : suggestedName // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class AuthUpdatingProfile implements AuthState {
+  const AuthUpdatingProfile({required this.suggestedName});
+  
+
+ final  String suggestedName;
+
+/// Create a copy of AuthState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AuthUpdatingProfileCopyWith<AuthUpdatingProfile> get copyWith => _$AuthUpdatingProfileCopyWithImpl<AuthUpdatingProfile>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthUpdatingProfile&&(identical(other.suggestedName, suggestedName) || other.suggestedName == suggestedName));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,suggestedName);
+
+@override
+String toString() {
+  return 'AuthState.updatingProfile(suggestedName: $suggestedName)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $AuthUpdatingProfileCopyWith<$Res> implements $AuthStateCopyWith<$Res> {
+  factory $AuthUpdatingProfileCopyWith(AuthUpdatingProfile value, $Res Function(AuthUpdatingProfile) _then) = _$AuthUpdatingProfileCopyWithImpl;
+@useResult
+$Res call({
+ String suggestedName
+});
+
+
+
+
+}
+/// @nodoc
+class _$AuthUpdatingProfileCopyWithImpl<$Res>
+    implements $AuthUpdatingProfileCopyWith<$Res> {
+  _$AuthUpdatingProfileCopyWithImpl(this._self, this._then);
+
+  final AuthUpdatingProfile _self;
+  final $Res Function(AuthUpdatingProfile) _then;
+
+/// Create a copy of AuthState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? suggestedName = null,}) {
+  return _then(AuthUpdatingProfile(
+suggestedName: null == suggestedName ? _self.suggestedName : suggestedName // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
 
 /// @nodoc
 

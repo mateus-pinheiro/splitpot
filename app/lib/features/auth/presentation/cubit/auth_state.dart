@@ -10,6 +10,9 @@ sealed class AuthState with _$AuthState {
   const factory AuthState.unauthenticated() = AuthUnauthenticated;
   const factory AuthState.authenticating() = AuthAuthenticating;
   const factory AuthState.authenticated(User user) = AuthAuthenticated;
-  const factory AuthState.needsProfile() = AuthNeedsProfile;
+  const factory AuthState.needsProfile({required String suggestedName}) =
+      AuthNeedsProfile;
+  const factory AuthState.updatingProfile({required String suggestedName}) =
+      AuthUpdatingProfile;
   const factory AuthState.error(Failure failure) = AuthError;
 }

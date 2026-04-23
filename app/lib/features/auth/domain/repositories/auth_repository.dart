@@ -14,5 +14,9 @@ abstract class AuthRepository {
   /// ser completado (primeiro acesso).
   Future<User?> signInWithGoogle();
 
+  /// Persiste o PIX do usuário e confirma o perfil. Chamado após
+  /// o primeiro login quando o backend indicou perfil incompleto.
+  Future<User> updateProfile({required String name, required String pixKey});
+
   Future<void> signOut();
 }
