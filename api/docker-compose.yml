@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: splitpot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: splitpot
+      POSTGRES_PASSWORD: splitpot
+      POSTGRES_DB: splitpot
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U splitpot -d splitpot"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:
