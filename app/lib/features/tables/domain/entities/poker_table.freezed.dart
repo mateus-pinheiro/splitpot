@@ -1,0 +1,298 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
+// ignore_for_file: type=lint
+// ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
+
+part of 'poker_table.dart';
+
+// **************************************************************************
+// FreezedGenerator
+// **************************************************************************
+
+// dart format off
+T _$identity<T>(T value) => value;
+/// @nodoc
+mixin _$PokerTable {
+
+ String get id; String get ownerId; String get name; Decimal get minBuyIn; TableStatus get status; DateTime get createdAt; DateTime? get closedAt; List<TableParticipation> get participations;
+/// Create a copy of PokerTable
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PokerTableCopyWith<PokerTable> get copyWith => _$PokerTableCopyWithImpl<PokerTable>(this as PokerTable, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PokerTable&&(identical(other.id, id) || other.id == id)&&(identical(other.ownerId, ownerId) || other.ownerId == ownerId)&&(identical(other.name, name) || other.name == name)&&(identical(other.minBuyIn, minBuyIn) || other.minBuyIn == minBuyIn)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.closedAt, closedAt) || other.closedAt == closedAt)&&const DeepCollectionEquality().equals(other.participations, participations));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,id,ownerId,name,minBuyIn,status,createdAt,closedAt,const DeepCollectionEquality().hash(participations));
+
+@override
+String toString() {
+  return 'PokerTable(id: $id, ownerId: $ownerId, name: $name, minBuyIn: $minBuyIn, status: $status, createdAt: $createdAt, closedAt: $closedAt, participations: $participations)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PokerTableCopyWith<$Res>  {
+  factory $PokerTableCopyWith(PokerTable value, $Res Function(PokerTable) _then) = _$PokerTableCopyWithImpl;
+@useResult
+$Res call({
+ String id, String ownerId, String name, Decimal minBuyIn, TableStatus status, DateTime createdAt, DateTime? closedAt, List<TableParticipation> participations
+});
+
+
+
+
+}
+/// @nodoc
+class _$PokerTableCopyWithImpl<$Res>
+    implements $PokerTableCopyWith<$Res> {
+  _$PokerTableCopyWithImpl(this._self, this._then);
+
+  final PokerTable _self;
+  final $Res Function(PokerTable) _then;
+
+/// Create a copy of PokerTable
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ownerId = null,Object? name = null,Object? minBuyIn = null,Object? status = null,Object? createdAt = null,Object? closedAt = freezed,Object? participations = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,ownerId: null == ownerId ? _self.ownerId : ownerId // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,minBuyIn: null == minBuyIn ? _self.minBuyIn : minBuyIn // ignore: cast_nullable_to_non_nullable
+as Decimal,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as TableStatus,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime,closedAt: freezed == closedAt ? _self.closedAt : closedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,participations: null == participations ? _self.participations : participations // ignore: cast_nullable_to_non_nullable
+as List<TableParticipation>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [PokerTable].
+extension PokerTablePatterns on PokerTable {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _PokerTable value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _PokerTable() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _PokerTable value)  $default,){
+final _that = this;
+switch (_that) {
+case _PokerTable():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _PokerTable value)?  $default,){
+final _that = this;
+switch (_that) {
+case _PokerTable() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ownerId,  String name,  Decimal minBuyIn,  TableStatus status,  DateTime createdAt,  DateTime? closedAt,  List<TableParticipation> participations)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _PokerTable() when $default != null:
+return $default(_that.id,_that.ownerId,_that.name,_that.minBuyIn,_that.status,_that.createdAt,_that.closedAt,_that.participations);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ownerId,  String name,  Decimal minBuyIn,  TableStatus status,  DateTime createdAt,  DateTime? closedAt,  List<TableParticipation> participations)  $default,) {final _that = this;
+switch (_that) {
+case _PokerTable():
+return $default(_that.id,_that.ownerId,_that.name,_that.minBuyIn,_that.status,_that.createdAt,_that.closedAt,_that.participations);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ownerId,  String name,  Decimal minBuyIn,  TableStatus status,  DateTime createdAt,  DateTime? closedAt,  List<TableParticipation> participations)?  $default,) {final _that = this;
+switch (_that) {
+case _PokerTable() when $default != null:
+return $default(_that.id,_that.ownerId,_that.name,_that.minBuyIn,_that.status,_that.createdAt,_that.closedAt,_that.participations);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _PokerTable implements PokerTable {
+  const _PokerTable({required this.id, required this.ownerId, required this.name, required this.minBuyIn, required this.status, required this.createdAt, this.closedAt, final  List<TableParticipation> participations = const <TableParticipation>[]}): _participations = participations;
+  
+
+@override final  String id;
+@override final  String ownerId;
+@override final  String name;
+@override final  Decimal minBuyIn;
+@override final  TableStatus status;
+@override final  DateTime createdAt;
+@override final  DateTime? closedAt;
+ final  List<TableParticipation> _participations;
+@override@JsonKey() List<TableParticipation> get participations {
+  if (_participations is EqualUnmodifiableListView) return _participations;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_participations);
+}
+
+
+/// Create a copy of PokerTable
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$PokerTableCopyWith<_PokerTable> get copyWith => __$PokerTableCopyWithImpl<_PokerTable>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PokerTable&&(identical(other.id, id) || other.id == id)&&(identical(other.ownerId, ownerId) || other.ownerId == ownerId)&&(identical(other.name, name) || other.name == name)&&(identical(other.minBuyIn, minBuyIn) || other.minBuyIn == minBuyIn)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.closedAt, closedAt) || other.closedAt == closedAt)&&const DeepCollectionEquality().equals(other._participations, _participations));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,id,ownerId,name,minBuyIn,status,createdAt,closedAt,const DeepCollectionEquality().hash(_participations));
+
+@override
+String toString() {
+  return 'PokerTable(id: $id, ownerId: $ownerId, name: $name, minBuyIn: $minBuyIn, status: $status, createdAt: $createdAt, closedAt: $closedAt, participations: $participations)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$PokerTableCopyWith<$Res> implements $PokerTableCopyWith<$Res> {
+  factory _$PokerTableCopyWith(_PokerTable value, $Res Function(_PokerTable) _then) = __$PokerTableCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String ownerId, String name, Decimal minBuyIn, TableStatus status, DateTime createdAt, DateTime? closedAt, List<TableParticipation> participations
+});
+
+
+
+
+}
+/// @nodoc
+class __$PokerTableCopyWithImpl<$Res>
+    implements _$PokerTableCopyWith<$Res> {
+  __$PokerTableCopyWithImpl(this._self, this._then);
+
+  final _PokerTable _self;
+  final $Res Function(_PokerTable) _then;
+
+/// Create a copy of PokerTable
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ownerId = null,Object? name = null,Object? minBuyIn = null,Object? status = null,Object? createdAt = null,Object? closedAt = freezed,Object? participations = null,}) {
+  return _then(_PokerTable(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,ownerId: null == ownerId ? _self.ownerId : ownerId // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,minBuyIn: null == minBuyIn ? _self.minBuyIn : minBuyIn // ignore: cast_nullable_to_non_nullable
+as Decimal,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as TableStatus,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime,closedAt: freezed == closedAt ? _self.closedAt : closedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,participations: null == participations ? _self._participations : participations // ignore: cast_nullable_to_non_nullable
+as List<TableParticipation>,
+  ));
+}
+
+
+}
+
+// dart format on

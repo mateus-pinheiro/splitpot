@@ -1,0 +1,175 @@
+/* Splitpot — global styles */
+:root {
+  /* Poker classic — green felt + gold */
+  --felt-deep: #0a2518;
+  --felt: #0f3a24;
+  --felt-light: #155a36;
+  --felt-rail: #08190f;
+  --gold: #d4a24a;
+  --gold-bright: #f0c770;
+  --gold-dark: #8e6a26;
+  --cream: #f5ecd6;
+  --ivory: #fbf6e8;
+  --bone: #e8dcbf;
+  --ink: #0c1a12;
+  --muted: #8fa79a;
+  --danger: #c0392b;
+  --danger-soft: #e57373;
+  --success: #2e8f5a;
+  --card-bg: rgba(255, 253, 245, 0.98);
+  --felt-shadow: 0 1px 0 rgba(255, 240, 200, 0.06) inset, 0 12px 40px rgba(0,0,0,0.35);
+}
+
+/* Typography — Rubik variable (brand) for UI + display, JetBrains Mono for numbers */
+@font-face {
+  font-family: 'Rubik';
+  src: url('fonts/Rubik-VariableFont_wght.ttf') format('truetype-variations'),
+       url('fonts/Rubik-VariableFont_wght.ttf') format('truetype');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Rubik';
+  src: url('fonts/Rubik-Italic-VariableFont_wght.ttf') format('truetype-variations'),
+       url('fonts/Rubik-Italic-VariableFont_wght.ttf') format('truetype');
+  font-weight: 300 900;
+  font-style: italic;
+  font-display: swap;
+}
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+.sp-display { font-family: 'Rubik', -apple-system, system-ui, sans-serif; letter-spacing: -0.02em; font-weight: 700; }
+.sp-ui { font-family: 'Rubik', -apple-system, system-ui, sans-serif; }
+.sp-num { font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+/* Apply Rubik globally to override any 'Inter' / 'Playfair Display' references in JSX inline styles.
+   Inline font-family is overridden with !important so brand font wins. */
+body, input, button, textarea, select {
+  font-family: 'Rubik', -apple-system, system-ui, sans-serif;
+}
+[style*="Inter"], [style*="Playfair"], [style*="SF Pro"], [style*="-apple-system"] {
+  font-family: 'Rubik', -apple-system, system-ui, sans-serif !important;
+}
+/* Keep monospace for numeric readouts */
+.sp-num, [style*="JetBrains"], [style*="SF Mono"], [style*="Menlo"] {
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace !important;
+}
+
+/* Felt texture background (SVG noise + radial vignette) */
+.sp-felt {
+  background:
+    radial-gradient(ellipse at 50% 0%, var(--felt-light) 0%, var(--felt) 40%, var(--felt-deep) 100%);
+  position: relative;
+}
+.sp-felt::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.08 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+.sp-felt > * { position: relative; z-index: 1; }
+
+/* Gold foil text */
+.sp-gold-foil {
+  background: linear-gradient(180deg, #f3d27b 0%, #d4a24a 45%, #a5791f 55%, #e8bd60 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.15);
+}
+
+/* Card — cream paper */
+.sp-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 1px 2px rgba(0,0,0,0.06),
+    0 4px 16px rgba(0,0,0,0.12);
+}
+
+/* Gold button */
+.sp-btn-gold {
+  background: linear-gradient(180deg, #f0c770 0%, #d4a24a 50%, #b5832e 100%);
+  color: #2a1d08;
+  border: 1px solid rgba(120, 80, 20, 0.5);
+  box-shadow:
+    0 1px 0 rgba(255, 240, 200, 0.7) inset,
+    0 -1px 0 rgba(80, 50, 10, 0.25) inset,
+    0 2px 6px rgba(0, 0, 0, 0.25);
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.sp-btn-gold:hover { filter: brightness(1.06); }
+.sp-btn-gold:active { filter: brightness(0.95); transform: translateY(0.5px); }
+
+.sp-btn-ghost {
+  background: transparent;
+  color: var(--cream);
+  border: 1px solid rgba(245, 236, 214, 0.3);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+}
+.sp-btn-ghost:hover { background: rgba(245, 236, 214, 0.08); }
+
+/* Input */
+.sp-input {
+  background: rgba(8, 25, 15, 0.5);
+  border: 1px solid rgba(212, 162, 74, 0.25);
+  color: var(--cream);
+  border-radius: 10px;
+  padding: 14px 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.sp-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212, 162, 74, 0.15);
+}
+.sp-input::placeholder { color: rgba(245, 236, 214, 0.35); }
+
+/* Chips stack illustration */
+.sp-chip {
+  display: inline-block;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  position: relative;
+}
+
+/* Playing card suit color */
+.sp-red { color: #c0392b; }
+.sp-black { color: #111; }
+
+/* Hide scrollbars */
+.sp-scroll::-webkit-scrollbar { display: none; }
+.sp-scroll { scrollbar-width: none; }
+
+/* Pulsing dot for "live" */
+@keyframes sp-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.15); }
+}
+.sp-live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #ff4444;
+  animation: sp-pulse 1.6s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+}
+
+/* Divider w/ gold flourish */
+.sp-divider-gold {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 162, 74, 0.6), transparent);
+}
+
+/* Hover tap feedback */
+.sp-tap { transition: transform 0.08s, background-color 0.15s; }
+.sp-tap:active { transform: scale(0.98); }

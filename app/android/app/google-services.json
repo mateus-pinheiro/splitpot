@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "986946226655",
+    "project_id": "splitpot-4338d",
+    "storage_bucket": "splitpot-4338d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:986946226655:android:148e64858aec4ea81b9c6a",
+        "android_client_info": {
+          "package_name": "app.splitpot.splitpot"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "986946226655-4pn2a151tjin4bcpi9qfhsb835g9mj8g.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCduJnLD79LQJBnCM8x2qarwTiPXvALLhw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "986946226655-4pn2a151tjin4bcpi9qfhsb835g9mj8g.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

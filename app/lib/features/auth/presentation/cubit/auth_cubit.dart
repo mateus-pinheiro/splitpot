@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure.dart';
+import '../../../../core/network/api_exception.dart';
+import '../../domain/entities/sign_in_outcome.dart';
 import '../../domain/usecases/get_current_user.dart';
+import '../../domain/usecases/observe_sign_in_outcomes.dart';
 import '../../domain/usecases/sign_in_with_google.dart';
 import '../../domain/usecases/sign_out.dart';
 import '../../domain/usecases/update_profile.dart';
@@ -10,6 +15,7 @@ import 'auth_state.dart';
 class AuthCubit extends Cubit<AuthState> {
   AuthCubit({
     required SignInWithGoogle signInWithGoogle,
+    required ObserveSignInOutcomes observeSignInOutcomes,
     required GetCurrentUser getCurrentUser,
     required UpdateProfile updateProfile,
     required SignOut signOut,
@@ -17,12 +23,18 @@ class AuthCubit extends Cubit<AuthState> {
         _getCurrentUser = getCurrentUser,
         _updateProfile = updateProfile,
         _signOut = signOut,
-        super(const AuthState.unauthenticated());
+        super(const AuthState.unauthenticated()) {
+    _outcomesSub = observeSignInOutcomes().listen(
+      _onOutcome,
+      onError: _onOutcomeError,
+    );
+  }
 
   final SignInWithGoogle _signInWithGoogle;
   final GetCurrentUser _getCurrentUser;
   final UpdateProfile _updateProfile;
   final SignOut _signOut;
+  late final StreamSubscription<SignInOutcome> _outcomesSub;
 
   Future<void> bootstrap() async {
     try {
@@ -40,32 +52,27 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> signInWithGoogle() async {
     emit(const AuthState.authenticating());
     try {
-      final user = await _signInWithGoogle();
-      if (user == null) {
-        // Primeiro login: Google devolveu dados básicos, mas PIX ainda
-        // não foi informado. Por ora o nome sugerido é fixo (mock).
-        emit(const AuthState.needsProfile(suggestedName: 'Mateus Pinheiro'));
-      } else {
-        emit(AuthState.authenticated(user));
-      }
+      await _signInWithGoogle();
+      // Em mobile o picker foi aberto; em web a UI já renderizou o
+      // botão do Google. O resultado chega via stream em _onOutcome.
     } on Object catch (e) {
-      emit(AuthState.error(Failure.unexpected(message: e.toString())));
+      emit(AuthState.error(_asFailure(e)));
     }
   }
 
   Future<void> completeProfile({required String name, required String pixKey}) async {
     final current = state;
-    final suggestedName = current is AuthNeedsProfile
-        ? current.suggestedName
-        : current is AuthUpdatingProfile
-            ? current.suggestedName
-            : name;
+    final suggestedName = switch (current) {
+      AuthNeedsProfile(:final suggestedName) => suggestedName,
+      AuthUpdatingProfile(:final suggestedName) => suggestedName,
+      _ => name,
+    };
     emit(AuthState.updatingProfile(suggestedName: suggestedName));
     try {
       final user = await _updateProfile(name: name, pixKey: pixKey);
       emit(AuthState.authenticated(user));
     } on Object catch (e) {
-      emit(AuthState.error(Failure.unexpected(message: e.toString())));
+      emit(AuthState.error(_asFailure(e)));
     }
   }
 
@@ -75,5 +82,29 @@ class AuthCubit extends Cubit<AuthState> {
     } finally {
       emit(const AuthState.unauthenticated());
     }
+  }
+
+  @override
+  Future<void> close() async {
+    await _outcomesSub.cancel();
+    return super.close();
+  }
+
+  void _onOutcome(SignInOutcome outcome) {
+    switch (outcome) {
+      case SignInAuthenticated(:final user):
+        emit(AuthState.authenticated(user));
+      case SignInNeedsProfile(:final suggestedName):
+        emit(AuthState.needsProfile(suggestedName: suggestedName));
+    }
+  }
+
+  void _onOutcomeError(Object error, StackTrace _) {
+    emit(AuthState.error(_asFailure(error)));
+  }
+
+  Failure _asFailure(Object error) {
+    if (error is ApiException) return error.failure;
+    return Failure.unexpected(message: error.toString());
   }
 }

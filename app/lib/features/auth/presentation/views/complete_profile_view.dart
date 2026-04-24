@@ -1,39 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/design/design_system.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 
-class CompleteProfileView extends StatelessWidget {
+class CompleteProfileView extends StatefulWidget {
   const CompleteProfileView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Complete seu perfil')),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 480),
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: SingleChildScrollView(child: _ProfileForm()),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  State<CompleteProfileView> createState() => _CompleteProfileViewState();
 }
 
-class _ProfileForm extends StatefulWidget {
-  const _ProfileForm();
-
-  @override
-  State<_ProfileForm> createState() => _ProfileFormState();
-}
-
-class _ProfileFormState extends State<_ProfileForm> {
+class _CompleteProfileViewState extends State<CompleteProfileView> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _pixController = TextEditingController();
@@ -42,12 +21,11 @@ class _ProfileFormState extends State<_ProfileForm> {
   void initState() {
     super.initState();
     final state = context.read<AuthCubit>().state;
-    final suggested = switch (state) {
+    _nameController.text = switch (state) {
       AuthNeedsProfile(:final suggestedName) => suggestedName,
       AuthUpdatingProfile(:final suggestedName) => suggestedName,
       _ => '',
     };
-    _nameController.text = suggested;
   }
 
   @override
@@ -58,7 +36,16 @@ class _ProfileFormState extends State<_ProfileForm> {
   }
 
   void _submit() {
-    if (!_formKey.currentState!.validate()) return;
+    if (_nameController.text.trim().isEmpty ||
+        _pixController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: SpColors.danger,
+          content: Text('Preencha nome e chave PIX.'),
+        ),
+      );
+      return;
+    }
     context.read<AuthCubit>().completeProfile(
           name: _nameController.text.trim(),
           pixKey: _pixController.text.trim(),
@@ -67,61 +54,115 @@ class _ProfileFormState extends State<_ProfileForm> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AuthCubit, AuthState>(
-      builder: (context, state) {
-        final isSubmitting = state is AuthUpdatingProfile;
-        return Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Falta só o PIX pra você conseguir receber seus acertos.',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nome'),
-                textInputAction: TextInputAction.next,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Informe seu nome';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _pixController,
-                decoration: const InputDecoration(
-                  labelText: 'Chave PIX',
-                  hintText: 'CPF, email, telefone ou chave aleatória',
+    return Scaffold(
+      body: FeltBackground(
+        child: SafeArea(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                SpAppHeader(
+                  left: SpBackButton(
+                    onPressed: () => Navigator.maybePop(context),
+                  ),
                 ),
-                textInputAction: TextInputAction.done,
-                onFieldSubmitted: (_) => _submit(),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Informe sua chave PIX';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 32),
-              FilledButton(
-                onPressed: isSubmitting ? null : _submit,
-                child: isSubmitting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Salvar perfil'),
-              ),
-            ],
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _OnboardingBody(
+                      nameController: _nameController,
+                      pixController: _pixController,
+                      onSubmit: _submit,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                  child: BlocBuilder<AuthCubit, AuthState>(
+                    builder: (context, state) {
+                      final loading = state is AuthUpdatingProfile;
+                      return SpGoldButton(
+                        label: 'Entrar no Splitpot',
+                        loading: loading,
+                        onPressed: loading ? null : _submit,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+}
+
+class _OnboardingBody extends StatelessWidget {
+  const _OnboardingBody({
+    required this.nameController,
+    required this.pixController,
+    required this.onSubmit,
+  });
+
+  final TextEditingController nameController;
+  final TextEditingController pixController;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        const Text(
+          'Complete seu\nperfil',
+          style: TextStyle(
+            fontFamily: SpTypography.displayFamily,
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            color: SpColors.cream,
+            height: 1.15,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Essas informações aparecem quando você entra em uma mesa.',
+          style: TextStyle(
+            fontFamily: SpTypography.uiFamily,
+            fontSize: 14,
+            color: SpColors.muted,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 28),
+        const SpFieldLabel('Nome'),
+        const SizedBox(height: 8),
+        SpInput(controller: nameController),
+        const SizedBox(height: 18),
+        const SpFieldLabel('Email'),
+        const SizedBox(height: 8),
+        const SpInput(enabled: false, hintText: 'conectado pelo Google'),
+        const SizedBox(height: 18),
+        const SpFieldLabel('Chave PIX'),
+        const SizedBox(height: 8),
+        SpInput(
+          controller: pixController,
+          hintText: 'CPF, telefone, email ou aleatória',
+          onSubmitted: (_) => onSubmit(),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Usada apenas para receber acertos ao fim da mesa.',
+          style: TextStyle(
+            fontFamily: SpTypography.uiFamily,
+            fontSize: 12,
+            color: SpColors.muted,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
     );
   }
 }
