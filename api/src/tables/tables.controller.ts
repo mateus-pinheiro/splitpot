@@ -28,6 +28,11 @@ export class TablesController {
     return this.tables.listForUser(token.uid);
   }
 
+  @Get(':id/preview')
+  preview(@FirebaseUser() token: DecodedIdToken, @Param('id') id: string) {
+    return this.tables.getPreviewById(token.uid, id);
+  }
+
   @Get(':id')
   getById(@FirebaseUser() token: DecodedIdToken, @Param('id') id: string) {
     return this.tables.getById(token.uid, id);

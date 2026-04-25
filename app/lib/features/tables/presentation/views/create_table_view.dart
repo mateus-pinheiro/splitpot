@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/design/design_system.dart';
 import '../../../../core/di/di_container.dart';
+import '../../../../core/errors/failure.dart';
 import '../../../../core/router/app_routes.dart';
 import '../cubit/create_table_cubit.dart';
 import '../cubit/create_table_state.dart';
@@ -31,13 +32,19 @@ class _CreateTableScaffold extends StatelessWidget {
         child: SafeArea(
           child: BlocListener<CreateTableCubit, CreateTableState>(
             listener: _onStateChange,
-            child: Column(
+            child: Stack(
               children: [
-                SpAppHeader(
-                  left: SpBackButton(onPressed: () => context.go(AppRoutes.home)),
-                  title: 'Nova mesa',
+                Column(
+                  children: [
+                    SpAppHeader(
+                      left: SpBackButton(
+                          onPressed: () => context.go(AppRoutes.home)),
+                      title: 'Nova mesa',
+                    ),
+                    const Expanded(child: _CreateTableForm()),
+                  ],
                 ),
-                const Expanded(child: _CreateTableForm()),
+                const _CreateTableLoadingOverlay(),
               ],
             ),
           ),
@@ -50,17 +57,83 @@ class _CreateTableScaffold extends StatelessWidget {
     switch (state) {
       case CreateTableCreated(:final tableId):
         context.go(AppRoutes.qr(tableId));
-      case CreateTableError():
+      case CreateTableError(:final failure):
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             backgroundColor: SpColors.danger,
-            content: Text('Não foi possível criar a mesa. Tente novamente.'),
+            content: Text(_messageFor(failure)),
           ),
         );
+        context.read<CreateTableCubit>().reset();
       case CreateTableIdle():
       case CreateTableCreating():
         break;
     }
+  }
+
+  String _messageFor(Failure failure) {
+    return switch (failure) {
+      ValidationFailure(:final message) => message,
+      UnauthorizedFailure(:final message) =>
+        message ?? 'Sua sessão expirou. Entre novamente.',
+      NotFoundFailure(:final message) =>
+        message ?? 'Recurso não encontrado.',
+      NetworkFailure() =>
+        'Sem conexão com o servidor. Verifique sua internet e tente de novo.',
+      UnexpectedFailure(:final message) =>
+        message ?? 'Não foi possível criar a mesa. Tente novamente.',
+      SignInCancelledFailure() => 'Ação cancelada.',
+    };
+  }
+}
+
+/// Camada translúcida sobre a tela inteira enquanto `creating` —
+/// bloqueia interação com o form e sinaliza que a criação está em curso.
+class _CreateTableLoadingOverlay extends StatelessWidget {
+  const _CreateTableLoadingOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<CreateTableCubit, CreateTableState>(
+      buildWhen: (p, c) => (p is CreateTableCreating) != (c is CreateTableCreating),
+      builder: (context, state) {
+        if (state is! CreateTableCreating) return const SizedBox.shrink();
+        return Positioned.fill(
+          child: IgnorePointer(
+            ignoring: false,
+            child: ColoredBox(
+              color: SpColors.feltDeep.withValues(alpha: 0.55),
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: SpColors.goldBright,
+                      ),
+                    ),
+                    SizedBox(height: 14),
+                    Text(
+                      'Criando mesa...',
+                      style: TextStyle(
+                        fontFamily: SpTypography.uiFamily,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: SpColors.cream,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -76,8 +149,6 @@ class _CreateTableFormState extends State<_CreateTableForm> {
   final _minController = TextEditingController(text: '50');
   final _maxController = TextEditingController(text: '200');
 
-  static const _blinds = ['0,25', '0,50', '1,00', '2,00', '5,00'];
-  int _blindIndex = 1;
   bool _willPlay = true;
 
   @override
@@ -90,10 +161,25 @@ class _CreateTableFormState extends State<_CreateTableForm> {
 
   void _submit() {
     final name = _nameController.text.trim();
-    if (name.isEmpty) return;
+    if (name.isEmpty) {
+      _showValidationError('Dê um nome para a mesa.');
+      return;
+    }
     final min = Decimal.tryParse(_minController.text.replaceAll(',', '.'));
-    if (min == null || min <= Decimal.zero) return;
+    if (min == null || min <= Decimal.zero) {
+      _showValidationError('Informe um buy-in mínimo maior que zero.');
+      return;
+    }
     context.read<CreateTableCubit>().submit(name: name, minBuyIn: min);
+  }
+
+  void _showValidationError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: SpColors.danger,
+        content: Text(msg),
+      ),
+    );
   }
 
   @override
@@ -121,35 +207,35 @@ class _CreateTableFormState extends State<_CreateTableForm> {
                           controller: _minController,
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _InsetNumberField(
-                          label: 'Máximo',
-                          controller: _maxController,
-                        ),
-                      ),
+                      // const SizedBox(width: 10),
+                      // Expanded(
+                      //   child: _InsetNumberField(
+                      //     label: 'Máximo',
+                      //     controller: _maxController,
+                      //   ),
+                      // ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  _BuyInHelper(
-                    min: _minController.text,
-                    max: _maxController.text,
-                  ),
-                  const SizedBox(height: 22),
-                  const SpFieldLabel('Valor da ficha (small blind)'),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (var i = 0; i < _blinds.length; i++)
-                        _BlindPill(
-                          label: 'R\$ ${_blinds[i]}',
-                          selected: i == _blindIndex,
-                          onTap: () => setState(() => _blindIndex = i),
-                        ),
-                    ],
-                  ),
+                  // const SizedBox(height: 8),
+                  // _BuyInHelper(
+                  //   min: _minController.text,
+                  //   max: _maxController.text,
+                  // ),
+                  // const SizedBox(height: 22),
+                  // const SpFieldLabel('Valor da ficha (small blind)'),
+                  // const SizedBox(height: 10),
+                  // Wrap(
+                  //   spacing: 8,
+                  //   runSpacing: 8,
+                  //   children: [
+                  //     for (var i = 0; i < _blinds.length; i++)
+                  //       _BlindPill(
+                  //         label: 'R\$ ${_blinds[i]}',
+                  //         selected: i == _blindIndex,
+                  //         onTap: () => setState(() => _blindIndex = i),
+                  //       ),
+                  //   ],
+                  // ),
                   const SizedBox(height: 22),
                   _WillPlayToggle(
                     value: _willPlay,
@@ -208,85 +294,6 @@ class _InsetNumberField extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _BuyInHelper extends StatelessWidget {
-  const _BuyInHelper({required this.min, required this.max});
-  final String min;
-  final String max;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(
-        style: const TextStyle(
-          fontFamily: SpTypography.uiFamily,
-          fontSize: 12,
-          color: SpColors.muted,
-          height: 1.4,
-        ),
-        children: [
-          const TextSpan(text: 'Jogadores podem aportar qualquer valor entre '),
-          TextSpan(
-            text: 'R\$ $min',
-            style: const TextStyle(color: SpColors.cream),
-          ),
-          const TextSpan(text: ' e '),
-          TextSpan(
-            text: 'R\$ $max',
-            style: const TextStyle(color: SpColors.cream),
-          ),
-          const TextSpan(text: '. Rebuys são permitidos.'),
-        ],
-      ),
-    );
-  }
-}
-
-class _BlindPill extends StatelessWidget {
-  const _BlindPill({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(SpRadius.input),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: selected
-                ? SpColors.gold.withValues(alpha: 0.18)
-                : SpColors.feltRail.withValues(alpha: 0.5),
-            border: Border.all(
-              color: selected
-                  ? SpColors.gold
-                  : SpColors.cream.withValues(alpha: 0.12),
-            ),
-            borderRadius: BorderRadius.circular(SpRadius.input),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: SpTypography.numFamily,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: selected ? SpColors.goldBright : SpColors.cream,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

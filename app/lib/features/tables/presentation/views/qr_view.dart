@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../core/design/design_system.dart';
+import '../../../../core/di/di_container.dart';
 import '../../../../core/router/app_routes.dart';
+import '../../domain/entities/poker_table.dart';
+import '../../domain/entities/table_participation.dart';
+import '../cubit/qr_cubit.dart';
+import '../utils/join_link.dart';
 
 class QrView extends StatelessWidget {
   const QrView({required this.tableId, super.key});
@@ -11,7 +18,22 @@ class QrView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const code = 'K7N-2QX';
+    return BlocProvider<QrCubit>(
+      create: (_) => appDI.get<QrCubit>()..start(tableId),
+      child: _QrScaffold(tableId: tableId),
+    );
+  }
+}
+
+class _QrScaffold extends StatelessWidget {
+  const _QrScaffold({required this.tableId});
+  final String tableId;
+
+  @override
+  Widget build(BuildContext context) {
+    final joinUrl = buildJoinUrl(tableId);
+    final shortCode = shortTableCode(tableId);
+
     return Scaffold(
       body: FeltBackground(
         child: SafeArea(
@@ -35,29 +57,22 @@ class QrView extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-                  children: const [
-                    Text(
-                      'Sexta na casa do Léo',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: SpTypography.displayFamily,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: SpColors.cream,
-                        height: 1.2,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    _MetaRow(),
-                    SizedBox(height: 20),
-                    _QrCard(code: code, data: 'https://splitpot.app/join/$code'),
-                    SizedBox(height: 18),
-                    _ShareRow(),
-                    SizedBox(height: 20),
-                    _WaitingPanel(),
-                  ],
+                child: BlocBuilder<QrCubit, QrState>(
+                  builder: (context, state) {
+                    final table = state is QrStateLoaded ? state.table : null;
+                    return ListView(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+                      children: [
+                        _TitleAndMeta(table: table),
+                        const SizedBox(height: 20),
+                        _QrCard(code: shortCode, data: joinUrl),
+                        const SizedBox(height: 18),
+                        _CopyLinkButton(url: joinUrl),
+                        const SizedBox(height: 20),
+                        _WaitingPanel(state: state),
+                      ],
+                    );
+                  },
                 ),
               ),
               Padding(
@@ -75,29 +90,31 @@ class QrView extends StatelessWidget {
   }
 }
 
-class _MetaRow extends StatelessWidget {
-  const _MetaRow();
+class _TitleAndMeta extends StatelessWidget {
+  const _TitleAndMeta({required this.table});
+  final PokerTable? table;
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    final title = table?.name ?? 'Sua mesa';
+    final minBuyIn = table?.minBuyIn.toString() ?? '—';
+    return Column(
       children: [
         Text(
-          'Buy-in R\$ 50 – 200',
-          style: TextStyle(
-            fontFamily: SpTypography.uiFamily,
-            fontSize: 12,
-            color: SpColors.muted,
-            fontWeight: FontWeight.w500,
+          title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontFamily: SpTypography.displayFamily,
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: SpColors.cream,
+            height: 1.2,
           ),
         ),
-        SizedBox(width: 14),
-        Text('•', style: TextStyle(color: SpColors.goldDark)),
-        SizedBox(width: 14),
+        const SizedBox(height: 8),
         Text(
-          'Blinds 0,25 / 0,50',
-          style: TextStyle(
+          'Buy-in mínimo R\$ $minBuyIn',
+          style: const TextStyle(
             fontFamily: SpTypography.uiFamily,
             fontSize: 12,
             color: SpColors.muted,
@@ -146,7 +163,6 @@ class _QrCard extends StatelessWidget {
                 dataModuleShape: QrDataModuleShape.square,
                 color: SpColors.feltDeep,
               ),
-              embeddedImage: null,
             ),
           ),
           const SizedBox(height: 14),
@@ -177,42 +193,9 @@ class _QrCard extends StatelessWidget {
   }
 }
 
-class _ShareRow extends StatelessWidget {
-  const _ShareRow();
-
-  @override
-  Widget build(BuildContext context) {
-    final items = [
-      (label: 'WhatsApp', icon: Icons.chat, color: const Color(0xFF25D366)),
-      (label: 'Copiar link', icon: Icons.link, color: SpColors.gold),
-      (label: 'Compartilhar', icon: Icons.ios_share, color: SpColors.cream),
-    ];
-    return Row(
-      children: [
-        for (var i = 0; i < items.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          Expanded(
-            child: _ShareButton(
-              label: items[i].label,
-              icon: items[i].icon,
-              color: items[i].color,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _ShareButton extends StatelessWidget {
-  const _ShareButton({
-    required this.label,
-    required this.icon,
-    required this.color,
-  });
-  final String label;
-  final IconData icon;
-  final Color color;
+class _CopyLinkButton extends StatelessWidget {
+  const _CopyLinkButton({required this.url});
+  final String url;
 
   @override
   Widget build(BuildContext context) {
@@ -220,27 +203,71 @@ class _ShareButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () {},
+        onTap: () async {
+          await Clipboard.setData(ClipboardData(text: url));
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: SpColors.feltRail,
+              behavior: SnackBarBehavior.floating,
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle_outline,
+                      color: SpColors.goldBright, size: 18),
+                  SizedBox(width: 10),
+                  Text(
+                    'Link copiado',
+                    style: TextStyle(
+                      fontFamily: SpTypography.uiFamily,
+                      color: SpColors.cream,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           decoration: BoxDecoration(
             color: SpColors.feltRail.withValues(alpha: 0.5),
-            border: Border.all(color: SpColors.cream.withValues(alpha: 0.1)),
+            border: Border.all(color: SpColors.gold.withValues(alpha: 0.35)),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Column(
+          child: Row(
             children: [
-              Icon(icon, color: color, size: 22),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontFamily: SpTypography.uiFamily,
-                  fontSize: 12,
-                  color: SpColors.cream,
-                  fontWeight: FontWeight.w500,
+              const Icon(Icons.link, color: SpColors.gold, size: 22),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Copiar link',
+                      style: TextStyle(
+                        fontFamily: SpTypography.uiFamily,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: SpColors.cream,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      url,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: SpTypography.numFamily,
+                        fontSize: 11,
+                        color: SpColors.muted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const Icon(Icons.content_copy,
+                  color: SpColors.goldBright, size: 18),
             ],
           ),
         ),
@@ -250,11 +277,24 @@ class _ShareButton extends StatelessWidget {
 }
 
 class _WaitingPanel extends StatelessWidget {
-  const _WaitingPanel();
+  const _WaitingPanel({required this.state});
+  final QrState state;
 
   @override
   Widget build(BuildContext context) {
-    const names = ['Rafael Monteiro', 'Léo Castro', 'Amanda S.'];
+    final participations = state is QrStateLoaded
+        ? (state as QrStateLoaded).table.participations
+        : const <TableParticipation>[];
+    final count = participations.length;
+
+    final label = switch (state) {
+      QrStateLoading() => 'SINCRONIZANDO...',
+      QrStateError() => 'SEM CONEXÃO COM A MESA',
+      _ => 'AGUARDANDO · $count ${count == 1 ? 'ENTROU' : 'ENTRARAM'}',
+    };
+    final labelColor =
+        state is QrStateError ? SpColors.dangerSoft : SpColors.gold;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -266,45 +306,68 @@ class _WaitingPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              LiveDot(),
-              SizedBox(width: 10),
-              Text(
-                'AGUARDANDO · 2 ENTRARAM',
-                style: TextStyle(
-                  fontFamily: SpTypography.uiFamily,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: SpColors.gold,
-                  letterSpacing: 1.3,
+            children: [
+              const LiveDot(),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: SpTypography.uiFamily,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: labelColor,
+                    letterSpacing: 1.3,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              for (var i = 0; i < names.length; i++)
-                Padding(
-                  padding: EdgeInsets.only(left: i == 0 ? 0 : 0),
-                  child: Transform.translate(
-                    offset: Offset(i * -8.0, 0),
-                    child: SpAvatar(name: names[i], size: 32),
-                  ),
-                ),
-              const SizedBox(width: 10),
-              const Text(
-                'Você + 2',
-                style: TextStyle(
-                  fontFamily: SpTypography.uiFamily,
-                  fontSize: 12,
-                  color: SpColors.muted,
-                ),
-              ),
-            ],
-          ),
+          _WaitingAvatars(participations: participations),
         ],
       ),
+    );
+  }
+}
+
+class _WaitingAvatars extends StatelessWidget {
+  const _WaitingAvatars({required this.participations});
+  final List<TableParticipation> participations;
+
+  @override
+  Widget build(BuildContext context) {
+    if (participations.isEmpty) {
+      return const Text(
+        'Compartilhe o link para os convidados entrarem.',
+        style: TextStyle(
+          fontFamily: SpTypography.uiFamily,
+          fontSize: 12,
+          color: SpColors.muted,
+        ),
+      );
+    }
+    final visible = participations.take(5).toList();
+    final extra = participations.length - visible.length;
+    return Row(
+      children: [
+        for (var i = 0; i < visible.length; i++)
+          Transform.translate(
+            offset: Offset(i * -8.0, 0),
+            child: SpAvatar(name: visible[i].userName, size: 32),
+          ),
+        const SizedBox(width: 10),
+        Text(
+          extra > 0
+              ? '+ $extra'
+              : visible.last.userName.split(' ').first,
+          style: const TextStyle(
+            fontFamily: SpTypography.uiFamily,
+            fontSize: 12,
+            color: SpColors.muted,
+          ),
+        ),
+      ],
     );
   }
 }

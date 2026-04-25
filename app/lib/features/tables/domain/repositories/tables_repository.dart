@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 
 import '../entities/poker_table.dart';
 import '../entities/settlement_draft.dart';
+import '../entities/table_preview.dart';
 
 /// Contrato do repositório de mesas.
 abstract class TablesRepository {
@@ -13,6 +14,10 @@ abstract class TablesRepository {
 
   /// Busca uma mesa pelo id. Lança [StateError] se não encontrar.
   Future<PokerTable> getTable(String id);
+
+  /// Visão pública mínima da mesa — usada na tela de pre-join, antes do
+  /// usuário virar participant. Não exige acesso owner/participant.
+  Future<TablePreview> getTablePreview(String id);
 
   /// Fecha a mesa e retorna o plano de acertos P2P.
   ///

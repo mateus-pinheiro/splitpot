@@ -2,10 +2,12 @@ import 'package:decimal/decimal.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../domain/entities/poker_table.dart';
+import '../../domain/entities/table_preview.dart';
 import '../../domain/repositories/tables_repository.dart';
 import '../../domain/usecases/calculate_settlements.dart';
 import '../dto/settlement_dto.dart';
 import '../dto/table_dto.dart';
+import '../dto/table_preview_dto.dart';
 
 /// Implementação de [TablesRepository] sobre os endpoints Nest
 /// (`/tables`, `/settlements`).
@@ -30,6 +32,12 @@ class TablesRepositoryImpl implements TablesRepository {
   Future<PokerTable> getTable(String id) async {
     final json = await _api.get('/tables/$id');
     return TableDto.fromJson(json);
+  }
+
+  @override
+  Future<TablePreview> getTablePreview(String id) async {
+    final json = await _api.get('/tables/$id/preview');
+    return TablePreviewDto.fromJson(json);
   }
 
   @override

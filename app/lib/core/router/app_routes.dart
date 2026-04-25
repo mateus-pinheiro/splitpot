@@ -8,6 +8,9 @@ class AppRoutes {
   static const createTable = '/table/new';
   static const joinTable = '/table/join';
 
+  static const joinByIdPattern = '/table/:id/join';
+  static String joinById(String id) => '/table/$id/join';
+
   static const tableDetailPattern = '/table/:id';
   static String tableDetail(String id) => '/table/$id';
 

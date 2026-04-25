@@ -36,9 +36,33 @@ export class ParticipationsService {
       if (!exists) throw new NotFoundException('Usuário alvo não encontrado');
     }
 
+    if (dto.initialBuyIn !== undefined) {
+      const min = new Prisma.Decimal(table.minBuyIn);
+      const requested = new Prisma.Decimal(dto.initialBuyIn);
+      if (requested.lessThan(min)) {
+        throw new BadRequestException(
+          `Buy-in inicial precisa ser ≥ R$ ${min.toFixed(2)}.`,
+        );
+      }
+    }
+
     try {
-      return await this.prisma.tableParticipation.create({
-        data: { tableId: table.id, userId: targetUserId },
+      return await this.prisma.$transaction(async (tx) => {
+        const participation = await tx.tableParticipation.create({
+          data: { tableId: table.id, userId: targetUserId },
+        });
+        if (dto.initialBuyIn !== undefined) {
+          await tx.buyIn.create({
+            data: {
+              participationId: participation.id,
+              amount: new Prisma.Decimal(dto.initialBuyIn),
+            },
+          });
+        }
+        return tx.tableParticipation.findUniqueOrThrow({
+          where: { id: participation.id },
+          include: { buyIns: true },
+        });
       });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {

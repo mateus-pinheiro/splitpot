@@ -39,6 +39,36 @@ export class TablesService {
     });
   }
 
+  /**
+   * Visão pública mínima da mesa: serve a tela de pre-join, onde o
+   * convidado ainda não é participant e não pode chamar `getById`. Não
+   * expõe PIX, buy-ins, cash-outs nem listas — só o suficiente pra
+   * decidir entrar.
+   */
+  async getPreviewById(firebaseUid: string, tableId: string) {
+    await this.users.requireByFirebaseUid(firebaseUid);
+    const table = await this.prisma.table.findUnique({
+      where: { id: tableId },
+      select: {
+        id: true,
+        name: true,
+        minBuyIn: true,
+        status: true,
+        owner: { select: { name: true } },
+        _count: { select: { participations: true } },
+      },
+    });
+    if (!table) throw new NotFoundException('Mesa não encontrada');
+    return {
+      id: table.id,
+      name: table.name,
+      minBuyIn: table.minBuyIn,
+      status: table.status,
+      ownerName: table.owner.name,
+      participantsCount: table._count.participations,
+    };
+  }
+
   async getById(firebaseUid: string, tableId: string) {
     const user = await this.users.requireByFirebaseUid(firebaseUid);
     const table = await this.prisma.table.findUnique({

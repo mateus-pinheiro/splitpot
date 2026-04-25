@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../domain/usecases/create_table.dart';
 import 'create_table_state.dart';
 
@@ -11,12 +12,17 @@ class CreateTableCubit extends Cubit<CreateTableState> {
   final CreateTable _createTable;
 
   Future<void> submit({required String name, required Decimal minBuyIn}) async {
+    if (state is CreateTableCreating) return;
     emit(const CreateTableState.creating());
     try {
       final table = await _createTable(name: name, minBuyIn: minBuyIn);
       emit(CreateTableState.created(table.id));
+    } on ApiException catch (e) {
+      emit(CreateTableState.error(e.failure));
     } on Object catch (e) {
       emit(CreateTableState.error(Failure.unexpected(message: e.toString())));
     }
   }
+
+  void reset() => emit(const CreateTableState.idle());
 }

@@ -10,6 +10,7 @@ import '../../features/tables/presentation/views/cashout_view.dart';
 import '../../features/tables/presentation/views/close_table_view.dart';
 import '../../features/tables/presentation/views/create_table_view.dart';
 import '../../features/tables/presentation/views/history_view.dart';
+import '../../features/tables/presentation/views/join_by_id_view.dart';
 import '../../features/tables/presentation/views/join_view.dart';
 import '../../features/tables/presentation/views/live_view.dart';
 import '../../features/tables/presentation/views/pix_view.dart';
@@ -61,28 +62,60 @@ class AppRouter {
         builder: (_, s) => PixView(tableId: s.pathParameters['id']!),
       ),
       GoRoute(
+        path: AppRoutes.joinByIdPattern,
+        builder: (_, s) => JoinByIdView(tableId: s.pathParameters['id']!),
+      ),
+      GoRoute(
         path: AppRoutes.tableDetailPattern,
         builder: (_, s) => TableDetailView(tableId: s.pathParameters['id']!),
       ),
     ],
   );
 
+  /// Redireciona preservando o destino original em `?next=`. Sem isso, um
+  /// link compartilhado (ex.: `/table/:id/join`) perde a intenção e o
+  /// usuário cai na home depois do login.
   String? _redirect(BuildContext _, GoRouterState state) {
-    final authState = _authCubit.state;
+    final auth = _authCubit.state;
     final location = state.matchedLocation;
+    final uri = state.uri;
 
-    return switch (authState) {
-      AuthUnauthenticated() || AuthError() =>
-        location == AppRoutes.login ? null : AppRoutes.login,
-      AuthNeedsProfile() || AuthUpdatingProfile() =>
-        location == AppRoutes.completeProfile
-            ? null
-            : AppRoutes.completeProfile,
-      AuthAuthenticated() =>
-        (location == AppRoutes.login || location == AppRoutes.completeProfile)
-            ? AppRoutes.home
-            : null,
+    return switch (auth) {
+      AuthUnauthenticated() || AuthError() => _toLogin(location, uri),
+      AuthNeedsProfile() ||
+      AuthUpdatingProfile() =>
+        _toCompleteProfile(location, uri),
+      AuthAuthenticated() => _afterAuth(location, uri),
       AuthAuthenticating() => null,
     };
+  }
+
+  String? _toLogin(String location, Uri uri) {
+    if (location == AppRoutes.login) return null;
+    final next = uri.toString();
+    if (next.isEmpty || next == AppRoutes.home) {
+      return AppRoutes.login;
+    }
+    return '${AppRoutes.login}?next=${Uri.encodeQueryComponent(next)}';
+  }
+
+  String? _toCompleteProfile(String location, Uri uri) {
+    if (location == AppRoutes.completeProfile) return null;
+    final next = uri.queryParameters['next'];
+    if (next == null || next.isEmpty) {
+      return AppRoutes.completeProfile;
+    }
+    return '${AppRoutes.completeProfile}?next=${Uri.encodeQueryComponent(next)}';
+  }
+
+  String? _afterAuth(String location, Uri uri) {
+    if (location != AppRoutes.login && location != AppRoutes.completeProfile) {
+      return null;
+    }
+    final next = uri.queryParameters['next'];
+    if (next != null && next.isNotEmpty) {
+      return next;
+    }
+    return AppRoutes.home;
   }
 }

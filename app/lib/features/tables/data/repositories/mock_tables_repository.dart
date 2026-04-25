@@ -5,6 +5,7 @@ import '../../domain/entities/buy_in.dart';
 import '../../domain/entities/cash_out.dart';
 import '../../domain/entities/poker_table.dart';
 import '../../domain/entities/table_participation.dart';
+import '../../domain/entities/table_preview.dart';
 import '../../domain/entities/table_status.dart';
 import '../../domain/repositories/tables_repository.dart';
 import '../../domain/usecases/calculate_settlements.dart';
@@ -89,6 +90,23 @@ class MockTablesRepository implements TablesRepository {
       throw StateError('Mesa $id não encontrada');
     }
     return table;
+  }
+
+  @override
+  Future<TablePreview> getTablePreview(String id) async {
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    final table = _store[id];
+    if (table == null) {
+      throw StateError('Mesa $id não encontrada');
+    }
+    return TablePreview(
+      id: table.id,
+      name: table.name,
+      minBuyIn: table.minBuyIn,
+      status: table.status,
+      ownerName: 'Host',
+      participantsCount: table.participations.length,
+    );
   }
 
   @override
