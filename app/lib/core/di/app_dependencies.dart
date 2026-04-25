@@ -12,6 +12,7 @@ import '../../features/tables/data/repositories/participations_repository_impl.d
 import '../../features/tables/data/repositories/tables_repository_impl.dart';
 import '../../features/tables/domain/repositories/participations_repository.dart';
 import '../../features/tables/domain/repositories/tables_repository.dart';
+import '../../features/tables/domain/usecases/add_buy_in.dart';
 import '../../features/tables/domain/usecases/create_table.dart';
 import '../../features/tables/domain/usecases/get_table.dart';
 import '../../features/tables/domain/usecases/get_table_preview.dart';
@@ -20,6 +21,7 @@ import '../../features/tables/presentation/cubit/create_table_cubit.dart';
 import '../../features/tables/presentation/cubit/join_by_id_cubit.dart';
 import '../../features/tables/presentation/cubit/live_cubit.dart';
 import '../../features/tables/presentation/cubit/qr_cubit.dart';
+import '../../features/tables/presentation/cubit/rebuy_cubit.dart';
 import '../../features/tables/presentation/cubit/table_detail_cubit.dart';
 import '../config/app_config.dart';
 import '../network/api_client.dart';
@@ -84,12 +86,14 @@ void registerAppDependencies(DIContainer di) {
   di.registerFactory(() => GetTable(di.get<TablesRepository>()));
   di.registerFactory(() => GetTablePreview(di.get<TablesRepository>()));
   di.registerFactory(() => JoinTable(di.get<ParticipationsRepository>()));
+  di.registerFactory(() => AddBuyIn(di.get<ParticipationsRepository>()));
 
   // Tables — cubits (factory: instância nova por view)
   di.registerFactory(() => CreateTableCubit(di.get<CreateTable>()));
   di.registerFactory(() => TableDetailCubit(di.get<GetTable>()));
   di.registerFactory(() => QrCubit(di.get<GetTable>()));
   di.registerFactory(() => LiveCubit(di.get<GetTable>()));
+  di.registerFactory(() => RebuyCubit(di.get<AddBuyIn>()));
   di.registerFactory(
     () => JoinByIdCubit(
       getTablePreview: di.get<GetTablePreview>(),

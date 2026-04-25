@@ -19,4 +19,14 @@ class ParticipationsRepositoryImpl implements ParticipationsRepository {
         'initialBuyIn': double.parse(initialBuyIn.toString()),
     });
   }
+
+  @override
+  Future<void> addBuyIn({
+    required String participationId,
+    required Decimal amount,
+  }) async {
+    await _api.post('/participations/$participationId/buy-ins', body: {
+      'amount': double.parse(amount.toString()),
+    });
+  }
 }

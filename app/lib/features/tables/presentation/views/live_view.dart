@@ -16,6 +16,7 @@ import '../../domain/entities/poker_table.dart';
 import '../../domain/entities/table_participation.dart';
 import '../cubit/live_cubit.dart';
 import '../utils/join_link.dart';
+import '../widgets/rebuy_dialog.dart';
 
 class LiveView extends StatelessWidget {
   const LiveView({required this.tableId, super.key});
@@ -125,6 +126,15 @@ class _LoadedBody extends StatelessWidget {
     final duration =
         _formatElapsed(DateTime.now().difference(table.createdAt));
 
+    final myParticipation = currentUserId == null
+        ? null
+        : _firstWhereOrNull(
+            participations,
+            (p) => p.userId == currentUserId,
+          );
+
+    final isHost = currentUserId != null && currentUserId == table.ownerId;
+
     return Stack(
       children: [
         Column(
@@ -173,9 +183,16 @@ class _LoadedBody extends StatelessWidget {
         Align(
           alignment: Alignment.bottomCenter,
           child: _ActionBar(
-            isHost: currentUserId != null && currentUserId == table.ownerId,
+            isHost: isHost,
             onCashout: () => context.go(AppRoutes.cashout(tableId)),
             onClose: () => context.go(AppRoutes.closeTable(tableId)),
+            onRebuy: !isHost || myParticipation == null
+                ? null
+                : () => _handleRebuy(
+                      context,
+                      participationId: myParticipation.id,
+                      minBuyIn: table.minBuyIn,
+                    ),
           ),
         ),
       ],
@@ -210,6 +227,28 @@ class _LoadedBody extends StatelessWidget {
     final minutes = d.inMinutes.remainder(60);
     if (hours == 0) return '${minutes}min';
     return '${hours}h ${minutes.toString().padLeft(2, '0')}min';
+  }
+
+  static T? _firstWhereOrNull<T>(Iterable<T> it, bool Function(T) pred) {
+    for (final e in it) {
+      if (pred(e)) return e;
+    }
+    return null;
+  }
+
+  Future<void> _handleRebuy(
+    BuildContext context, {
+    required String participationId,
+    required Decimal minBuyIn,
+  }) async {
+    final liveCubit = context.read<LiveCubit>();
+    final ok = await showRebuyDialog(
+      context,
+      participationId: participationId,
+      minBuyIn: minBuyIn,
+    );
+    if (!ok) return;
+    await liveCubit.refresh();
   }
 }
 
@@ -490,10 +529,14 @@ class _ActionBar extends StatelessWidget {
     required this.isHost,
     required this.onCashout,
     required this.onClose,
+    required this.onRebuy,
   });
   final bool isHost;
   final VoidCallback onCashout;
   final VoidCallback onClose;
+
+  /// `null` se o usuário atual não é participant — desabilita o botão.
+  final VoidCallback? onRebuy;
 
   @override
   Widget build(BuildContext context) {
@@ -512,8 +555,8 @@ class _ActionBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Expanded(
-            child: SpGhostButton(label: '+ Rebuy', onPressed: null),
+          Expanded(
+            child: SpGhostButton(label: '+ Rebuy', onPressed: onRebuy),
           ),
           const SizedBox(width: 10),
           Expanded(
