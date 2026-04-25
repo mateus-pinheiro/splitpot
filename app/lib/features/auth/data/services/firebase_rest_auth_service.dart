@@ -23,9 +23,9 @@ class FirebaseRestAuthService {
     required AppConfig config,
     GoogleSignIn? googleSignIn,
     http.Client? httpClient,
-  })  : _config = config,
-        _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
-        _http = httpClient ?? http.Client();
+  }) : _config = config,
+       _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
+       _http = httpClient ?? http.Client();
 
   final AppConfig _config;
   final GoogleSignIn _googleSignIn;
@@ -96,7 +96,9 @@ class FirebaseRestAuthService {
     await _credentialsController.close();
   }
 
-  Future<void> _onAuthenticationEvent(GoogleSignInAuthenticationEvent event) async {
+  Future<void> _onAuthenticationEvent(
+    GoogleSignInAuthenticationEvent event,
+  ) async {
     if (event is GoogleSignInAuthenticationEventSignIn) {
       await _handleSignIn(event.user);
     }
@@ -173,10 +175,12 @@ class FirebaseRestAuthService {
         ? ((decoded['error'] as Map<String, dynamic>?)?['message'] as String?)
         : null;
     return switch (message) {
-      'USER_DISABLED' =>
-        const Failure.unauthorized(message: 'Usuário desabilitado'),
-      'INVALID_IDP_RESPONSE' =>
-        const Failure.unauthorized(message: 'Resposta do Google inválida'),
+      'USER_DISABLED' => const Failure.unauthorized(
+        message: 'Usuário desabilitado',
+      ),
+      'INVALID_IDP_RESPONSE' => const Failure.unauthorized(
+        message: 'Resposta do Google inválida',
+      ),
       _ => Failure.unexpected(message: message ?? 'Erro de autenticação'),
     };
   }
