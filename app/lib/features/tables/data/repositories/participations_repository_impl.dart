@@ -29,4 +29,24 @@ class ParticipationsRepositoryImpl implements ParticipationsRepository {
       'amount': double.parse(amount.toString()),
     });
   }
+
+  @override
+  Future<void> setCashOut({
+    required String participationId,
+    required Decimal amount,
+  }) async {
+    await _api.put('/participations/$participationId/cash-out', body: {
+      'amount': double.parse(amount.toString()),
+    });
+  }
+
+  @override
+  Future<void> rejoin({
+    required String participationId,
+    required Decimal amount,
+  }) async {
+    await _api.post('/participations/$participationId/rejoin', body: {
+      'amount': double.parse(amount.toString()),
+    });
+  }
 }

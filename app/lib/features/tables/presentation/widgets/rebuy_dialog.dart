@@ -8,12 +8,17 @@ import '../../../../core/di/di_container.dart';
 import '../../../../core/errors/failure.dart';
 import '../cubit/rebuy_cubit.dart';
 
-/// Abre o dialog de rebuy. Resolve em `true` quando o aporte for
-/// confirmado com sucesso — o caller usa esse sinal pra refrescar a UI.
+/// Abre o dialog de aporte. `mode = rebuy` mostra "Adicionar rebuy";
+/// `mode = rejoin` mostra "Entrar novamente" e usa o endpoint atômico
+/// que limpa o cash-out e cria o novo buy-in.
+///
+/// Resolve em `true` quando o aporte for confirmado com sucesso —
+/// o caller usa esse sinal pra refrescar a UI.
 Future<bool> showRebuyDialog(
   BuildContext context, {
   required String participationId,
   required Decimal minBuyIn,
+  RebuyMode mode = RebuyMode.rebuy,
 }) async {
   final result = await showDialog<bool>(
     context: context,
@@ -23,6 +28,7 @@ Future<bool> showRebuyDialog(
       child: _RebuyDialog(
         participationId: participationId,
         minBuyIn: minBuyIn,
+        mode: mode,
       ),
     ),
   );
@@ -33,10 +39,12 @@ class _RebuyDialog extends StatefulWidget {
   const _RebuyDialog({
     required this.participationId,
     required this.minBuyIn,
+    required this.mode,
   });
 
   final String participationId;
   final Decimal minBuyIn;
+  final RebuyMode mode;
 
   @override
   State<_RebuyDialog> createState() => _RebuyDialogState();
@@ -77,13 +85,16 @@ class _RebuyDialogState extends State<_RebuyDialog> {
       );
       return;
     }
-    context
-        .read<RebuyCubit>()
-        .submit(participationId: widget.participationId, amount: amount);
+    context.read<RebuyCubit>().submit(
+          participationId: widget.participationId,
+          amount: amount,
+          mode: widget.mode,
+        );
   }
 
   @override
   Widget build(BuildContext context) {
+    final copy = _Copy.forMode(widget.mode);
     return BlocListener<RebuyCubit, RebuyState>(
       listener: (context, state) {
         if (state is RebuySuccess) {
@@ -92,7 +103,7 @@ class _RebuyDialogState extends State<_RebuyDialog> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: SpColors.danger,
-              content: Text(_messageFor(state.failure)),
+              content: Text(_messageFor(state.failure, copy)),
             ),
           );
           context.read<RebuyCubit>().reset();
@@ -115,18 +126,21 @@ class _RebuyDialogState extends State<_RebuyDialog> {
                 final submitting = state is RebuySubmitting;
                 final amount = _amount;
                 final buttonLabel = amount != null
-                    ? 'Confirmar rebuy · R\$ ${_format(amount)}'
-                    : 'Confirmar rebuy';
+                    ? '${copy.confirmLabel} · R\$ ${_format(amount)}'
+                    : copy.confirmLabel;
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _Header(onClose: () => Navigator.of(context).pop()),
+                    _Header(
+                      eyebrow: copy.eyebrow,
+                      onClose: () => Navigator.of(context).pop(),
+                    ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Adicionar rebuy',
+                    Text(
+                      copy.title,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: SpTypography.displayFamily,
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
@@ -135,10 +149,10 @@ class _RebuyDialogState extends State<_RebuyDialog> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Quanto você está colocando agora na mesa?',
+                    Text(
+                      copy.subtitle,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: SpTypography.uiFamily,
                         fontSize: 12,
                         color: SpColors.muted,
@@ -168,20 +182,57 @@ class _RebuyDialogState extends State<_RebuyDialog> {
     return d.toString();
   }
 
-  static String _messageFor(Failure failure) => switch (failure) {
+  static String _messageFor(Failure failure, _Copy copy) => switch (failure) {
         ValidationFailure(:final message) => message,
         UnauthorizedFailure(:final message) =>
           message ?? 'Sem permissão para alterar essa participação.',
         NotFoundFailure() => 'Participação não encontrada.',
         NetworkFailure() => 'Sem conexão com o servidor.',
-        UnexpectedFailure(:final message) =>
-          message ?? 'Não foi possível registrar o rebuy.',
+        UnexpectedFailure(:final message) => message ?? copy.errorFallback,
         SignInCancelledFailure() => 'Ação cancelada.',
       };
 }
 
+class _Copy {
+  const _Copy({
+    required this.eyebrow,
+    required this.title,
+    required this.subtitle,
+    required this.confirmLabel,
+    required this.errorFallback,
+  });
+
+  final String eyebrow;
+  final String title;
+  final String subtitle;
+  final String confirmLabel;
+  final String errorFallback;
+
+  static _Copy forMode(RebuyMode mode) {
+    switch (mode) {
+      case RebuyMode.rebuy:
+        return const _Copy(
+          eyebrow: 'NOVO APORTE',
+          title: 'Adicionar rebuy',
+          subtitle: 'Quanto você está colocando agora na mesa?',
+          confirmLabel: 'Confirmar rebuy',
+          errorFallback: 'Não foi possível registrar o rebuy.',
+        );
+      case RebuyMode.rejoin:
+        return const _Copy(
+          eyebrow: 'VOLTAR PRA MESA',
+          title: 'Entrar novamente',
+          subtitle: 'Com quanto você está voltando para o jogo?',
+          confirmLabel: 'Confirmar entrada',
+          errorFallback: 'Não foi possível voltar pra mesa.',
+        );
+    }
+  }
+}
+
 class _Header extends StatelessWidget {
-  const _Header({required this.onClose});
+  const _Header({required this.eyebrow, required this.onClose});
+  final String eyebrow;
   final VoidCallback onClose;
 
   @override
@@ -189,9 +240,9 @@ class _Header extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
-          'NOVO APORTE',
-          style: TextStyle(
+        Text(
+          eyebrow,
+          style: const TextStyle(
             fontFamily: SpTypography.uiFamily,
             fontSize: 11,
             fontWeight: FontWeight.w700,

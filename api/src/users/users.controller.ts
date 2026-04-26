@@ -24,6 +24,11 @@ export class UsersController {
     return this.users.requireByFirebaseUid(token.uid);
   }
 
+  @Get('me/stats')
+  async stats(@FirebaseUser() token: DecodedIdToken) {
+    return this.users.getStats(token.uid);
+  }
+
   @Patch('me')
   async update(
     @FirebaseUser() token: DecodedIdToken,

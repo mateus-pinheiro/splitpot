@@ -10,6 +10,7 @@ import '../../features/tables/presentation/views/cashout_view.dart';
 import '../../features/tables/presentation/views/close_table_view.dart';
 import '../../features/tables/presentation/views/create_table_view.dart';
 import '../../features/tables/presentation/views/history_view.dart';
+import '../../features/tables/presentation/views/initial_buy_in_view.dart';
 import '../../features/tables/presentation/views/join_by_id_view.dart';
 import '../../features/tables/presentation/views/join_view.dart';
 import '../../features/tables/presentation/views/live_view.dart';
@@ -44,6 +45,11 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.qrPattern,
         builder: (_, s) => QrView(tableId: s.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: AppRoutes.initialBuyInPattern,
+        builder: (_, s) =>
+            InitialBuyInView(tableId: s.pathParameters['id']!),
       ),
       GoRoute(
         path: AppRoutes.livePattern,

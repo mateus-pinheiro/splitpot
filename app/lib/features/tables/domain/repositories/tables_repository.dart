@@ -3,13 +3,17 @@ import 'package:decimal/decimal.dart';
 import '../entities/poker_table.dart';
 import '../entities/settlement_draft.dart';
 import '../entities/table_preview.dart';
+import '../entities/user_stats.dart';
 
 /// Contrato do repositório de mesas.
 abstract class TablesRepository {
-  /// Cria uma nova mesa aberta com o usuário logado como owner.
+  /// Cria uma nova mesa aberta com o usuário logado como owner. Quando
+  /// `joinAsPlayer` é `true`, o owner também já entra como participante
+  /// (sem aporte inicial — declara depois).
   Future<PokerTable> createTable({
     required String name,
     required Decimal minBuyIn,
+    bool joinAsPlayer = false,
   });
 
   /// Busca uma mesa pelo id. Lança [StateError] se não encontrar.
@@ -24,6 +28,9 @@ abstract class TablesRepository {
   /// Só o owner pode fechar. Depois de fechada a mesa é imutável
   /// (decidido em 2026-04-22 — pode mudar com demanda real).
   Future<CloseTableResult> closeTable(String id);
+
+  /// Stats agregadas pra home (P&L total, mesas, vitórias, recentes).
+  Future<UserStats> getUserStats();
 }
 
 class CloseTableResult {

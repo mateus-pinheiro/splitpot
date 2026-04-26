@@ -126,6 +126,30 @@ export class ParticipationsService {
     });
   }
 
+  async removeCashOut(firebaseUid: string, participationId: string) {
+    const caller = await this.users.requireByFirebaseUid(firebaseUid);
+    await this.requireEditable(participationId, caller.id);
+    // deleteMany evita 404 caso o participante nunca tenha gravado um cash-out.
+    await this.prisma.cashOut.deleteMany({ where: { participationId } });
+  }
+
+  /// Volta um participante que tinha saído: numa única transação remove
+  /// o cash-out (se houver) e grava o novo buy-in. Atômico — evita
+  /// estado intermediário "saiu mas sem aporte de retorno".
+  async rejoin(firebaseUid: string, participationId: string, dto: AddBuyInDto) {
+    const caller = await this.users.requireByFirebaseUid(firebaseUid);
+    await this.requireEditable(participationId, caller.id);
+    return this.prisma.$transaction(async (tx) => {
+      await tx.cashOut.deleteMany({ where: { participationId } });
+      return tx.buyIn.create({
+        data: {
+          participationId,
+          amount: new Prisma.Decimal(dto.amount),
+        },
+      });
+    });
+  }
+
   private async requireEditable(participationId: string, callerUserId: string) {
     const participation = await this.prisma.tableParticipation.findUnique({
       where: { id: participationId },

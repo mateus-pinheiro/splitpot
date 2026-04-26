@@ -3,14 +3,16 @@ import 'package:decimal/decimal.dart';
 import '../../../../core/network/api_client.dart';
 import '../../domain/entities/poker_table.dart';
 import '../../domain/entities/table_preview.dart';
+import '../../domain/entities/user_stats.dart';
 import '../../domain/repositories/tables_repository.dart';
 import '../../domain/usecases/calculate_settlements.dart';
 import '../dto/settlement_dto.dart';
 import '../dto/table_dto.dart';
 import '../dto/table_preview_dto.dart';
+import '../dto/user_stats_dto.dart';
 
 /// Implementação de [TablesRepository] sobre os endpoints Nest
-/// (`/tables`, `/settlements`).
+/// (`/tables`, `/settlements`, `/users/me/stats`).
 class TablesRepositoryImpl implements TablesRepository {
   TablesRepositoryImpl(this._api);
 
@@ -20,10 +22,12 @@ class TablesRepositoryImpl implements TablesRepository {
   Future<PokerTable> createTable({
     required String name,
     required Decimal minBuyIn,
+    bool joinAsPlayer = false,
   }) async {
     final json = await _api.post('/tables', body: {
       'name': name,
       'minBuyIn': double.parse(minBuyIn.toString()),
+      if (joinAsPlayer) 'joinAsPlayer': true,
     });
     return TableDto.fromJson(json);
   }
@@ -44,7 +48,8 @@ class TablesRepositoryImpl implements TablesRepository {
   Future<CloseTableResult> closeTable(String id) async {
     final closeJson = await _api.post('/tables/$id/close');
     final table = TableDto.fromJson(closeJson);
-    final settlementsJson = closeJson['settlements'] as List<dynamic>? ?? const [];
+    final settlementsJson =
+        closeJson['settlements'] as List<dynamic>? ?? const [];
     final settlements = settlementsJson
         .map((e) => SettlementDto.toDraft(e as Map<String, dynamic>))
         .toList(growable: false);
@@ -53,5 +58,11 @@ class TablesRepositoryImpl implements TablesRepository {
       settlements: settlements,
       divergence: tableDivergence(table),
     );
+  }
+
+  @override
+  Future<UserStats> getUserStats() async {
+    final json = await _api.get('/users/me/stats');
+    return UserStatsDto.fromJson(json);
   }
 }

@@ -14,4 +14,18 @@ abstract class ParticipationsRepository {
     required String participationId,
     required Decimal amount,
   });
+
+  /// Registra/atualiza o cash-out de uma participação (PUT semântico —
+  /// upsert no backend). O participante declara com quanto saiu da mesa.
+  Future<void> setCashOut({
+    required String participationId,
+    required Decimal amount,
+  });
+
+  /// Volta um participante que já tinha saído: limpa o cash-out e grava
+  /// o novo buy-in num único request — atômico no backend.
+  Future<void> rejoin({
+    required String participationId,
+    required Decimal amount,
+  });
 }

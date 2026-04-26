@@ -11,12 +11,23 @@ class CreateTableCubit extends Cubit<CreateTableState> {
 
   final CreateTable _createTable;
 
-  Future<void> submit({required String name, required Decimal minBuyIn}) async {
+  Future<void> submit({
+    required String name,
+    required Decimal minBuyIn,
+    bool joinAsPlayer = false,
+  }) async {
     if (state is CreateTableCreating) return;
     emit(const CreateTableState.creating());
     try {
-      final table = await _createTable(name: name, minBuyIn: minBuyIn);
-      emit(CreateTableState.created(table.id));
+      final table = await _createTable(
+        name: name,
+        minBuyIn: minBuyIn,
+        joinAsPlayer: joinAsPlayer,
+      );
+      emit(CreateTableState.created(
+        tableId: table.id,
+        joinedAsPlayer: joinAsPlayer,
+      ));
     } on ApiException catch (e) {
       emit(CreateTableState.error(e.failure));
     } on Object catch (e) {

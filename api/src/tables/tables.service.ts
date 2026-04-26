@@ -20,12 +20,20 @@ export class TablesService {
 
   async create(firebaseUid: string, dto: CreateTableDto): Promise<Table> {
     const owner = await this.users.requireByFirebaseUid(firebaseUid);
-    return this.prisma.table.create({
-      data: {
-        ownerId: owner.id,
-        name: dto.name,
-        minBuyIn: new Prisma.Decimal(dto.minBuyIn),
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const table = await tx.table.create({
+        data: {
+          ownerId: owner.id,
+          name: dto.name,
+          minBuyIn: new Prisma.Decimal(dto.minBuyIn),
+        },
+      });
+      if (dto.joinAsPlayer === true) {
+        await tx.tableParticipation.create({
+          data: { tableId: table.id, userId: owner.id },
+        });
+      }
+      return table;
     });
   }
 

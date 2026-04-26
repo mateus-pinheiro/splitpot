@@ -55,8 +55,12 @@ class _CreateTableScaffold extends StatelessWidget {
 
   void _onStateChange(BuildContext context, CreateTableState state) {
     switch (state) {
-      case CreateTableCreated(:final tableId):
-        context.go(AppRoutes.qr(tableId));
+      case CreateTableCreated(:final tableId, :final joinedAsPlayer):
+        if (joinedAsPlayer) {
+          context.go(AppRoutes.initialBuyIn(tableId));
+        } else {
+          context.go(AppRoutes.qr(tableId));
+        }
       case CreateTableError(:final failure):
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -170,7 +174,11 @@ class _CreateTableFormState extends State<_CreateTableForm> {
       _showValidationError('Informe um buy-in mínimo maior que zero.');
       return;
     }
-    context.read<CreateTableCubit>().submit(name: name, minBuyIn: min);
+    context.read<CreateTableCubit>().submit(
+          name: name,
+          minBuyIn: min,
+          joinAsPlayer: _willPlay,
+        );
   }
 
   void _showValidationError(String msg) {

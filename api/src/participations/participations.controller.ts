@@ -57,4 +57,25 @@ export class ParticipationsController {
   ) {
     return this.participations.setCashOut(token.uid, id, dto);
   }
+
+  @Delete(':id/cash-out')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeCashOut(
+    @FirebaseUser() token: DecodedIdToken,
+    @Param('id') id: string,
+  ) {
+    await this.participations.removeCashOut(token.uid, id);
+  }
+
+  /// Volta um participante que já tinha cash-out: limpa o cash-out e
+  /// grava um novo buy-in (transação atômica). Reusa AddBuyInDto pra
+  /// receber `{ amount }`.
+  @Post(':id/rejoin')
+  rejoin(
+    @FirebaseUser() token: DecodedIdToken,
+    @Param('id') id: string,
+    @Body() dto: AddBuyInDto,
+  ) {
+    return this.participations.rejoin(token.uid, id, dto);
+  }
 }

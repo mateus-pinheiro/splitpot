@@ -15,6 +15,7 @@ import '../../domain/entities/buy_in.dart';
 import '../../domain/entities/poker_table.dart';
 import '../../domain/entities/table_participation.dart';
 import '../cubit/live_cubit.dart';
+import '../cubit/rebuy_cubit.dart';
 import '../utils/join_link.dart';
 import '../widgets/rebuy_dialog.dart';
 
@@ -184,14 +185,25 @@ class _LoadedBody extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           child: _ActionBar(
             isHost: isHost,
+            hasLeftTable:
+                myParticipation != null && myParticipation.cashOut != null,
             onCashout: () => context.go(AppRoutes.cashout(tableId)),
             onClose: () => context.go(AppRoutes.closeTable(tableId)),
-            onRebuy: !isHost || myParticipation == null
+            onRebuy: myParticipation == null
                 ? null
                 : () => _handleRebuy(
                       context,
                       participationId: myParticipation.id,
                       minBuyIn: table.minBuyIn,
+                      mode: RebuyMode.rebuy,
+                    ),
+            onRejoin: myParticipation == null
+                ? null
+                : () => _handleRebuy(
+                      context,
+                      participationId: myParticipation.id,
+                      minBuyIn: table.minBuyIn,
+                      mode: RebuyMode.rejoin,
                     ),
           ),
         ),
@@ -240,12 +252,14 @@ class _LoadedBody extends StatelessWidget {
     BuildContext context, {
     required String participationId,
     required Decimal minBuyIn,
+    required RebuyMode mode,
   }) async {
     final liveCubit = context.read<LiveCubit>();
     final ok = await showRebuyDialog(
       context,
       participationId: participationId,
       minBuyIn: minBuyIn,
+      mode: mode,
     );
     if (!ok) return;
     await liveCubit.refresh();
@@ -527,16 +541,24 @@ class _RoleBadge extends StatelessWidget {
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
     required this.isHost,
+    required this.hasLeftTable,
     required this.onCashout,
     required this.onClose,
     required this.onRebuy,
+    required this.onRejoin,
   });
   final bool isHost;
+
+  /// `true` se o participante atual já registrou cash-out — barra muda
+  /// pra um único CTA "Entrar novamente".
+  final bool hasLeftTable;
+
   final VoidCallback onCashout;
   final VoidCallback onClose;
 
   /// `null` se o usuário atual não é participant — desabilita o botão.
   final VoidCallback? onRebuy;
+  final VoidCallback? onRejoin;
 
   @override
   Widget build(BuildContext context) {
@@ -553,34 +575,40 @@ class _ActionBar extends StatelessWidget {
           stops: const [0.0, 0.35],
         ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: SpGhostButton(label: '+ Rebuy', onPressed: onRebuy),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: SpGhostButton(
-              label: 'Sair da mesa',
-              onPressed: onCashout,
-              color: SpColors.dangerSoft,
-              borderColor: SpColors.dangerSoft.withValues(alpha: 0.4),
+      child: hasLeftTable
+          ? SpGoldButton(
+              label: 'Entrar novamente',
+              onPressed: onRejoin,
+              height: 52,
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: SpGhostButton(label: '+ Rebuy', onPressed: onRebuy),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SpGhostButton(
+                    label: 'Sair da mesa',
+                    onPressed: onCashout,
+                    color: SpColors.dangerSoft,
+                    borderColor: SpColors.dangerSoft.withValues(alpha: 0.4),
+                  ),
+                ),
+                if (isHost) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: SpGoldButton(
+                      label: 'Fechar mesa',
+                      onPressed: onClose,
+                      height: 48,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ),
-          if (isHost) ...[
-            const SizedBox(width: 10),
-            Expanded(
-              flex: 2,
-              child: SpGoldButton(
-                label: 'Fechar mesa',
-                onPressed: onClose,
-                height: 48,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 }

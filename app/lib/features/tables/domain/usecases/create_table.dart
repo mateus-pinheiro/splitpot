@@ -11,7 +11,12 @@ class CreateTable {
   Future<PokerTable> call({
     required String name,
     required Decimal minBuyIn,
+    bool joinAsPlayer = false,
   }) {
-    return _repository.createTable(name: name, minBuyIn: minBuyIn);
+    return _repository.createTable(
+      name: name,
+      minBuyIn: minBuyIn,
+      joinAsPlayer: joinAsPlayer,
+    );
   }
 }

@@ -1,26 +1,34 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/design/design_system.dart';
+import '../../../../core/di/di_container.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../auth/domain/entities/user.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
+import '../../../tables/domain/entities/table_status.dart';
+import '../../../tables/domain/entities/user_stats.dart';
+import '../cubit/home_stats_cubit.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: FeltBackground(
-        child: SafeArea(
-          child: BlocBuilder<AuthCubit, AuthState>(
-            builder: (context, state) {
-              final user = state is AuthAuthenticated ? state.user : null;
-              return _HomeScaffold(user: user);
-            },
+    return BlocProvider<HomeStatsCubit>(
+      create: (_) => appDI.get<HomeStatsCubit>()..load(),
+      child: Scaffold(
+        body: FeltBackground(
+          child: SafeArea(
+            child: BlocBuilder<AuthCubit, AuthState>(
+              builder: (context, state) {
+                final user = state is AuthAuthenticated ? state.user : null;
+                return _HomeScaffold(user: user);
+              },
+            ),
           ),
         ),
       ),
@@ -56,94 +64,66 @@ class _HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
-      children: [
-        const _HeroCreateCard(),
-        const SizedBox(height: 14),
-        const _JoinByCodeRow(),
-        const SizedBox(height: 28),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Suas estatísticas',
-                style: TextStyle(
-                  fontFamily: SpTypography.displayFamily,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: SpColors.cream,
-                ),
-              ),
-              TextButton(
-                onPressed: () => context.go(AppRoutes.history),
-                style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                child: const Text(
-                  'Ver tudo',
+    return RefreshIndicator(
+      color: SpColors.goldBright,
+      backgroundColor: SpColors.feltDeep,
+      onRefresh: () => context.read<HomeStatsCubit>().load(),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
+        children: [
+          const _HeroCreateCard(),
+          const SizedBox(height: 28),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Suas estatísticas',
                   style: TextStyle(
-                    fontFamily: SpTypography.uiFamily,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: SpColors.gold,
+                    fontFamily: SpTypography.displayFamily,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: SpColors.cream,
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        const Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                label: 'P&L total',
-                value: '+R\$ 842',
-                sub: 'em 12 mesas',
-                valueColor: SpColors.success,
-              ),
-            ),
-            SizedBox(width: 10),
-            Expanded(
-              child: _StatCard(
-                label: 'Taxa de vitória',
-                value: '58%',
-                sub: '7 de 12 mesas',
-                valueColor: Color(0xFF222222),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 28),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4),
-          child: Text(
-            'Mesas recentes',
-            style: TextStyle(
-              fontFamily: SpTypography.displayFamily,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: SpColors.cream,
+                TextButton(
+                  onPressed: () => context.go(AppRoutes.history),
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  child: const Text(
+                    'Ver tudo',
+                    style: TextStyle(
+                      fontFamily: SpTypography.uiFamily,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: SpColors.gold,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        for (final t in _recents)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _RecentTableRow(table: t),
+          const SizedBox(height: 12),
+          const _StatsGrid(),
+          const SizedBox(height: 28),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              'Mesas recentes',
+              style: TextStyle(
+                fontFamily: SpTypography.displayFamily,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: SpColors.cream,
+              ),
+            ),
           ),
-      ],
+          const SizedBox(height: 12),
+          const _RecentList(),
+        ],
+      ),
     );
   }
-
-  static const _recents = <_RecentTable>[
-    _RecentTable(date: 'Ontem', name: 'Sexta na casa do Léo', players: 7, pl: 340),
-    _RecentTable(date: '12 abr', name: 'Mesa do escritório', players: 5, pl: -120),
-    _RecentTable(
-        date: '05 abr', name: 'Aniversário do Caio', players: 6, pl: 622, host: true),
-  ];
 }
 
 class _HeroCreateCard extends StatelessWidget {
@@ -238,73 +218,68 @@ class _HeroCreateCard extends StatelessWidget {
   }
 }
 
-class _JoinByCodeRow extends StatelessWidget {
-  const _JoinByCodeRow();
+class _StatsGrid extends StatelessWidget {
+  const _StatsGrid();
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => context.go(AppRoutes.joinTable),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-          decoration: BoxDecoration(
-            color: SpColors.feltRail.withValues(alpha: 0.55),
-            border:
-                Border.all(color: SpColors.cream.withValues(alpha: 0.1)),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: SpColors.gold.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.qr_code_2,
-                  color: SpColors.goldBright,
-                  size: 22,
-                ),
+    return BlocBuilder<HomeStatsCubit, HomeStatsState>(
+      builder: (context, state) {
+        final loading = state is HomeStatsLoading;
+        final stats = state is HomeStatsLoaded ? state.stats : null;
+
+        final pnl = stats == null ? null : _formatPnl(stats.pnlTotal);
+        final pnlSub = stats == null
+            ? '—'
+            : 'em ${stats.mesas} ${stats.mesas == 1 ? 'mesa' : 'mesas'}';
+        final pnlColor = stats == null
+            ? const Color(0xFF222222)
+            : (stats.pnlTotal >= Decimal.zero
+                ? SpColors.success
+                : SpColors.danger);
+
+        final winRate =
+            stats == null ? null : _formatWinRate(stats.wins, stats.mesas);
+        final winSub = stats == null
+            ? '—'
+            : '${stats.wins} de ${stats.mesas} ${stats.mesas == 1 ? 'mesa' : 'mesas'}';
+
+        return Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                label: 'P&L total',
+                value: pnl ?? '—',
+                sub: pnlSub,
+                valueColor: pnlColor,
+                loading: loading,
               ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Entrar com código',
-                      style: TextStyle(
-                        fontFamily: SpTypography.uiFamily,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: SpColors.cream,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Escaneie o QR ou digite o ID',
-                      style: TextStyle(
-                        fontFamily: SpTypography.uiFamily,
-                        fontSize: 12,
-                        color: SpColors.muted,
-                      ),
-                    ),
-                  ],
-                ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _StatCard(
+                label: 'Taxa de vitória',
+                value: winRate ?? '—',
+                sub: winSub,
+                valueColor: const Color(0xFF222222),
+                loading: loading,
               ),
-              const Icon(Icons.chevron_right,
-                  color: SpColors.muted, size: 20),
-            ],
-          ),
-        ),
-      ),
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  static String _formatPnl(Decimal value) {
+    final prefix = value > Decimal.zero ? '+' : '';
+    return '$prefix${brlFromDecimal(value)}';
+  }
+
+  static String _formatWinRate(int wins, int mesas) {
+    if (mesas == 0) return '0%';
+    final rate = (wins * 100 / mesas).round();
+    return '$rate%';
   }
 }
 
@@ -314,12 +289,14 @@ class _StatCard extends StatelessWidget {
     required this.value,
     required this.sub,
     required this.valueColor,
+    required this.loading,
   });
 
   final String label;
   final String value;
   final String sub;
   final Color valueColor;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -347,15 +324,30 @@ class _StatCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontFamily: SpTypography.numFamily,
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: valueColor,
-            ),
-          ),
+          loading
+              ? const SizedBox(
+                  height: 22,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: SpColors.gold,
+                      ),
+                    ),
+                  ),
+                )
+              : Text(
+                  value,
+                  style: TextStyle(
+                    fontFamily: SpTypography.numFamily,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: valueColor,
+                  ),
+                ),
           const SizedBox(height: 2),
           Text(
             sub,
@@ -371,35 +363,102 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _RecentTable {
-  const _RecentTable({
-    required this.date,
-    required this.name,
-    required this.players,
-    required this.pl,
-    this.host = false,
-  });
-  final String date;
-  final String name;
-  final int players;
-  final int pl;
-  final bool host;
+class _RecentList extends StatelessWidget {
+  const _RecentList();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<HomeStatsCubit, HomeStatsState>(
+      builder: (context, state) {
+        if (state is HomeStatsLoading) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: SizedBox(
+                height: 22,
+                width: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: SpColors.goldBright,
+                ),
+              ),
+            ),
+          );
+        }
+        if (state is HomeStatsError) {
+          return _StatusMessage(
+            text: 'Não foi possível carregar suas mesas.',
+            color: SpColors.dangerSoft,
+          );
+        }
+        if (state is HomeStatsLoaded) {
+          final recents = state.stats.recents;
+          if (recents.isEmpty) {
+            return const _StatusMessage(
+              text: 'Nenhuma mesa ainda. Crie sua primeira para começar.',
+              color: SpColors.muted,
+            );
+          }
+          return Column(
+            children: [
+              for (final t in recents)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _RecentTableRow(table: t),
+                ),
+            ],
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+}
+
+class _StatusMessage extends StatelessWidget {
+  const _StatusMessage({required this.text, required this.color});
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: SpColors.feltRail.withValues(alpha: 0.45),
+        border: Border.all(color: SpColors.cream.withValues(alpha: 0.08)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: SpTypography.uiFamily,
+          fontSize: 13,
+          color: color,
+        ),
+      ),
+    );
+  }
 }
 
 class _RecentTableRow extends StatelessWidget {
   const _RecentTableRow({required this.table});
-  final _RecentTable table;
+  final RecentTableSummary table;
 
   @override
   Widget build(BuildContext context) {
-    final parts = table.date.split(' ');
-    final top = parts.length == 2 ? parts[1].toUpperCase() : parts[0].substring(0, 3).toUpperCase();
-    final bottom = parts.length == 2 ? parts[0] : null;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () {},
+        onTap: () {
+          if (table.status == TableStatus.closed) {
+            context.go(AppRoutes.tableDetail(table.id));
+          } else {
+            context.go(AppRoutes.live(table.id));
+          }
+        },
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
           decoration: BoxDecoration(
@@ -409,44 +468,7 @@ class _RecentTableRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: SpColors.gold.withValues(alpha: 0.12),
-                  border: Border.all(
-                      color: SpColors.gold.withValues(alpha: 0.2)),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      top,
-                      style: const TextStyle(
-                        fontFamily: SpTypography.uiFamily,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: SpColors.gold,
-                        letterSpacing: 1.0,
-                        height: 1.0,
-                      ),
-                    ),
-                    if (bottom != null)
-                      Text(
-                        bottom,
-                        style: const TextStyle(
-                          fontFamily: SpTypography.displayFamily,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: SpColors.cream,
-                          height: 1.0,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+              _DateBadge(date: table.createdAt, status: table.status),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -466,7 +488,7 @@ class _RecentTableRow extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (table.host)
+                        if (table.isHost)
                           const Padding(
                             padding: EdgeInsets.only(left: 4),
                             child: Text(
@@ -484,7 +506,7 @@ class _RecentTableRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${table.players} jogadores',
+                      _secondary(table),
                       style: const TextStyle(
                         fontFamily: SpTypography.uiFamily,
                         fontSize: 12,
@@ -494,19 +516,120 @@ class _RecentTableRow extends StatelessWidget {
                   ],
                 ),
               ),
-              Text(
-                (table.pl >= 0 ? '+' : '') + brl(table.pl),
-                style: TextStyle(
-                  fontFamily: SpTypography.numFamily,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color:
-                      table.pl >= 0 ? SpColors.success : SpColors.dangerSoft,
-                ),
-              ),
+              _PlValue(table: table),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  static String _secondary(RecentTableSummary t) {
+    final players = '${t.players} ${t.players == 1 ? 'jogador' : 'jogadores'}';
+    if (t.status == TableStatus.open) return 'Em andamento · $players';
+    return players;
+  }
+}
+
+class _PlValue extends StatelessWidget {
+  const _PlValue({required this.table});
+  final RecentTableSummary table;
+
+  @override
+  Widget build(BuildContext context) {
+    if (table.status == TableStatus.open) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: SpColors.gold.withValues(alpha: 0.18),
+          border: Border.all(color: SpColors.gold.withValues(alpha: 0.4)),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: const Text(
+          'AO VIVO',
+          style: TextStyle(
+            fontFamily: SpTypography.uiFamily,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: SpColors.goldBright,
+            letterSpacing: 1.0,
+          ),
+        ),
+      );
+    }
+    final pl = table.pl;
+    if (pl == null) {
+      return const Text(
+        '—',
+        style: TextStyle(
+          fontFamily: SpTypography.numFamily,
+          fontSize: 15,
+          color: SpColors.muted,
+        ),
+      );
+    }
+    final positive = pl >= Decimal.zero;
+    final prefix = pl > Decimal.zero ? '+' : '';
+    return Text(
+      '$prefix${brlFromDecimal(pl)}',
+      style: TextStyle(
+        fontFamily: SpTypography.numFamily,
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+        color: positive ? SpColors.success : SpColors.dangerSoft,
+      ),
+    );
+  }
+}
+
+class _DateBadge extends StatelessWidget {
+  const _DateBadge({required this.date, required this.status});
+  final DateTime date;
+  final TableStatus status;
+
+  static const _months = [
+    'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
+    'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        status == TableStatus.open ? SpColors.gold : SpColors.goldDark;
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: SpColors.gold.withValues(alpha: 0.12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            _months[date.month - 1],
+            style: TextStyle(
+              fontFamily: SpTypography.uiFamily,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: color,
+              letterSpacing: 1.0,
+              height: 1.0,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            date.day.toString().padLeft(2, '0'),
+            style: const TextStyle(
+              fontFamily: SpTypography.displayFamily,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: SpColors.cream,
+              height: 1.0,
+            ),
+          ),
+        ],
       ),
     );
   }
