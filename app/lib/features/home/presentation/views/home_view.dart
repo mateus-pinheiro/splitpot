@@ -1,5 +1,6 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -72,7 +73,8 @@ class _HomeContent extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
         children: [
           const _HeroCreateCard(),
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
+          const _DebtsBlock(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Row(
@@ -453,8 +455,10 @@ class _RecentTableRow extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          if (table.status == TableStatus.closed) {
-            context.go(AppRoutes.tableDetail(table.id));
+          if (table.hasPendingSettlements) {
+            context.push(AppRoutes.pix(table.id));
+          } else if (table.status == TableStatus.closed) {
+            context.push(AppRoutes.tableDetail(table.id));
           } else {
             context.go(AppRoutes.live(table.id));
           }
@@ -526,6 +530,9 @@ class _RecentTableRow extends StatelessWidget {
 
   static String _secondary(RecentTableSummary t) {
     final players = '${t.players} ${t.players == 1 ? 'jogador' : 'jogadores'}';
+    if (t.hasPendingSettlements) {
+      return 'Aguardando pagamentos · $players';
+    }
     if (t.status == TableStatus.open) return 'Em andamento · $players';
     return players;
   }
@@ -537,24 +544,20 @@ class _PlValue extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (table.hasPendingSettlements) {
+      return _StatusBadge(
+        label: 'AGUARDANDO',
+        color: SpColors.goldBright,
+        bg: SpColors.gold.withValues(alpha: 0.18),
+        border: SpColors.gold.withValues(alpha: 0.4),
+      );
+    }
     if (table.status == TableStatus.open) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: SpColors.gold.withValues(alpha: 0.18),
-          border: Border.all(color: SpColors.gold.withValues(alpha: 0.4)),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: const Text(
-          'AO VIVO',
-          style: TextStyle(
-            fontFamily: SpTypography.uiFamily,
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: SpColors.goldBright,
-            letterSpacing: 1.0,
-          ),
-        ),
+      return _StatusBadge(
+        label: 'AO VIVO',
+        color: SpColors.goldBright,
+        bg: SpColors.gold.withValues(alpha: 0.18),
+        border: SpColors.gold.withValues(alpha: 0.4),
       );
     }
     final pl = table.pl;
@@ -644,6 +647,398 @@ class _BellIcon extends StatelessWidget {
       icon: const Icon(Icons.notifications_none),
       color: SpColors.goldBright,
       splashRadius: 20,
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({
+    required this.label,
+    required this.color,
+    required this.bg,
+    required this.border,
+  });
+  final String label;
+  final Color color;
+  final Color bg;
+  final Color border;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontFamily: SpTypography.uiFamily,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: color,
+          letterSpacing: 1.0,
+        ),
+      ),
+    );
+  }
+}
+
+/// Bloco "Você deve" — só aparece quando há settlements pendentes.
+class _DebtsBlock extends StatelessWidget {
+  const _DebtsBlock();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<HomeStatsCubit, HomeStatsState>(
+      buildWhen: (p, c) => c is HomeStatsLoaded || p is HomeStatsLoaded,
+      builder: (context, state) {
+        if (state is! HomeStatsLoaded) return const SizedBox.shrink();
+        final debts = state.stats.debts;
+        if (debts.isEmpty) return const SizedBox.shrink();
+
+        final total = debts.fold<Decimal>(
+          Decimal.zero,
+          (acc, d) => acc + d.amount,
+        );
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Você deve',
+                      style: TextStyle(
+                        fontFamily: SpTypography.displayFamily,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: SpColors.cream,
+                      ),
+                    ),
+                    Text(
+                      '−${brlFromDecimal(total)}',
+                      style: const TextStyle(
+                        fontFamily: SpTypography.numFamily,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: SpColors.dangerSoft,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              for (final d in debts)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _DebtRow(debt: d),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+void _showPixDialog(BuildContext context, DebtItem debt) {
+  showDialog<void>(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.55),
+    builder: (_) => _DebtPixDialog(
+      debt: debt,
+      onConfirm: () => context.read<HomeStatsCubit>().confirmDebt(debt.id),
+    ),
+  );
+}
+
+class _DebtRow extends StatelessWidget {
+  const _DebtRow({required this.debt});
+  final DebtItem debt;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _showPixDialog(context, debt),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          decoration: BoxDecoration(
+            color: SpColors.danger.withValues(alpha: 0.1),
+            border: Border.all(color: SpColors.danger.withValues(alpha: 0.3)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              SpAvatar(name: debt.toName, size: 36),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pagar para ${debt.toName}',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: SpTypography.uiFamily,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: SpColors.cream,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      debt.tableName,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: SpTypography.uiFamily,
+                        fontSize: 12,
+                        color: SpColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                brlFromDecimal(debt.amount),
+                style: const TextStyle(
+                  fontFamily: SpTypography.numFamily,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: SpColors.dangerSoft,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DebtPixDialog extends StatefulWidget {
+  const _DebtPixDialog({required this.debt, required this.onConfirm});
+  final DebtItem debt;
+  final Future<void> Function() onConfirm;
+
+  @override
+  State<_DebtPixDialog> createState() => _DebtPixDialogState();
+}
+
+class _DebtPixDialogState extends State<_DebtPixDialog> {
+  bool _loading = false;
+
+  Future<void> _handleConfirm() async {
+    setState(() => _loading = true);
+    try {
+      await widget.onConfirm();
+      if (mounted) Navigator.of(context).pop();
+    } on Object catch (_) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: SpColors.danger,
+            content: Text('Não foi possível confirmar. Tente novamente.'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _copy(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: SpColors.feltRail,
+        content: Text('Copiado!'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final debt = widget.debt;
+    final pixText = debt.pixCopiaECola ?? debt.toPixKey;
+    final isFullPix = debt.pixCopiaECola != null;
+
+    return Dialog(
+      backgroundColor: SpColors.feltDeep,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: SpColors.danger.withValues(alpha: 0.4)),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'TRANSFERÊNCIA PENDENTE',
+                    style: TextStyle(
+                      fontFamily: SpTypography.uiFamily,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: SpColors.dangerSoft,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _loading ? null : () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, size: 20),
+                    color: SpColors.cream,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  SpAvatar(name: debt.toName, size: 40),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pagar para ${debt.toName}',
+                          style: const TextStyle(
+                            fontFamily: SpTypography.uiFamily,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: SpColors.cream,
+                          ),
+                        ),
+                        Text(
+                          debt.tableName,
+                          style: const TextStyle(
+                            fontFamily: SpTypography.uiFamily,
+                            fontSize: 12,
+                            color: SpColors.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    brlFromDecimal(debt.amount),
+                    style: const TextStyle(
+                      fontFamily: SpTypography.numFamily,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: SpColors.dangerSoft,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+                decoration: BoxDecoration(
+                  color: SpColors.feltRail.withValues(alpha: 0.6),
+                  border: Border.all(color: SpColors.gold.withValues(alpha: 0.25)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isFullPix ? 'PIX COPIA E COLA' : 'CHAVE PIX',
+                            style: const TextStyle(
+                              fontFamily: SpTypography.uiFamily,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: SpColors.gold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            pixText,
+                            maxLines: isFullPix ? 2 : 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: SpTypography.uiFamily,
+                              fontSize: isFullPix ? 11 : 13,
+                              color: SpColors.cream,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => _copy(pixText),
+                      icon: const Icon(Icons.copy, size: 18),
+                      color: SpColors.gold,
+                      tooltip: 'Copiar',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _loading ? null : () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: SpColors.muted,
+                        side: BorderSide(color: SpColors.cream.withValues(alpha: 0.2)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text(
+                        'Fechar',
+                        style: TextStyle(
+                          fontFamily: SpTypography.uiFamily,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SpGoldButton(
+                      label: 'PAGO',
+                      loading: _loading,
+                      onPressed: _loading ? null : _handleConfirm,
+                      trailing: _loading
+                          ? null
+                          : const Icon(Icons.check, size: 16, color: Color(0xFF2A1D08)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

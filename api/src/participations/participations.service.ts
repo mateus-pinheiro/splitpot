@@ -10,13 +10,15 @@ import { UsersService } from '../users/users.service.js';
 import type { AddBuyInDto } from './dto/add-buy-in.dto.js';
 import type { CreateParticipationDto } from './dto/create-participation.dto.js';
 import type { SetCashOutDto } from './dto/set-cash-out.dto.js';
+import { TablesService } from '../tables/tables.service.js';
 
 @Injectable()
 export class ParticipationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly users: UsersService,
-  ) {}
+    private readonly tables: TablesService,
+  ) { }
 
   async join(firebaseUid: string, dto: CreateParticipationDto) {
     const caller = await this.users.requireByFirebaseUid(firebaseUid);
@@ -86,10 +88,19 @@ export class ParticipationsService {
       participation.userId === caller.id || participation.table.ownerId === caller.id;
     if (!canLeave) throw new ForbiddenException('Sem permissão para remover essa participação');
 
-    return this.prisma.tableParticipation.update({
+    const updated = await this.prisma.tableParticipation.update({
       where: { id: participationId },
       data: { leftAt: new Date() },
     });
+
+    const remaining = await this.prisma.tableParticipation.count({
+      where: { tableId: participation.tableId, leftAt: null },
+    });
+    if (remaining === 0) {
+      await this.tables.closeBySystem(participation.tableId);
+    }
+
+    return updated;
   }
 
   async addBuyIn(firebaseUid: string, participationId: string, dto: AddBuyInDto) {
@@ -116,7 +127,7 @@ export class ParticipationsService {
   async setCashOut(firebaseUid: string, participationId: string, dto: SetCashOutDto) {
     const caller = await this.users.requireByFirebaseUid(firebaseUid);
     const participation = await this.requireEditable(participationId, caller.id);
-    return this.prisma.cashOut.upsert({
+    const cashOut = await this.prisma.cashOut.upsert({
       where: { participationId: participation.id },
       create: {
         participationId: participation.id,
@@ -124,6 +135,20 @@ export class ParticipationsService {
       },
       update: { amount: new Prisma.Decimal(dto.amount) },
     });
+
+    // Se todos os participantes já têm cash-out, fecha a mesa automaticamente.
+    const activeParticipations = await this.prisma.tableParticipation.findMany({
+      where: { tableId: participation.tableId, leftAt: null },
+      select: { id: true },
+    });
+    const cashOutCount = await this.prisma.cashOut.count({
+      where: { participationId: { in: activeParticipations.map((p) => p.id) } },
+    });
+    if (activeParticipations.length > 0 && cashOutCount === activeParticipations.length) {
+      await this.tables.closeBySystem(participation.tableId);
+    }
+
+    return cashOut;
   }
 
   async removeCashOut(firebaseUid: string, participationId: string) {

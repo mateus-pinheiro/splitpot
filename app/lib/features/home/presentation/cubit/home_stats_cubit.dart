@@ -3,12 +3,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../tables/domain/entities/user_stats.dart';
+import '../../../tables/domain/usecases/confirm_settlement.dart';
 import '../../../tables/domain/usecases/get_user_stats.dart';
 
 class HomeStatsCubit extends Cubit<HomeStatsState> {
-  HomeStatsCubit(this._getUserStats) : super(const HomeStatsState.loading());
+  HomeStatsCubit(this._getUserStats, this._confirmSettlement)
+      : super(const HomeStatsState.loading());
 
   final GetUserStats _getUserStats;
+  final ConfirmSettlement _confirmSettlement;
 
   Future<void> load() async {
     if (state is HomeStatsLoading == false) {
@@ -22,6 +25,11 @@ class HomeStatsCubit extends Cubit<HomeStatsState> {
     } on Object catch (e) {
       emit(HomeStatsState.error(Failure.unexpected(message: e.toString())));
     }
+  }
+
+  Future<void> confirmDebt(String settlementId) async {
+    await _confirmSettlement(settlementId);
+    await load();
   }
 }
 

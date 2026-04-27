@@ -129,16 +129,24 @@ export class TablesService {
 
   async close(firebaseUid: string, tableId: string) {
     const user = await this.users.requireByFirebaseUid(firebaseUid);
+    const table = await this.prisma.table.findUnique({ where: { id: tableId } });
+    if (!table) throw new NotFoundException('Mesa não encontrada');
+    if (table.ownerId !== user.id) throw new ForbiddenException('Apenas o dono pode fechar');
+    return this.closeBySystem(tableId);
+  }
 
+  async closeBySystem(tableId: string) {
     return this.prisma.$transaction(async (tx) => {
       const table = await tx.table.findUnique({
         where: { id: tableId },
         include: {
-          participations: { include: { buyIns: true, cashOut: true } },
+          participations: {
+            where: { leftAt: null },
+            include: { buyIns: true, cashOut: true },
+          },
         },
       });
       if (!table) throw new NotFoundException('Mesa não encontrada');
-      if (table.ownerId !== user.id) throw new ForbiddenException('Apenas o dono pode fechar');
       if (table.status !== TableStatus.OPEN) {
         throw new BadRequestException('Mesa já está fechada');
       }

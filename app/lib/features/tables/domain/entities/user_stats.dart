@@ -3,20 +3,22 @@ import 'package:decimal/decimal.dart';
 import 'table_status.dart';
 
 /// Estatísticas agregadas do usuário usadas na home.
-/// `recents` traz até 5 mesas (qualquer status), com `pl` apenas quando
-/// fechada e o user participou.
 class UserStats {
   const UserStats({
     required this.pnlTotal,
     required this.mesas,
     required this.wins,
     required this.recents,
+    required this.history,
+    required this.debts,
   });
 
   final Decimal pnlTotal;
   final int mesas;
   final int wins;
   final List<RecentTableSummary> recents;
+  final List<RecentTableSummary> history;
+  final List<DebtItem> debts;
 }
 
 class RecentTableSummary {
@@ -29,6 +31,7 @@ class RecentTableSummary {
     required this.isHost,
     required this.players,
     this.pl,
+    this.hasPendingSettlements = false,
   });
 
   final String id;
@@ -39,4 +42,28 @@ class RecentTableSummary {
   final bool isHost;
   final int players;
   final Decimal? pl;
+  final bool hasPendingSettlements;
+}
+
+/// Settlement pendente em que o usuário é o pagador.
+class DebtItem {
+  const DebtItem({
+    required this.id,
+    required this.amount,
+    required this.toUserId,
+    required this.toName,
+    required this.toPixKey,
+    required this.tableId,
+    required this.tableName,
+    this.pixCopiaECola,
+  });
+
+  final String id;
+  final Decimal amount;
+  final String toUserId;
+  final String toName;
+  final String toPixKey;
+  final String tableId;
+  final String tableName;
+  final String? pixCopiaECola;
 }

@@ -11,22 +11,27 @@ import '../../features/auth/domain/usecases/sign_out.dart';
 import '../../features/auth/domain/usecases/update_profile.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/tables/data/repositories/participations_repository_impl.dart';
+import '../../features/tables/data/repositories/settlements_repository_impl.dart';
 import '../../features/tables/data/repositories/tables_repository_impl.dart';
 import '../../features/tables/domain/repositories/participations_repository.dart';
+import '../../features/tables/domain/repositories/settlements_repository.dart';
 import '../../features/tables/domain/repositories/tables_repository.dart';
 import '../../features/home/presentation/cubit/home_stats_cubit.dart';
 import '../../features/tables/domain/usecases/add_buy_in.dart';
+import '../../features/tables/domain/usecases/confirm_settlement.dart';
 import '../../features/tables/domain/usecases/create_table.dart';
 import '../../features/tables/domain/usecases/get_table.dart';
 import '../../features/tables/domain/usecases/get_table_preview.dart';
 import '../../features/tables/domain/usecases/get_user_stats.dart';
 import '../../features/tables/domain/usecases/join_table.dart';
+import '../../features/tables/domain/usecases/list_settlements.dart';
 import '../../features/tables/domain/usecases/set_cash_out.dart';
 import '../../features/tables/presentation/cubit/cashout_cubit.dart';
 import '../../features/tables/presentation/cubit/create_table_cubit.dart';
 import '../../features/tables/presentation/cubit/initial_buy_in_cubit.dart';
 import '../../features/tables/presentation/cubit/join_by_id_cubit.dart';
 import '../../features/tables/presentation/cubit/live_cubit.dart';
+import '../../features/tables/presentation/cubit/pix_cubit.dart';
 import '../../features/tables/presentation/cubit/qr_cubit.dart';
 import '../../features/tables/presentation/cubit/rebuy_cubit.dart';
 import '../../features/tables/presentation/cubit/table_detail_cubit.dart';
@@ -87,6 +92,9 @@ void registerAppDependencies(DIContainer di) {
   di.registerLazySingleton<ParticipationsRepository>(
     () => ParticipationsRepositoryImpl(di.get<ApiClient>()),
   );
+  di.registerLazySingleton<SettlementsRepository>(
+    () => SettlementsRepositoryImpl(di.get<ApiClient>()),
+  );
 
   // Tables — usecases
   di.registerFactory(() => CreateTable(di.get<TablesRepository>()));
@@ -97,6 +105,8 @@ void registerAppDependencies(DIContainer di) {
   di.registerFactory(() => AddBuyIn(di.get<ParticipationsRepository>()));
   di.registerFactory(() => RejoinTable(di.get<ParticipationsRepository>()));
   di.registerFactory(() => SetCashOut(di.get<ParticipationsRepository>()));
+  di.registerFactory(() => ListSettlements(di.get<SettlementsRepository>()));
+  di.registerFactory(() => ConfirmSettlement(di.get<SettlementsRepository>()));
 
   // Tables — cubits (factory: instância nova por view)
   di.registerFactory(() => CreateTableCubit(di.get<CreateTable>()));
@@ -115,7 +125,7 @@ void registerAppDependencies(DIContainer di) {
       addBuyIn: di.get<AddBuyIn>(),
     ),
   );
-  di.registerFactory(() => HomeStatsCubit(di.get<GetUserStats>()));
+  di.registerFactory(() => HomeStatsCubit(di.get<GetUserStats>(), di.get<ConfirmSettlement>()));
   di.registerFactory(
     () => JoinByIdCubit(
       getTablePreview: di.get<GetTablePreview>(),
@@ -126,6 +136,12 @@ void registerAppDependencies(DIContainer di) {
     () => CashoutCubit(
       getTable: di.get<GetTable>(),
       setCashOut: di.get<SetCashOut>(),
+    ),
+  );
+  di.registerFactory(
+    () => PixCubit(
+      listSettlements: di.get<ListSettlements>(),
+      confirmSettlement: di.get<ConfirmSettlement>(),
     ),
   );
 }

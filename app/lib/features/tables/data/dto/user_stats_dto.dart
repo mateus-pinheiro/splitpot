@@ -6,12 +6,20 @@ import '../../domain/entities/user_stats.dart';
 class UserStatsDto {
   static UserStats fromJson(Map<String, dynamic> json) {
     final recentsJson = json['recents'] as List<dynamic>? ?? const [];
+    final historyJson = json['history'] as List<dynamic>? ?? const [];
+    final debtsJson = json['debts'] as List<dynamic>? ?? const [];
     return UserStats(
       pnlTotal: _decimal(json['pnlTotal']),
       mesas: json['mesas'] as int? ?? 0,
       wins: json['wins'] as int? ?? 0,
       recents: recentsJson
           .map((e) => _recentFromJson(e as Map<String, dynamic>))
+          .toList(growable: false),
+      history: historyJson
+          .map((e) => _recentFromJson(e as Map<String, dynamic>))
+          .toList(growable: false),
+      debts: debtsJson
+          .map((e) => _debtFromJson(e as Map<String, dynamic>))
           .toList(growable: false),
     );
   }
@@ -28,6 +36,21 @@ class UserStatsDto {
       isHost: json['isHost'] as bool? ?? false,
       players: json['players'] as int? ?? 0,
       pl: json['pl'] == null ? null : _decimal(json['pl']),
+      hasPendingSettlements:
+          json['hasPendingSettlements'] as bool? ?? false,
+    );
+  }
+
+  static DebtItem _debtFromJson(Map<String, dynamic> json) {
+    return DebtItem(
+      id: json['id'] as String,
+      amount: _decimal(json['amount']),
+      toUserId: json['toUserId'] as String,
+      toName: json['toName'] as String,
+      toPixKey: json['toPixKey'] as String,
+      tableId: json['tableId'] as String,
+      tableName: json['tableName'] as String,
+      pixCopiaECola: json['pixCopiaECola'] as String?,
     );
   }
 

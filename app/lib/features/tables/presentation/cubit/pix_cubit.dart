@@ -1,0 +1,86 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/errors/failure.dart';
+import '../../../../core/network/api_exception.dart';
+import '../../domain/entities/settlement.dart';
+import '../../domain/usecases/confirm_settlement.dart';
+import '../../domain/usecases/list_settlements.dart';
+
+class PixCubit extends Cubit<PixState> {
+  PixCubit({
+    required ListSettlements listSettlements,
+    required ConfirmSettlement confirmSettlement,
+  })  : _list = listSettlements,
+        _confirm = confirmSettlement,
+        super(const PixState.loading());
+
+  final ListSettlements _list;
+  final ConfirmSettlement _confirm;
+
+  String? _tableId;
+
+  Future<void> load(String tableId) async {
+    _tableId = tableId;
+    emit(const PixState.loading());
+    try {
+      final settlements = await _list(tableId);
+      emit(PixState.loaded(settlements: settlements));
+    } on ApiException catch (e) {
+      emit(PixState.error(e.failure));
+    }
+  }
+
+  Future<void> confirm(String settlementId) async {
+    final cur = state;
+    if (cur is! PixLoaded) return;
+    emit(PixState.loaded(
+      settlements: cur.settlements,
+      submittingId: settlementId,
+    ));
+    try {
+      await _confirm(settlementId);
+      // Recarrega a lista pra refletir status atualizado.
+      if (_tableId != null) await load(_tableId!);
+    } on ApiException catch (e) {
+      emit(PixState.loaded(
+        settlements: cur.settlements,
+        errorFor: settlementId,
+        errorFailure: e.failure,
+      ));
+    }
+  }
+}
+
+sealed class PixState {
+  const PixState();
+  const factory PixState.loading() = PixLoading;
+  const factory PixState.loaded({
+    required List<Settlement> settlements,
+    String? submittingId,
+    String? errorFor,
+    Failure? errorFailure,
+  }) = PixLoaded;
+  const factory PixState.error(Failure failure) = PixError;
+}
+
+class PixLoading extends PixState {
+  const PixLoading();
+}
+
+class PixLoaded extends PixState {
+  const PixLoaded({
+    required this.settlements,
+    this.submittingId,
+    this.errorFor,
+    this.errorFailure,
+  });
+  final List<Settlement> settlements;
+  final String? submittingId;
+  final String? errorFor;
+  final Failure? errorFailure;
+}
+
+class PixError extends PixState {
+  const PixError(this.failure);
+  final Failure failure;
+}

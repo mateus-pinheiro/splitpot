@@ -187,6 +187,7 @@ class _LoadedBody extends StatelessWidget {
             isHost: isHost,
             hasLeftTable:
                 myParticipation != null && myParticipation.cashOut != null,
+                
             onCashout: () => context.go(AppRoutes.cashout(tableId)),
             onClose: () => context.go(AppRoutes.closeTable(tableId)),
             onRebuy: myParticipation == null
@@ -595,18 +596,18 @@ class _ActionBar extends StatelessWidget {
                     borderColor: SpColors.dangerSoft.withValues(alpha: 0.4),
                   ),
                 ),
-                if (isHost) ...[
-                  const SizedBox(width: 10),
-                  Expanded(
-                    flex: 2,
-                    child: SpGoldButton(
-                      label: 'Fechar mesa',
-                      onPressed: onClose,
-                      height: 48,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+                // if (isHost) ...[
+                //   const SizedBox(width: 10),
+                //   Expanded(
+                //     flex: 2,
+                //     child: SpGoldButton(
+                //       label: 'Fechar mesa',
+                //       onPressed: onClose,
+                //       height: 48,
+                //       fontSize: 14,
+                //     ),
+                //   ),
+                // ],
               ],
             ),
     );

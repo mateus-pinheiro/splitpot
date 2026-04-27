@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { User } from '@prisma/client';
-import { Prisma, TableStatus } from '@prisma/client';
+import { Prisma, SettlementStatus, TableStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { ProvisionUserDto } from './dto/provision-user.dto.js';
 import type { UpdateUserDto } from './dto/update-user.dto.js';
@@ -88,7 +88,16 @@ export class UsersService {
       if (pl.greaterThan(0)) wins += 1;
     }
 
-    const recents = tables.slice(0, 5).map((t) => {
+    // Mesas com pagamentos pendentes — usado pra etiquetar os recentes
+    // como "aguardando pagamentos".
+    const pendingByTable = await this.prisma.settlement.groupBy({
+      by: ['tableId'],
+      where: { status: SettlementStatus.PENDING },
+      _count: true,
+    });
+    const tablesWithPending = new Set(pendingByTable.map((r) => r.tableId));
+
+    const mapTable = (t: (typeof tables)[0]) => {
       const mine = t.participations[0];
       const pl =
         mine && t.status === TableStatus.CLOSED
@@ -103,14 +112,44 @@ export class UsersService {
         isHost: t.ownerId === user.id,
         players: t._count.participations,
         pl,
+        hasPendingSettlements: tablesWithPending.has(t.id),
       };
+    };
+
+    const recents = tables.slice(0, 5).map(mapTable);
+    const history = tables.map(mapTable);
+
+    // Dívidas: o que esse user ainda precisa pagar.
+    const debtRows = await this.prisma.settlement.findMany({
+      where: {
+        fromUserId: user.id,
+        status: SettlementStatus.PENDING,
+      },
+      include: {
+        toUser: { select: { id: true, name: true, pixKey: true } },
+        table: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
     });
+
+    const debts = debtRows.map((s) => ({
+      id: s.id,
+      amount: s.amount.toFixed(2),
+      toUserId: s.toUser.id,
+      toName: s.toUser.name,
+      toPixKey: s.toUser.pixKey,
+      tableId: s.table.id,
+      tableName: s.table.name,
+      pixCopiaECola: s.pixCopiaECola,
+    }));
 
     return {
       pnlTotal: pnlTotal.toFixed(2),
       mesas,
       wins,
       recents,
+      history,
+      debts,
     };
   }
 

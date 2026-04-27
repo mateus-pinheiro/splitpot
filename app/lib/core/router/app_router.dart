@@ -20,6 +20,32 @@ import '../../features/tables/presentation/views/table_detail_view.dart';
 import 'app_routes.dart';
 import 'go_router_refresh_stream.dart';
 
+Page<void> _slide(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final enter = Tween<Offset>(
+        begin: const Offset(1.0, 0.0),
+        end: Offset.zero,
+      ).chain(CurveTween(curve: Curves.easeInOutCubic));
+
+      final exit = Tween<Offset>(
+        begin: Offset.zero,
+        end: const Offset(-0.25, 0.0),
+      ).chain(CurveTween(curve: Curves.easeInOutCubic));
+
+      return SlideTransition(
+        position: secondaryAnimation.drive(exit),
+        child: SlideTransition(
+          position: animation.drive(enter),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
 class AppRouter {
   AppRouter({required AuthCubit authCubit}) : _authCubit = authCubit;
 
@@ -30,50 +56,69 @@ class AppRouter {
     refreshListenable: GoRouterRefreshStream(_authCubit.stream),
     redirect: _redirect,
     routes: [
-      GoRoute(path: AppRoutes.login, builder: (_, _) => const LoginView()),
+      GoRoute(
+        path: AppRoutes.login,
+        pageBuilder: (_, s) => _slide(s, const LoginView()),
+      ),
       GoRoute(
         path: AppRoutes.completeProfile,
-        builder: (_, _) => const CompleteProfileView(),
+        pageBuilder: (_, s) => _slide(s, const CompleteProfileView()),
       ),
-      GoRoute(path: AppRoutes.home, builder: (_, _) => const HomeView()),
+      GoRoute(
+        path: AppRoutes.home,
+        pageBuilder: (_, s) => _slide(s, const HomeView()),
+      ),
       GoRoute(
         path: AppRoutes.createTable,
-        builder: (_, _) => const CreateTableView(),
+        pageBuilder: (_, s) => _slide(s, const CreateTableView()),
       ),
-      GoRoute(path: AppRoutes.joinTable, builder: (_, _) => const JoinView()),
-      GoRoute(path: AppRoutes.history, builder: (_, _) => const HistoryView()),
+      GoRoute(
+        path: AppRoutes.joinTable,
+        pageBuilder: (_, s) => _slide(s, const JoinView()),
+      ),
+      GoRoute(
+        path: AppRoutes.history,
+        pageBuilder: (_, s) => _slide(s, const HistoryView()),
+      ),
       GoRoute(
         path: AppRoutes.qrPattern,
-        builder: (_, s) => QrView(tableId: s.pathParameters['id']!),
+        pageBuilder: (_, s) =>
+            _slide(s, QrView(tableId: s.pathParameters['id']!)),
       ),
       GoRoute(
         path: AppRoutes.initialBuyInPattern,
-        builder: (_, s) =>
-            InitialBuyInView(tableId: s.pathParameters['id']!),
+        pageBuilder: (_, s) =>
+            _slide(s, InitialBuyInView(tableId: s.pathParameters['id']!)),
       ),
       GoRoute(
         path: AppRoutes.livePattern,
-        builder: (_, s) => LiveView(tableId: s.pathParameters['id']!),
+        pageBuilder: (_, s) =>
+            _slide(s, LiveView(tableId: s.pathParameters['id']!)),
       ),
       GoRoute(
         path: AppRoutes.cashoutPattern,
-        builder: (_, s) => CashoutView(tableId: s.pathParameters['id']!),
+        pageBuilder: (_, s) =>
+            _slide(s, CashoutView(tableId: s.pathParameters['id']!)),
       ),
       GoRoute(
         path: AppRoutes.closePattern,
-        builder: (_, s) => CloseTableView(tableId: s.pathParameters['id']!),
+        pageBuilder: (_, s) =>
+            _slide(s, CloseTableView(tableId: s.pathParameters['id']!)),
       ),
       GoRoute(
         path: AppRoutes.pixPattern,
-        builder: (_, s) => PixView(tableId: s.pathParameters['id']!),
+        pageBuilder: (_, s) =>
+            _slide(s, PixView(tableId: s.pathParameters['id']!)),
       ),
       GoRoute(
         path: AppRoutes.joinByIdPattern,
-        builder: (_, s) => JoinByIdView(tableId: s.pathParameters['id']!),
+        pageBuilder: (_, s) =>
+            _slide(s, JoinByIdView(tableId: s.pathParameters['id']!)),
       ),
       GoRoute(
         path: AppRoutes.tableDetailPattern,
-        builder: (_, s) => TableDetailView(tableId: s.pathParameters['id']!),
+        pageBuilder: (_, s) =>
+            _slide(s, TableDetailView(tableId: s.pathParameters['id']!)),
       ),
     ],
   );

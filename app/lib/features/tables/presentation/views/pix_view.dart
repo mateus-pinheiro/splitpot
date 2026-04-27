@@ -1,69 +1,53 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/design/design_system.dart';
+import '../../../../core/di/di_container.dart';
+import '../../../../core/errors/failure.dart';
 import '../../../../core/router/app_routes.dart';
-import '../mock/settlement_mock.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../auth/presentation/cubit/auth_state.dart';
+import '../../domain/entities/settlement.dart';
+import '../cubit/pix_cubit.dart';
 
 class PixView extends StatelessWidget {
   const PixView({required this.tableId, super.key});
   final String tableId;
 
-  // Mock status pra demonstrar os 3 estados (done/pending/failed).
-  static const _statuses = <_Status>[
-    _Status.done,
-    _Status.done,
-    _Status.pending,
-    _Status.failed,
-    _Status.done,
-  ];
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider<PixCubit>(
+      create: (_) => appDI.get<PixCubit>()..load(tableId),
+      child: _PixScaffold(tableId: tableId),
+    );
+  }
+}
+
+class _PixScaffold extends StatelessWidget {
+  const _PixScaffold({required this.tableId});
+  final String tableId;
 
   @override
   Widget build(BuildContext context) {
-    final transfers = SettlementMock.transfers;
-    final doneCount = _statuses.where((s) => s == _Status.done).length;
-    final confirmedAmount = [
-      for (var i = 0; i < transfers.length; i++)
-        if (_statuses[i] == _Status.done) transfers[i].amount,
-    ].fold<int>(0, (a, b) => a + b);
-
     return Scaffold(
       body: FeltBackground(
         child: SafeArea(
           child: Column(
             children: [
               SpAppHeader(
-                left: SpBackButton(
-                  onPressed: () => context.go(AppRoutes.closeTable(tableId)),
-                ),
+                left: SpBackButton(onPressed: () => context.go(AppRoutes.home)),
                 title: 'Acertos PIX',
               ),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                  children: [
-                    _ProgressCard(
-                      doneCount: doneCount,
-                      total: transfers.length,
-                      confirmedAmount: confirmedAmount,
-                    ),
-                    const SizedBox(height: 18),
-                    for (var i = 0; i < transfers.length; i++)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _PixRow(
-                          transfer: transfers[i],
-                          status: _statuses[i],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
-                child: SpGoldButton(
-                  label: 'Encerrar mesa',
-                  onPressed: () => context.go(AppRoutes.home),
+                child: BlocBuilder<PixCubit, PixState>(
+                  builder: (context, state) => switch (state) {
+                    PixLoading() => const _Loading(),
+                    PixError(:final failure) => _ErrorView(failure: failure),
+                    PixLoaded() => _Content(state: state),
+                  },
                 ),
               ),
             ],
@@ -74,29 +58,139 @@ class PixView extends StatelessWidget {
   }
 }
 
-enum _Status { done, pending, failed }
+class _Loading extends StatelessWidget {
+  const _Loading();
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: SizedBox(
+        width: 28,
+        height: 28,
+        child: CircularProgressIndicator(
+          strokeWidth: 2.5,
+          color: SpColors.goldBright,
+        ),
+      ),
+    );
+  }
+}
 
-extension on _Status {
-  String get label => switch (this) {
-        _Status.done => '✓ Pago',
-        _Status.pending => 'Aguardando',
-        _Status.failed => 'Falhou',
-      };
-  Color get color => switch (this) {
-        _Status.done => SpColors.successSoft,
-        _Status.pending => SpColors.goldBright,
-        _Status.failed => SpColors.dangerSoft,
-      };
-  Color get bg => switch (this) {
-        _Status.done => SpColors.success.withValues(alpha: 0.18),
-        _Status.pending => SpColors.gold.withValues(alpha: 0.18),
-        _Status.failed => SpColors.danger.withValues(alpha: 0.18),
-      };
-  Color get border => switch (this) {
-        _Status.done => SpColors.success.withValues(alpha: 0.4),
-        _Status.pending => SpColors.gold.withValues(alpha: 0.4),
-        _Status.failed => SpColors.danger.withValues(alpha: 0.4),
-      };
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.failure});
+  final Failure failure;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = switch (failure) {
+      UnauthorizedFailure(:final message) =>
+        message ?? 'Sem permissão para esta mesa.',
+      NotFoundFailure() => 'Mesa não encontrada.',
+      NetworkFailure() => 'Sem conexão com o servidor.',
+      _ => 'Não foi possível carregar os pagamentos.',
+    };
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline,
+                color: SpColors.dangerSoft, size: 36),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: SpTypography.uiFamily,
+                fontSize: 14,
+                color: SpColors.cream,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Content extends StatelessWidget {
+  const _Content({required this.state});
+  final PixLoaded state;
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthCubit>().state;
+    final currentUserId = auth is AuthAuthenticated ? auth.user.id : null;
+
+    final all = state.settlements;
+    final done =
+        all.where((s) => s.status == SettlementStatus.confirmed).length;
+    final confirmedAmount = all
+        .where((s) => s.status == SettlementStatus.confirmed)
+        .fold<Decimal>(Decimal.zero, (acc, s) => acc + s.amount);
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+            children: [
+              _ProgressCard(
+                doneCount: done,
+                total: all.length,
+                confirmedAmount: confirmedAmount,
+              ),
+              const SizedBox(height: 18),
+              if (all.isEmpty)
+                const _EmptyState()
+              else
+                for (final s in all)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _PixRow(
+                      settlement: s,
+                      isReceiver: currentUserId == s.toUserId,
+                      submitting: state.submittingId == s.id,
+                    ),
+                  ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+          child: SpGoldButton(
+            label: 'Voltar para a home',
+            onPressed: () => context.go(AppRoutes.home),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: SpColors.feltRail.withValues(alpha: 0.5),
+        border: Border.all(color: SpColors.cream.withValues(alpha: 0.08)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Text(
+        'Nenhum acerto pendente.',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: SpTypography.uiFamily,
+          fontSize: 13,
+          color: SpColors.muted,
+        ),
+      ),
+    );
+  }
 }
 
 class _ProgressCard extends StatelessWidget {
@@ -107,7 +201,7 @@ class _ProgressCard extends StatelessWidget {
   });
   final int doneCount;
   final int total;
-  final int confirmedAmount;
+  final Decimal confirmedAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +276,7 @@ class _ProgressCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    brl(confirmedAmount),
+                    brlFromDecimal(confirmedAmount),
                     style: const TextStyle(
                       fontFamily: SpTypography.numFamily,
                       fontSize: 14,
@@ -220,27 +314,30 @@ class _ProgressCard extends StatelessWidget {
 }
 
 class _PixRow extends StatelessWidget {
-  const _PixRow({required this.transfer, required this.status});
-  final SettlementMockTransfer transfer;
-  final _Status status;
+  const _PixRow({
+    required this.settlement,
+    required this.isReceiver,
+    required this.submitting,
+  });
+  final Settlement settlement;
+  final bool isReceiver;
+  final bool submitting;
 
   @override
   Widget build(BuildContext context) {
-    final failed = status == _Status.failed;
+    final isPending = settlement.status == SettlementStatus.pending;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: SpColors.feltRail.withValues(alpha: 0.55),
-        border: Border.all(
-          color: failed ? status.border : SpColors.cream.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: SpColors.cream.withValues(alpha: 0.08)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              SpAvatar(name: transfer.from, size: 32),
+              SpAvatar(name: settlement.fromName, size: 32),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -255,7 +352,7 @@ class _PixRow extends StatelessWidget {
                         ),
                         children: [
                           TextSpan(
-                            text: transfer.from.split(' ').first,
+                            text: settlement.fromName.split(' ').first,
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                           const TextSpan(
@@ -263,7 +360,7 @@ class _PixRow extends StatelessWidget {
                             style: TextStyle(color: SpColors.muted),
                           ),
                           TextSpan(
-                            text: transfer.to.split(' ').first,
+                            text: settlement.toName.split(' ').first,
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ],
@@ -271,7 +368,7 @@ class _PixRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      transfer.pix,
+                      settlement.toPixKey,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontFamily: SpTypography.numFamily,
@@ -286,7 +383,7 @@ class _PixRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    brl(transfer.amount),
+                    brlFromDecimal(settlement.amount),
                     style: const TextStyle(
                       fontFamily: SpTypography.numFamily,
                       fontSize: 16,
@@ -295,97 +392,113 @@ class _PixRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 3),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: status.bg,
-                      border: Border.all(color: status.border),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      status.label.toUpperCase(),
-                      style: TextStyle(
-                        fontFamily: SpTypography.uiFamily,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: status.color,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ),
+                  _StatusTag(status: settlement.status),
                 ],
               ),
             ],
           ),
-          if (status == _Status.pending) ...[
+          if (isPending && isReceiver) ...[
             const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: SpGoldButton(
-                    label: 'Abrir QR Code PIX',
-                    onPressed: () {},
-                    height: 36,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SpGhostButton(
-                    label: 'Marcar pago',
-                    onPressed: () {},
-                    height: 36,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+            SpGoldButton(
+              label: 'Marcar como recebido',
+              loading: submitting,
+              onPressed: submitting
+                  ? null
+                  : () => context.read<PixCubit>().confirm(settlement.id),
+              height: 38,
+              fontSize: 12,
             ),
           ],
-          if (status == _Status.failed) ...[
+          if (isPending && !isReceiver) ...[
             const SizedBox(height: 10),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: SpColors.danger.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline,
-                      color: SpColors.dangerSoft, size: 14),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Chave PIX inválida. Contate ${transfer.to.split(' ').first}.',
-                      style: const TextStyle(
-                        fontFamily: SpTypography.uiFamily,
-                        fontSize: 11,
-                        color: SpColors.dangerSoft,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    child: const Text(
-                      'Tentar de novo',
-                      style: TextStyle(
-                        fontFamily: SpTypography.uiFamily,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: SpColors.dangerSoft,
-                      ),
-                    ),
-                  ),
-                ],
+            _CopyPixButton(settlement: settlement),
+            const SizedBox(height: 8),
+            Text(
+              'Aguardando ${settlement.toName.split(' ').first} confirmar o recebimento.',
+              style: const TextStyle(
+                fontFamily: SpTypography.uiFamily,
+                fontSize: 11,
+                color: SpColors.muted,
               ),
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _CopyPixButton extends StatelessWidget {
+  const _CopyPixButton({required this.settlement});
+  final Settlement settlement;
+
+  void _copy(BuildContext context) {
+    final text = settlement.pixCopiaECola ?? settlement.toPixKey;
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: SpColors.feltRail,
+        content: Text('PIX copiado!', style: TextStyle(fontSize: 12, color: Colors.white),),
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 38,
+      child: OutlinedButton.icon(
+        onPressed: () => _copy(context),
+        icon: const Icon(Icons.copy, size: 14),
+        label: Text(
+          settlement.pixCopiaECola != null ? 'Copiar PIX copia e cola' : 'Copiar chave PIX',
+          style: const TextStyle(fontSize: 12, color: Colors.white),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: SpColors.goldBright,
+          side: BorderSide(color: SpColors.gold.withValues(alpha: 0.5)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          textStyle: const TextStyle(
+            fontFamily: SpTypography.uiFamily,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusTag extends StatelessWidget {
+  const _StatusTag({required this.status});
+  final SettlementStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDone = status == SettlementStatus.confirmed;
+    final color = isDone ? SpColors.successSoft : SpColors.goldBright;
+    final bg =
+        (isDone ? SpColors.success : SpColors.gold).withValues(alpha: 0.18);
+    final border =
+        (isDone ? SpColors.success : SpColors.gold).withValues(alpha: 0.4);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        isDone ? '✓ PAGO' : 'AGUARDANDO',
+        style: TextStyle(
+          fontFamily: SpTypography.uiFamily,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: color,
+          letterSpacing: 0.8,
+        ),
       ),
     );
   }

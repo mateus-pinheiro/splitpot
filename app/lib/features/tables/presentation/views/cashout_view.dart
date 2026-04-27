@@ -42,7 +42,7 @@ class _CashoutScaffold extends StatelessWidget {
           child: BlocConsumer<CashoutCubit, CashoutState>(
             listener: (context, state) {
               if (state is CashoutSubmitted) {
-                context.go(AppRoutes.live(tableId));
+                context.go(AppRoutes.home);
               } else if (state is CashoutSubmitError) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
