@@ -29,6 +29,18 @@ class _QrScaffold extends StatelessWidget {
   const _QrScaffold({required this.tableId});
   final String tableId;
 
+  String _createTableRoute(PokerTable? table) {
+    if (table == null) return AppRoutes.createTable;
+    return Uri(
+      path: AppRoutes.createTable,
+      queryParameters: {
+        'name': table.name,
+        'minBuyIn': table.minBuyIn.toString(),
+        'tableId': tableId,
+      },
+    ).toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     final joinUrl = buildJoinUrl(tableId);
@@ -39,22 +51,17 @@ class _QrScaffold extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
-              SpAppHeader(
-                left: SpBackButton(onPressed: () => context.pop()),
-                title: 'Convidar jogadores',
-                right: TextButton(
-                  onPressed: () => context.go(AppRoutes.live(tableId)),
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                  child: const Text(
-                    'Pular',
-                    style: TextStyle(
-                      fontFamily: SpTypography.uiFamily,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: SpColors.goldBright,
+              BlocBuilder<QrCubit, QrState>(
+                buildWhen: (p, c) => c is QrStateLoaded || p is QrStateLoaded,
+                builder: (context, state) {
+                  final table = state is QrStateLoaded ? state.table : null;
+                  return SpAppHeader(
+                    left: SpBackButton(
+                      onPressed: () => context.go(_createTableRoute(table)),
                     ),
-                  ),
-                ),
+                    title: 'Convidar jogadores',
+                  );
+                },
               ),
               Expanded(
                 child: BlocBuilder<QrCubit, QrState>(
@@ -212,8 +219,11 @@ class _CopyLinkButton extends StatelessWidget {
               behavior: SnackBarBehavior.floating,
               content: Row(
                 children: [
-                  Icon(Icons.check_circle_outline,
-                      color: SpColors.goldBright, size: 18),
+                  Icon(
+                    Icons.check_circle_outline,
+                    color: SpColors.goldBright,
+                    size: 18,
+                  ),
                   SizedBox(width: 10),
                   Text(
                     'Link copiado',
@@ -266,8 +276,11 @@ class _CopyLinkButton extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.content_copy,
-                  color: SpColors.goldBright, size: 18),
+              const Icon(
+                Icons.content_copy,
+                color: SpColors.goldBright,
+                size: 18,
+              ),
             ],
           ),
         ),
@@ -292,8 +305,9 @@ class _WaitingPanel extends StatelessWidget {
       QrStateError() => 'SEM CONEXÃO COM A MESA',
       _ => 'AGUARDANDO · $count ${count == 1 ? 'ENTROU' : 'ENTRARAM'}',
     };
-    final labelColor =
-        state is QrStateError ? SpColors.dangerSoft : SpColors.gold;
+    final labelColor = state is QrStateError
+        ? SpColors.dangerSoft
+        : SpColors.gold;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -358,9 +372,7 @@ class _WaitingAvatars extends StatelessWidget {
           ),
         const SizedBox(width: 10),
         Text(
-          extra > 0
-              ? '+ $extra'
-              : visible.last.userName.split(' ').first,
+          extra > 0 ? '+ $extra' : visible.last.userName.split(' ').first,
           style: const TextStyle(
             fontFamily: SpTypography.uiFamily,
             fontSize: 12,

@@ -70,7 +70,15 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.createTable,
-        pageBuilder: (_, s) => _slide(s, const CreateTableView()),
+        pageBuilder: (_, s) => _slide(
+          s,
+          CreateTableView(
+            initialName: s.uri.queryParameters['name'],
+            initialMinBuyIn: s.uri.queryParameters['minBuyIn'],
+            initialTableId: s.uri.queryParameters['tableId'],
+            returnTo: s.uri.queryParameters['returnTo'],
+          ),
+        ),
       ),
       GoRoute(
         path: AppRoutes.joinTable,

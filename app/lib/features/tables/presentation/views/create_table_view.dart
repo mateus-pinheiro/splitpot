@@ -12,19 +12,45 @@ import '../cubit/create_table_cubit.dart';
 import '../cubit/create_table_state.dart';
 
 class CreateTableView extends StatelessWidget {
-  const CreateTableView({super.key});
+  const CreateTableView({
+    this.initialName,
+    this.initialMinBuyIn,
+    this.initialTableId,
+    this.returnTo,
+    super.key,
+  });
+
+  final String? initialName;
+  final String? initialMinBuyIn;
+  final String? initialTableId;
+  final String? returnTo;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<CreateTableCubit>(
       create: (_) => appDI.get<CreateTableCubit>(),
-      child: const _CreateTableScaffold(),
+      child: _CreateTableScaffold(
+        initialName: initialName,
+        initialMinBuyIn: initialMinBuyIn,
+        initialTableId: initialTableId,
+        returnTo: returnTo,
+      ),
     );
   }
 }
 
 class _CreateTableScaffold extends StatelessWidget {
-  const _CreateTableScaffold();
+  const _CreateTableScaffold({
+    this.initialName,
+    this.initialMinBuyIn,
+    this.initialTableId,
+    this.returnTo,
+  });
+
+  final String? initialName;
+  final String? initialMinBuyIn;
+  final String? initialTableId;
+  final String? returnTo;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +68,13 @@ class _CreateTableScaffold extends StatelessWidget {
                           onPressed: () => context.go(AppRoutes.home)),
                       title: 'Nova mesa',
                     ),
-                    const Expanded(child: _CreateTableForm()),
+                    Expanded(
+                      child: _CreateTableForm(
+                        initialName: initialName,
+                        initialMinBuyIn: initialMinBuyIn,
+                        initialTableId: initialTableId,
+                      ),
+                    ),
                   ],
                 ),
                 const _CreateTableLoadingOverlay(),
@@ -59,6 +91,8 @@ class _CreateTableScaffold extends StatelessWidget {
       case CreateTableCreated(:final tableId, :final joinedAsPlayer):
         if (joinedAsPlayer) {
           context.go(AppRoutes.initialBuyIn(tableId));
+        } else if (returnTo == 'initialBuyIn') {
+          context.go(AppRoutes.qr(tableId));
         } else {
           context.go(AppRoutes.qr(tableId));
         }
@@ -143,17 +177,49 @@ class _CreateTableLoadingOverlay extends StatelessWidget {
 }
 
 class _CreateTableForm extends StatefulWidget {
-  const _CreateTableForm();
+  const _CreateTableForm({
+    this.initialName,
+    this.initialMinBuyIn,
+    this.initialTableId,
+  });
+
+  final String? initialName;
+  final String? initialMinBuyIn;
+  final String? initialTableId;
 
   @override
   State<_CreateTableForm> createState() => _CreateTableFormState();
 }
 
 class _CreateTableFormState extends State<_CreateTableForm> {
-  final _nameController = TextEditingController();
-  final _minController = TextEditingController();
+  late final TextEditingController _nameController;
+  late final TextEditingController _minController;
 
   bool _willPlay = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName ?? '');
+    _minController = TextEditingController(text: widget.initialMinBuyIn ?? '');
+  }
+
+  @override
+  void didUpdateWidget(covariant _CreateTableForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final nextName = widget.initialName ?? '';
+    if (oldWidget.initialName != widget.initialName &&
+        _nameController.text != nextName) {
+      _nameController.text = nextName;
+    }
+
+    final nextMin = widget.initialMinBuyIn ?? '';
+    if (oldWidget.initialMinBuyIn != widget.initialMinBuyIn &&
+        _minController.text != nextMin) {
+      _minController.text = nextMin;
+    }
+  }
 
   @override
   void dispose() {
@@ -182,6 +248,7 @@ class _CreateTableFormState extends State<_CreateTableForm> {
           name: name,
           minBuyIn: min,
           joinAsPlayer: _willPlay,
+          tableId: widget.initialTableId,
         );
   }
 

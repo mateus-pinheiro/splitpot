@@ -23,6 +23,14 @@ abstract class TablesRepository {
   /// usuário virar participant. Não exige acesso owner/participant.
   Future<TablePreview> getTablePreview(String id);
 
+  /// Atualiza nome e buy-in mínimo de uma mesa existente.
+  Future<PokerTable> updateTable({
+    required String id,
+    required String name,
+    required Decimal minBuyIn,
+    bool joinAsPlayer = false,
+  });
+
   /// Fecha a mesa e retorna o plano de acertos P2P.
   ///
   /// Só o owner pode fechar. Depois de fechada a mesa é imutável

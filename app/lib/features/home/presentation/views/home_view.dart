@@ -895,10 +895,7 @@ void _showPixDialog(BuildContext context, DebtItem debt) {
   showDialog<void>(
     context: context,
     barrierColor: Colors.black.withValues(alpha: 0.55),
-    builder: (_) => _DebtPixDialog(
-      debt: debt,
-      onConfirm: () => context.read<HomeStatsCubit>().confirmDebt(debt.id),
-    ),
+    builder: (_) => _DebtPixDialog(debt: debt),
   );
 }
 
@@ -969,12 +966,48 @@ class _DebtRow extends StatelessWidget {
   }
 }
 
-class _ReceivableRow extends StatelessWidget {
+class _ReceivableRow extends StatefulWidget {
   const _ReceivableRow({required this.receivable});
   final ReceivableItem receivable;
 
   @override
+  State<_ReceivableRow> createState() => _ReceivableRowState();
+}
+
+class _ReceivableRowState extends State<_ReceivableRow> {
+  bool _confirming = false;
+
+  Future<void> _confirmReceived() async {
+    if (_confirming) return;
+    setState(() => _confirming = true);
+    try {
+      await context.read<HomeStatsCubit>().confirmDebt(widget.receivable.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: SpColors.success,
+          content: Text('Recebimento confirmado.'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    } on Object catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: SpColors.danger,
+          content: Text('Não foi possível confirmar o recebimento.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _confirming = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final receivable = widget.receivable;
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
@@ -1014,14 +1047,37 @@ class _ReceivableRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            brlFromDecimal(receivable.amount),
-            style: const TextStyle(
-              fontFamily: SpTypography.numFamily,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: SpColors.success,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                brlFromDecimal(receivable.amount),
+                style: const TextStyle(
+                  fontFamily: SpTypography.numFamily,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: SpColors.success,
+                ),
+              ),
+              const SizedBox(width: 8),
+              _confirming
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: SpColors.success,
+                      ),
+                    )
+                  : IconButton(
+                      onPressed: _confirmReceived,
+                      icon: const Icon(Icons.check_circle),
+                      color: SpColors.success,
+                      iconSize: 20,
+                      splashRadius: 18,
+                      tooltip: 'Confirmar recebimento',
+                    ),
+            ],
           ),
         ],
       ),
@@ -1029,37 +1085,11 @@ class _ReceivableRow extends StatelessWidget {
   }
 }
 
-class _DebtPixDialog extends StatefulWidget {
-  const _DebtPixDialog({required this.debt, required this.onConfirm});
+class _DebtPixDialog extends StatelessWidget {
+  const _DebtPixDialog({required this.debt});
   final DebtItem debt;
-  final Future<void> Function() onConfirm;
 
-  @override
-  State<_DebtPixDialog> createState() => _DebtPixDialogState();
-}
-
-class _DebtPixDialogState extends State<_DebtPixDialog> {
-  bool _loading = false;
-
-  Future<void> _handleConfirm() async {
-    setState(() => _loading = true);
-    try {
-      await widget.onConfirm();
-      if (mounted) Navigator.of(context).pop();
-    } on Object catch (_) {
-      if (mounted) {
-        setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: SpColors.danger,
-            content: Text('Não foi possível confirmar. Tente novamente.'),
-          ),
-        );
-      }
-    }
-  }
-
-  void _copy(String text) {
+  void _copy(BuildContext context, String text) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -1072,7 +1102,6 @@ class _DebtPixDialogState extends State<_DebtPixDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final debt = widget.debt;
     final pixText = debt.pixCopiaECola ?? debt.toPixKey;
     final isFullPix = debt.pixCopiaECola != null;
 
@@ -1105,9 +1134,7 @@ class _DebtPixDialogState extends State<_DebtPixDialog> {
                     ),
                   ),
                   IconButton(
-                    onPressed: _loading
-                        ? null
-                        : () => Navigator.of(context).pop(),
+                    onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close, size: 20),
                     color: SpColors.cream,
                     padding: EdgeInsets.zero,
@@ -1199,7 +1226,7 @@ class _DebtPixDialogState extends State<_DebtPixDialog> {
                       ),
                     ),
                     IconButton(
-                      onPressed: () => _copy(pixText),
+                      onPressed: () => _copy(context, pixText),
                       icon: const Icon(Icons.copy, size: 18),
                       color: SpColors.gold,
                       tooltip: 'Copiar',
@@ -1208,49 +1235,26 @@ class _DebtPixDialogState extends State<_DebtPixDialog> {
                 ),
               ),
               const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _loading
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: SpColors.muted,
-                        side: BorderSide(
-                          color: SpColors.cream.withValues(alpha: 0.2),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        'Fechar',
-                        style: TextStyle(
-                          fontFamily: SpTypography.uiFamily,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: SpColors.muted,
+                  side: BorderSide(
+                    color: SpColors.cream.withValues(alpha: 0.2),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: SpGoldButton(
-                      label: 'PAGO',
-                      loading: _loading,
-                      onPressed: _loading ? null : _handleConfirm,
-                      trailing: _loading
-                          ? null
-                          : const Icon(
-                              Icons.check,
-                              size: 16,
-                              color: Color(0xFF2A1D08),
-                            ),
-                    ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: const Text(
+                  'Fechar',
+                  style: TextStyle(
+                    fontFamily: SpTypography.uiFamily,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),

@@ -26,6 +26,7 @@ import '../../features/tables/domain/usecases/get_user_stats.dart';
 import '../../features/tables/domain/usecases/join_table.dart';
 import '../../features/tables/domain/usecases/list_settlements.dart';
 import '../../features/tables/domain/usecases/set_cash_out.dart';
+import '../../features/tables/domain/usecases/update_table.dart';
 import '../../features/tables/presentation/cubit/cashout_cubit.dart';
 import '../../features/tables/presentation/cubit/create_table_cubit.dart';
 import '../../features/tables/presentation/cubit/initial_buy_in_cubit.dart';
@@ -98,6 +99,7 @@ void registerAppDependencies(DIContainer di) {
 
   // Tables — usecases
   di.registerFactory(() => CreateTable(di.get<TablesRepository>()));
+  di.registerFactory(() => UpdateTable(di.get<TablesRepository>()));
   di.registerFactory(() => GetTable(di.get<TablesRepository>()));
   di.registerFactory(() => GetTablePreview(di.get<TablesRepository>()));
   di.registerFactory(() => GetUserStats(di.get<TablesRepository>()));
@@ -109,7 +111,7 @@ void registerAppDependencies(DIContainer di) {
   di.registerFactory(() => ConfirmSettlement(di.get<SettlementsRepository>()));
 
   // Tables — cubits (factory: instância nova por view)
-  di.registerFactory(() => CreateTableCubit(di.get<CreateTable>()));
+  di.registerFactory(() => CreateTableCubit(di.get<CreateTable>(), di.get<UpdateTable>()));
   di.registerFactory(() => TableDetailCubit(di.get<GetTable>()));
   di.registerFactory(() => QrCubit(di.get<GetTable>()));
   di.registerFactory(() => LiveCubit(di.get<GetTable>()));

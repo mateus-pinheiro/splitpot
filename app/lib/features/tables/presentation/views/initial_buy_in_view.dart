@@ -14,7 +14,7 @@ import '../../domain/entities/poker_table.dart';
 import '../cubit/initial_buy_in_cubit.dart';
 
 /// Tela do owner para declarar o aporte inicial logo após criar a mesa,
-/// quando ele marcou que vai jogar. Pular leva direto para o QR.
+/// quando ele marcou que vai jogar.
 class InitialBuyInView extends StatelessWidget {
   const InitialBuyInView({required this.tableId, super.key});
   final String tableId;
@@ -54,26 +54,31 @@ class _InitialBuyInScaffold extends StatelessWidget {
               }
             },
             builder: (context, state) {
+              final table = switch (state) {
+                InitialBuyInReady(:final table) => table,
+                InitialBuyInSubmitting(:final table) => table,
+                InitialBuyInSubmitError(:final table) => table,
+                InitialBuyInSubmitted(:final table) => table,
+                _ => null,
+              };
+              final backRoute = table != null
+                  ? Uri(
+                      path: AppRoutes.createTable,
+                      queryParameters: {
+                        'name': table.name,
+                        'minBuyIn': table.minBuyIn.toString(),
+                        'tableId': tableId,
+                        'returnTo': 'initialBuyIn',
+                      },
+                    ).toString()
+                  : AppRoutes.home;
               return Column(
                 children: [
                   SpAppHeader(
                     left: SpBackButton(
-                      onPressed: () => context.go(AppRoutes.home),
+                      onPressed: () => context.go(backRoute),
                     ),
                     title: 'Seu aporte inicial',
-                    right: TextButton(
-                      onPressed: () => context.go(AppRoutes.qr(tableId)),
-                      style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                      child: const Text(
-                        'Pular',
-                        style: TextStyle(
-                          fontFamily: SpTypography.uiFamily,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: SpColors.goldBright,
-                        ),
-                      ),
-                    ),
                   ),
                   Expanded(child: _Body(state: state, tableId: tableId)),
                 ],

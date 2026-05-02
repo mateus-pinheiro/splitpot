@@ -118,12 +118,37 @@ export class TablesService {
     if (table.status !== TableStatus.OPEN) {
       throw new BadRequestException('Mesa fechada não pode ser editada');
     }
-    return this.prisma.table.update({
-      where: { id: tableId },
-      data: {
-        name: dto.name ?? table.name,
-        minBuyIn: dto.minBuyIn !== undefined ? new Prisma.Decimal(dto.minBuyIn) : table.minBuyIn,
-      },
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.table.update({
+        where: { id: tableId },
+        data: {
+          name: dto.name ?? table.name,
+          minBuyIn: dto.minBuyIn !== undefined ? new Prisma.Decimal(dto.minBuyIn) : table.minBuyIn,
+        },
+      });
+
+      if (dto.joinAsPlayer === true) {
+        // Garante que o owner tem participação ativa
+        await tx.tableParticipation.upsert({
+          where: { tableId_userId: { tableId, userId: user.id } },
+          create: { tableId, userId: user.id },
+          update: { leftAt: null },
+        });
+      } else if (dto.joinAsPlayer === false) {
+        // Remove a participação do owner se ele ainda não fez buy-in
+        const participation = await tx.tableParticipation.findUnique({
+          where: { tableId_userId: { tableId, userId: user.id } },
+          include: { _count: { select: { buyIns: true } } },
+        });
+        if (participation && participation._count.buyIns === 0) {
+          await tx.tableParticipation.delete({
+            where: { id: participation.id },
+          });
+        }
+      }
+
+      return updated;
     });
   }
 
