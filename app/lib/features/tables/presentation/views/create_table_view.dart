@@ -1,5 +1,6 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -149,9 +150,8 @@ class _CreateTableForm extends StatefulWidget {
 }
 
 class _CreateTableFormState extends State<_CreateTableForm> {
-  final _nameController = TextEditingController(text: 'Sexta na casa do Léo');
-  final _minController = TextEditingController(text: '50');
-  final _maxController = TextEditingController(text: '200');
+  final _nameController = TextEditingController();
+  final _minController = TextEditingController();
 
   bool _willPlay = true;
 
@@ -159,7 +159,6 @@ class _CreateTableFormState extends State<_CreateTableForm> {
   void dispose() {
     _nameController.dispose();
     _minController.dispose();
-    _maxController.dispose();
     super.dispose();
   }
 
@@ -169,7 +168,12 @@ class _CreateTableFormState extends State<_CreateTableForm> {
       _showValidationError('Dê um nome para a mesa.');
       return;
     }
-    final min = Decimal.tryParse(_minController.text.replaceAll(',', '.'));
+    final minText = _minController.text.trim();
+    if (minText.isEmpty) {
+      _showValidationError('Informe o buy-in mínimo.');
+      return;
+    }
+    final min = Decimal.tryParse(minText.replaceAll(',', '.'));
     if (min == null || min <= Decimal.zero) {
       _showValidationError('Informe um buy-in mínimo maior que zero.');
       return;
@@ -203,7 +207,10 @@ class _CreateTableFormState extends State<_CreateTableForm> {
                 children: [
                   const SpFieldLabel('Nome da mesa'),
                   const SizedBox(height: 8),
-                  SpInput(controller: _nameController),
+                  SpInput(
+                    controller: _nameController,
+                    hintText: 'Sexta na casa do Léo',
+                  ),
                   const SizedBox(height: 22),
                   const SpFieldLabel('Buy-in (R\$)'),
                   const SizedBox(height: 10),
@@ -213,6 +220,7 @@ class _CreateTableFormState extends State<_CreateTableForm> {
                         child: _InsetNumberField(
                           label: 'Mínimo',
                           controller: _minController,
+                          hintText: '50',
                         ),
                       ),
                       // const SizedBox(width: 10),
@@ -268,10 +276,15 @@ class _CreateTableFormState extends State<_CreateTableForm> {
 }
 
 class _InsetNumberField extends StatelessWidget {
-  const _InsetNumberField({required this.label, required this.controller});
+  const _InsetNumberField({
+    required this.label,
+    required this.controller,
+    this.hintText,
+  });
 
   final String label;
   final TextEditingController controller;
+  final String? hintText;
 
   @override
   Widget build(BuildContext context) {
@@ -279,7 +292,9 @@ class _InsetNumberField extends StatelessWidget {
       children: [
         SpInput(
           controller: controller,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          hintText: hintText,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           contentPadding: const EdgeInsets.fromLTRB(14, 22, 14, 10),
           style: const TextStyle(
             fontFamily: SpTypography.numFamily,

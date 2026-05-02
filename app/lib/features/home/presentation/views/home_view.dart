@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,21 +22,75 @@ class HomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<HomeStatsCubit>(
-      create: (_) => appDI.get<HomeStatsCubit>()..load(),
-      child: Scaffold(
-        body: FeltBackground(
-          child: SafeArea(
-            child: BlocBuilder<AuthCubit, AuthState>(
-              builder: (context, state) {
-                final user = state is AuthAuthenticated ? state.user : null;
-                return _HomeScaffold(user: user);
-              },
+      create: (_) => appDI.get<HomeStatsCubit>()
+        ..load(),
+      child: const _HomeLifecycleAware(
+        child: Scaffold(
+          body: FeltBackground(
+            child: SafeArea(
+              child: _AuthGate(),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+class _AuthGate extends StatelessWidget {
+  const _AuthGate();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AuthCubit, AuthState>(
+      builder: (context, state) {
+        final user = state is AuthAuthenticated ? state.user : null;
+        return _HomeScaffold(user: user);
+      },
+    );
+  }
+}
+
+class _HomeLifecycleAware extends StatefulWidget {
+  const _HomeLifecycleAware({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_HomeLifecycleAware> createState() => _HomeLifecycleAwareState();
+}
+
+class _HomeLifecycleAwareState extends State<_HomeLifecycleAware>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<HomeStatsCubit>().startPolling();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final cubit = context.read<HomeStatsCubit>();
+    if (state == AppLifecycleState.resumed) {
+      cubit.startPolling();
+      unawaited(cubit.refreshSilently());
+      return;
+    }
+    cubit.stopPolling();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _HomeScaffold extends StatelessWidget {
@@ -51,8 +107,8 @@ class _HomeScaffold extends StatelessWidget {
             onLongPress: () => context.read<AuthCubit>().signOut(),
             child: SpAvatar(name: displayName, size: 32),
           ),
-          titleWidget: const SpLogo(size: 18),
-          right: const _BellIcon(),
+          titleWidget: const SpLogo(size: 32),
+          right: _LogoutIcon(() => context.read<AuthCubit>().signOut()),
         ),
         const Expanded(child: _HomeContent()),
       ],
@@ -157,11 +213,7 @@ class _HeroCreateCard extends StatelessWidget {
               top: -20,
               child: Opacity(
                 opacity: 0.3,
-                child: PokerChipStack(
-                  size: 90,
-                  color: SpColors.gold,
-                  count: 3,
-                ),
+                child: PokerChipStack(size: 90, color: SpColors.gold, count: 3),
               ),
             ),
             Column(
@@ -208,8 +260,11 @@ class _HeroCreateCard extends StatelessWidget {
                   height: 42,
                   fontSize: 14,
                   expand: false,
-                  trailing: const Icon(Icons.arrow_forward,
-                      size: 14, color: Color(0xFF2A1D08)),
+                  trailing: const Icon(
+                    Icons.arrow_forward,
+                    size: 14,
+                    color: Color(0xFF2A1D08),
+                  ),
                 ),
               ],
             ),
@@ -237,11 +292,12 @@ class _StatsGrid extends StatelessWidget {
         final pnlColor = stats == null
             ? const Color(0xFF222222)
             : (stats.pnlTotal >= Decimal.zero
-                ? SpColors.success
-                : SpColors.danger);
+                  ? SpColors.success
+                  : SpColors.danger);
 
-        final winRate =
-            stats == null ? null : _formatWinRate(stats.wins, stats.mesas);
+        final winRate = stats == null
+            ? null
+            : _formatWinRate(stats.wins, stats.mesas);
         final winSub = stats == null
             ? '—'
             : '${stats.wins} de ${stats.mesas} ${stats.mesas == 1 ? 'mesa' : 'mesas'}';
@@ -308,8 +364,16 @@ class _StatCard extends StatelessWidget {
         color: const Color(0xFFFFFDF5).withValues(alpha: 0.98),
         borderRadius: BorderRadius.circular(SpRadius.hero),
         boxShadow: const [
-          BoxShadow(color: Color(0x0F000000), blurRadius: 4, offset: Offset(0, 1)),
-          BoxShadow(color: Color(0x1F000000), blurRadius: 16, offset: Offset(0, 4)),
+          BoxShadow(
+            color: Color(0x0F000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+          BoxShadow(
+            color: Color(0x1F000000),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -460,7 +524,7 @@ class _RecentTableRow extends StatelessWidget {
           } else if (table.status == TableStatus.closed) {
             context.push(AppRoutes.tableDetail(table.id));
           } else {
-            context.push(AppRoutes.live(table.id));
+            context.go(AppRoutes.live(table.id));
           }
         },
         child: Container(
@@ -591,14 +655,25 @@ class _DateBadge extends StatelessWidget {
   final TableStatus status;
 
   static const _months = [
-    'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
-    'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ',
+    'JAN',
+    'FEV',
+    'MAR',
+    'ABR',
+    'MAI',
+    'JUN',
+    'JUL',
+    'AGO',
+    'SET',
+    'OUT',
+    'NOV',
+    'DEZ',
   ];
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        status == TableStatus.open ? SpColors.gold : SpColors.goldDark;
+    final color = status == TableStatus.open
+        ? SpColors.gold
+        : SpColors.goldDark;
     return Container(
       width: 44,
       height: 44,
@@ -638,13 +713,15 @@ class _DateBadge extends StatelessWidget {
   }
 }
 
-class _BellIcon extends StatelessWidget {
-  const _BellIcon();
+class _LogoutIcon extends StatelessWidget {
+  final VoidCallback? onPressed;
+
+  const _LogoutIcon(this.onPressed);
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      onPressed: () {},
-      icon: const Icon(Icons.notifications_none),
+      onPressed: onPressed,
+      icon: const Icon(Icons.logout),
       color: SpColors.goldBright,
       splashRadius: 20,
     );
@@ -903,11 +980,16 @@ class _DebtPixDialogState extends State<_DebtPixDialog> {
                     ),
                   ),
                   IconButton(
-                    onPressed: _loading ? null : () => Navigator.of(context).pop(),
+                    onPressed: _loading
+                        ? null
+                        : () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close, size: 20),
                     color: SpColors.cream,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
                   ),
                 ],
               ),
@@ -956,7 +1038,9 @@ class _DebtPixDialogState extends State<_DebtPixDialog> {
                 padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
                 decoration: BoxDecoration(
                   color: SpColors.feltRail.withValues(alpha: 0.6),
-                  border: Border.all(color: SpColors.gold.withValues(alpha: 0.25)),
+                  border: Border.all(
+                    color: SpColors.gold.withValues(alpha: 0.25),
+                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -1003,10 +1087,14 @@ class _DebtPixDialogState extends State<_DebtPixDialog> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _loading ? null : () => Navigator.of(context).pop(),
+                      onPressed: _loading
+                          ? null
+                          : () => Navigator.of(context).pop(),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: SpColors.muted,
-                        side: BorderSide(color: SpColors.cream.withValues(alpha: 0.2)),
+                        side: BorderSide(
+                          color: SpColors.cream.withValues(alpha: 0.2),
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -1030,7 +1118,11 @@ class _DebtPixDialogState extends State<_DebtPixDialog> {
                       onPressed: _loading ? null : _handleConfirm,
                       trailing: _loading
                           ? null
-                          : const Icon(Icons.check, size: 16, color: Color(0xFF2A1D08)),
+                          : const Icon(
+                              Icons.check,
+                              size: 16,
+                              color: Color(0xFF2A1D08),
+                            ),
                     ),
                   ),
                 ],

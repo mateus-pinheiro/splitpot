@@ -56,7 +56,7 @@ class _LoginHero extends StatelessWidget {
           const _ChipTower(),
           const SizedBox(height: 28),
           GoldFoilText(
-            'Splitpot',
+            'SplitPot',
             style: const TextStyle(
               fontFamily: SpTypography.displayFamily,
               fontSize: 52,

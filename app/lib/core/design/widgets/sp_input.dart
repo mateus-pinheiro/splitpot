@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../tokens.dart';
 
@@ -17,6 +18,7 @@ class SpInput extends StatelessWidget {
     this.onSubmitted,
     this.prefix,
     this.contentPadding,
+    this.inputFormatters,
     super.key,
   });
 
@@ -31,6 +33,7 @@ class SpInput extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final Widget? prefix;
   final EdgeInsets? contentPadding;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +44,7 @@ class SpInput extends StatelessWidget {
         initialValue: controller == null ? initialValue : null,
         enabled: enabled,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         textAlign: textAlign ?? TextAlign.start,
         onChanged: onChanged,
         onFieldSubmitted: onSubmitted,

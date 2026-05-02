@@ -14,14 +14,14 @@ class SpLogo extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
+        Image.asset(
+          'assets/icon/app_icon.png',
           width: size * 1.3,
           height: size * 1.3,
-          child: CustomPaint(painter: _LogoChipPainter(color: color)),
         ),
         const SizedBox(width: 8),
         Text(
-          'Splitpot',
+          'SplitPot',
           style: TextStyle(
             fontFamily: SpTypography.displayFamily,
             fontSize: size,
