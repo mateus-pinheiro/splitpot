@@ -131,6 +131,7 @@ class _HomeContent extends StatelessWidget {
           const _HeroCreateCard(),
           const SizedBox(height: 24),
           const _DebtsBlock(),
+          const _ReceivablesBlock(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Row(
@@ -826,6 +827,70 @@ class _DebtsBlock extends StatelessWidget {
   }
 }
 
+/// Bloco "Você tem a receber" — só aparece quando há settlements pendentes
+/// em que o usuário é recebedor.
+class _ReceivablesBlock extends StatelessWidget {
+  const _ReceivablesBlock();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<HomeStatsCubit, HomeStatsState>(
+      buildWhen: (p, c) => c is HomeStatsLoaded || p is HomeStatsLoaded,
+      builder: (context, state) {
+        if (state is! HomeStatsLoaded) return const SizedBox.shrink();
+        final receivables = state.stats.receivables;
+        if (receivables.isEmpty) return const SizedBox.shrink();
+
+        final total = receivables.fold<Decimal>(
+          Decimal.zero,
+          (acc, r) => acc + r.amount,
+        );
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Você tem a receber',
+                      style: TextStyle(
+                        fontFamily: SpTypography.displayFamily,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: SpColors.cream,
+                      ),
+                    ),
+                    Text(
+                      '+${brlFromDecimal(total)}',
+                      style: const TextStyle(
+                        fontFamily: SpTypography.numFamily,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: SpColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              for (final r in receivables)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _ReceivableRow(receivable: r),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 void _showPixDialog(BuildContext context, DebtItem debt) {
   showDialog<void>(
     context: context,
@@ -899,6 +964,66 @@ class _DebtRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ReceivableRow extends StatelessWidget {
+  const _ReceivableRow({required this.receivable});
+  final ReceivableItem receivable;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: SpColors.success.withValues(alpha: 0.1),
+        border: Border.all(color: SpColors.success.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          SpAvatar(name: receivable.fromName, size: 36),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Receber de ${receivable.fromName}',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: SpTypography.uiFamily,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: SpColors.cream,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  receivable.tableName,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: SpTypography.uiFamily,
+                    fontSize: 12,
+                    color: SpColors.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            brlFromDecimal(receivable.amount),
+            style: const TextStyle(
+              fontFamily: SpTypography.numFamily,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: SpColors.success,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -11,6 +11,7 @@ class UserStats {
     required this.recents,
     required this.history,
     required this.debts,
+    required this.receivables,
   });
 
   final Decimal pnlTotal;
@@ -19,6 +20,7 @@ class UserStats {
   final List<RecentTableSummary> recents;
   final List<RecentTableSummary> history;
   final List<DebtItem> debts;
+  final List<ReceivableItem> receivables;
 }
 
 class RecentTableSummary {
@@ -66,4 +68,23 @@ class DebtItem {
   final String tableId;
   final String tableName;
   final String? pixCopiaECola;
+}
+
+/// Settlement pendente em que o usuário é o recebedor.
+class ReceivableItem {
+  const ReceivableItem({
+    required this.id,
+    required this.amount,
+    required this.fromUserId,
+    required this.fromName,
+    required this.tableId,
+    required this.tableName,
+  });
+
+  final String id;
+  final Decimal amount;
+  final String fromUserId;
+  final String fromName;
+  final String tableId;
+  final String tableName;
 }

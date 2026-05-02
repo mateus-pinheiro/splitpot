@@ -8,6 +8,7 @@ class UserStatsDto {
     final recentsJson = json['recents'] as List<dynamic>? ?? const [];
     final historyJson = json['history'] as List<dynamic>? ?? const [];
     final debtsJson = json['debts'] as List<dynamic>? ?? const [];
+    final receivablesJson = json['receivables'] as List<dynamic>? ?? const [];
     return UserStats(
       pnlTotal: _decimal(json['pnlTotal']),
       mesas: json['mesas'] as int? ?? 0,
@@ -20,6 +21,9 @@ class UserStatsDto {
           .toList(growable: false),
       debts: debtsJson
           .map((e) => _debtFromJson(e as Map<String, dynamic>))
+          .toList(growable: false),
+        receivables: receivablesJson
+          .map((e) => _receivableFromJson(e as Map<String, dynamic>))
           .toList(growable: false),
     );
   }
@@ -51,6 +55,17 @@ class UserStatsDto {
       tableId: json['tableId'] as String,
       tableName: json['tableName'] as String,
       pixCopiaECola: json['pixCopiaECola'] as String?,
+    );
+  }
+
+  static ReceivableItem _receivableFromJson(Map<String, dynamic> json) {
+    return ReceivableItem(
+      id: json['id'] as String,
+      amount: _decimal(json['amount']),
+      fromUserId: json['fromUserId'] as String,
+      fromName: json['fromName'] as String,
+      tableId: json['tableId'] as String,
+      tableName: json['tableName'] as String,
     );
   }
 

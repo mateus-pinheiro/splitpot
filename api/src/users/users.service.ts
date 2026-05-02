@@ -143,6 +143,28 @@ export class UsersService {
       pixCopiaECola: s.pixCopiaECola,
     }));
 
+    // Recebimentos: o que esse user ainda tem a receber.
+    const receivableRows = await this.prisma.settlement.findMany({
+      where: {
+        toUserId: user.id,
+        status: SettlementStatus.PENDING,
+      },
+      include: {
+        fromUser: { select: { id: true, name: true } },
+        table: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const receivables = receivableRows.map((s) => ({
+      id: s.id,
+      amount: s.amount.toFixed(2),
+      fromUserId: s.fromUser.id,
+      fromName: s.fromUser.name,
+      tableId: s.table.id,
+      tableName: s.table.name,
+    }));
+
     return {
       pnlTotal: pnlTotal.toFixed(2),
       mesas,
@@ -150,6 +172,7 @@ export class UsersService {
       recents,
       history,
       debts,
+      receivables,
     };
   }
 
