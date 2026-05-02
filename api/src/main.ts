@@ -1,9 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { ExpressAdapter } from '@nestjs/platform-express';
 import { AppModule } from './app.module.js';
+import express from 'express';
+
+const server = express();
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
     logger: ['log', 'error', 'warn', 'debug'],
   });
 
@@ -23,9 +27,19 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = process.env.PORT ?? 3000;
-  await app.listen(port);
-  Logger.log(`SplitPot API listening on http://localhost:${port}/api`, 'Bootstrap');
+  await app.init();
+
+  if (!process.env.VERCEL) {
+    const port = process.env.PORT ?? 3000;
+    server.listen(port, () => {
+      Logger.log(`SplitPot API listening on http://localhost:${port}/api`, 'Bootstrap');
+    });
+  }
 }
 
-bootstrap();
+const bootstrapPromise = bootstrap();
+
+export default async (req: express.Request, res: express.Response) => {
+  await bootstrapPromise;
+  server(req, res);
+};
