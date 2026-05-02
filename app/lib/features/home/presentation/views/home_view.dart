@@ -90,7 +90,7 @@ class _HomeContent extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => context.go(AppRoutes.history),
+                  onPressed: () => context.push(AppRoutes.history),
                   style: TextButton.styleFrom(padding: EdgeInsets.zero),
                   child: const Text(
                     'Ver tudo',
@@ -460,7 +460,7 @@ class _RecentTableRow extends StatelessWidget {
           } else if (table.status == TableStatus.closed) {
             context.push(AppRoutes.tableDetail(table.id));
           } else {
-            context.go(AppRoutes.live(table.id));
+            context.push(AppRoutes.live(table.id));
           }
         },
         child: Container(

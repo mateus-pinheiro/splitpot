@@ -35,7 +35,9 @@ class _HistoryScaffold extends StatelessWidget {
             children: [
               SpAppHeader(
                 left: SpBackButton(
-                  onPressed: () => context.go(AppRoutes.home),
+                  onPressed: () => context.canPop()
+                      ? context.pop()
+                      : context.go(AppRoutes.home),
                 ),
                 title: 'Histórico',
               ),

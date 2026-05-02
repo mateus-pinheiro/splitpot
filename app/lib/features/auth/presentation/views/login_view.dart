@@ -227,15 +227,15 @@ class _LoginWebGoogle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _AuthButton(
-          onPressed: () {},
-          bg: Colors.black,
-          fg: Colors.white,
-          borderColor: Colors.white.withValues(alpha: 0.15),
-          icon: const Icon(Icons.apple, color: Colors.white, size: 20),
-          label: 'Continue with Apple',
-        ),
-        const SizedBox(height: 12),
+        // _AuthButton(
+        //   onPressed: () {},
+        //   bg: Colors.black,
+        //   fg: Colors.white,
+        //   borderColor: Colors.white.withValues(alpha: 0.15),
+        //   icon: const Icon(Icons.apple, color: Colors.white, size: 20),
+        //   label: 'Continue with Apple',
+        // ),
+        // const SizedBox(height: 12),
         Container(
           height: 52,
           alignment: Alignment.center,

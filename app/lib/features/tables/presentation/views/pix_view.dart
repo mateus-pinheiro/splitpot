@@ -38,7 +38,11 @@ class _PixScaffold extends StatelessWidget {
           child: Column(
             children: [
               SpAppHeader(
-                left: SpBackButton(onPressed: () => context.go(AppRoutes.home)),
+                left: SpBackButton(
+                  onPressed: () => context.canPop()
+                      ? context.pop()
+                      : context.go(AppRoutes.home),
+                ),
                 title: 'Acertos PIX',
               ),
               Expanded(
@@ -160,7 +164,9 @@ class _Content extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
           child: SpGoldButton(
             label: 'Voltar para a home',
-            onPressed: () => context.go(AppRoutes.home),
+            onPressed: () => context.canPop()
+                ? context.pop()
+                : context.go(AppRoutes.home),
           ),
         ),
       ],
