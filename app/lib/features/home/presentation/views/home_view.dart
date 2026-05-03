@@ -61,7 +61,6 @@ class _HomeScaffold extends StatelessWidget {
             onLongPress: () => context.read<AuthCubit>().signOut(),
             child: SpAvatar(name: displayName, size: 32),
           ),
-          titleWidget: const SpLogo(size: 32),
           right: _LogoutIcon(() => context.read<AuthCubit>().signOut()),
         ),
         const Expanded(child: _HomeContent()),
