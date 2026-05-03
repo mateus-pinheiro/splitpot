@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:splitpot/core/router/app_routes.dart';
 
 import '../../../../core/design/design_system.dart';
 import '../cubit/auth_cubit.dart';
@@ -63,7 +65,7 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
               children: [
                 SpAppHeader(
                   left: SpBackButton(
-                    onPressed: () => Navigator.maybePop(context),
+                    onPressed: () => context.go(AppRoutes.login),
                   ),
                 ),
                 Expanded(
