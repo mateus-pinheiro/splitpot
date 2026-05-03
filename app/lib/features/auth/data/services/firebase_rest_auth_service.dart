@@ -43,7 +43,9 @@ class FirebaseRestAuthService {
     await _googleSignIn.initialize(
       // Em Android/iOS o plugin lê o clientId do google-services.json /
       // GoogleService-Info.plist. Em web é obrigatório passar explicitamente.
+      // serverClientId é necessário no mobile para o plugin retornar idToken.
       clientId: kIsWeb ? _config.googleClientId : null,
+      serverClientId: kIsWeb ? null : _config.googleClientId,
     );
     _subscription = _googleSignIn.authenticationEvents.listen(
       _onAuthenticationEvent,
