@@ -4,10 +4,16 @@ import '../tokens.dart';
 
 /// Wordmark "Splitpot" com o chip-logo dourado à esquerda.
 class SpLogo extends StatelessWidget {
-  const SpLogo({this.size = 22, this.color = SpColors.goldBright, super.key});
+  const SpLogo({
+    this.size = 22,
+    this.color = SpColors.goldBright,
+    this.showTitle = true,
+    super.key,
+  });
 
   final double size;
   final Color color;
+  final bool showTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -19,18 +25,20 @@ class SpLogo extends StatelessWidget {
           width: size * 1.3,
           height: size * 1.3,
         ),
-        const SizedBox(width: 8),
-        Text(
-          'SplitPot',
-          style: TextStyle(
-            fontFamily: SpTypography.displayFamily,
-            fontSize: size,
-            fontWeight: FontWeight.w700,
-            color: color,
-            letterSpacing: -0.22,
-            height: 1.0,
+        if (showTitle) ...[
+          const SizedBox(width: 8),
+          Text(
+            'SplitPot',
+            style: TextStyle(
+              fontFamily: SpTypography.displayFamily,
+              fontSize: size,
+              fontWeight: FontWeight.w700,
+              color: color,
+              letterSpacing: -0.22,
+              height: 1.0,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -62,21 +70,38 @@ class _LogoChipPainter extends CustomPainter {
       canvas.translate(center.dx, center.dy);
       canvas.rotate(rad);
       canvas.drawRect(
-        Rect.fromLTWH(-size.width * 0.035, -r + 2, size.width * 0.07, size.width * 0.14),
+        Rect.fromLTWH(
+          -size.width * 0.035,
+          -r + 2,
+          size.width * 0.07,
+          size.width * 0.14,
+        ),
         wedgePaint,
       );
       canvas.restore();
     }
     // miolo verde
-    canvas.drawCircle(center, size.width * 0.25, Paint()..color = SpColors.felt);
+    canvas.drawCircle(
+      center,
+      size.width * 0.25,
+      Paint()..color = SpColors.felt,
+    );
     // cruz +
     final stroke = Paint()
       ..color = color
       ..strokeWidth = size.width * 0.055
       ..strokeCap = StrokeCap.round;
     final arm = size.width * 0.14;
-    canvas.drawLine(center.translate(-arm, 0), center.translate(arm, 0), stroke);
-    canvas.drawLine(center.translate(0, -arm), center.translate(0, arm), stroke);
+    canvas.drawLine(
+      center.translate(-arm, 0),
+      center.translate(arm, 0),
+      stroke,
+    );
+    canvas.drawLine(
+      center.translate(0, -arm),
+      center.translate(0, arm),
+      stroke,
+    );
   }
 
   @override
