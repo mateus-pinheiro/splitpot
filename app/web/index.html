@@ -36,8 +36,72 @@
 
   <title>splitpot</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #0a2518;
+    }
+
+    #sp-splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at 50% 0%, #155a36 0%, #0f3a24 40%, #0a2518 100%);
+      z-index: 9999;
+      transition: opacity 0.45s ease;
+    }
+
+    #sp-splash.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .sp-splash-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: sp-fade-scale-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .sp-splash-logo img {
+      width: 46px;
+      height: 46px;
+    }
+
+    .sp-splash-logo span {
+      font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #f0c770;
+    }
+
+    @keyframes sp-fade-scale-in {
+      from { opacity: 0; transform: scale(0.82); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+  </style>
 </head>
 <body>
+  <div id="sp-splash">
+    <div class="sp-splash-logo">
+ 
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var splash = document.getElementById('sp-splash');
+      if (!splash) return;
+      splash.classList.add('hidden');
+      setTimeout(function () { splash.remove(); }, 500);
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
