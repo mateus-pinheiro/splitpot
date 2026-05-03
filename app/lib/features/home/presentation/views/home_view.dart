@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,12 +22,10 @@ class HomeView extends StatelessWidget {
     return BlocProvider<HomeStatsCubit>(
       create: (_) => appDI.get<HomeStatsCubit>()
         ..load(),
-      child: const _HomeLifecycleAware(
-        child: Scaffold(
-          body: FeltBackground(
-            child: SafeArea(
-              child: _AuthGate(),
-            ),
+      child: const Scaffold(
+        body: FeltBackground(
+          child: SafeArea(
+            child: _AuthGate(),
           ),
         ),
       ),
@@ -49,48 +45,6 @@ class _AuthGate extends StatelessWidget {
       },
     );
   }
-}
-
-class _HomeLifecycleAware extends StatefulWidget {
-  const _HomeLifecycleAware({required this.child});
-
-  final Widget child;
-
-  @override
-  State<_HomeLifecycleAware> createState() => _HomeLifecycleAwareState();
-}
-
-class _HomeLifecycleAwareState extends State<_HomeLifecycleAware>
-    with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      context.read<HomeStatsCubit>().startPolling();
-    });
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    final cubit = context.read<HomeStatsCubit>();
-    if (state == AppLifecycleState.resumed) {
-      cubit.startPolling();
-      unawaited(cubit.refreshSilently());
-      return;
-    }
-    cubit.stopPolling();
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
 }
 
 class _HomeScaffold extends StatelessWidget {
