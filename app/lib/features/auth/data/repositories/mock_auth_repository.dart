@@ -29,6 +29,9 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
+  Stream<void> get signInAttempted => _outcomes.stream.map((_) {});
+
+  @override
   Stream<SignInOutcome> get signInOutcomes => _outcomes.stream;
 
   @override

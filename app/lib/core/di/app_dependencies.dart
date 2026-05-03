@@ -5,6 +5,7 @@ import '../../features/auth/data/services/firebase_rest_auth_service.dart';
 import '../../features/auth/data/services/firebase_token_store.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/get_current_user.dart';
+import '../../features/auth/domain/usecases/observe_sign_in_attempts.dart';
 import '../../features/auth/domain/usecases/observe_sign_in_outcomes.dart';
 import '../../features/auth/domain/usecases/sign_in_with_google.dart';
 import '../../features/auth/domain/usecases/sign_out.dart';
@@ -71,6 +72,7 @@ void registerAppDependencies(DIContainer di) {
   // Auth — usecases
   di.registerFactory(() => SignInWithGoogle(di.get<AuthRepository>()));
   di.registerFactory(() => ObserveSignInOutcomes(di.get<AuthRepository>()));
+  di.registerFactory(() => ObserveSignInAttempts(di.get<AuthRepository>()));
   di.registerFactory(() => GetCurrentUser(di.get<AuthRepository>()));
   di.registerFactory(() => UpdateProfile(di.get<AuthRepository>()));
   di.registerFactory(() => SignOut(di.get<AuthRepository>()));
@@ -80,6 +82,7 @@ void registerAppDependencies(DIContainer di) {
     () => AuthCubit(
       signInWithGoogle: di.get<SignInWithGoogle>(),
       observeSignInOutcomes: di.get<ObserveSignInOutcomes>(),
+      observeSignInAttempts: di.get<ObserveSignInAttempts>(),
       getCurrentUser: di.get<GetCurrentUser>(),
       updateProfile: di.get<UpdateProfile>(),
       signOut: di.get<SignOut>(),

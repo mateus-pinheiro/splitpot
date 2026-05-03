@@ -39,6 +39,9 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> startSignIn() => _firebase.triggerSignIn();
 
   @override
+  Stream<void> get signInAttempted => _firebase.credentials.map((_) {});
+
+  @override
   Stream<SignInOutcome> get signInOutcomes {
     return _firebase.credentials.asyncMap((credentials) async {
       _tokenStore.set(credentials.idToken);

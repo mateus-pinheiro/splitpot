@@ -12,24 +12,33 @@ class LoginView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: FeltBackground(
-        child: SafeArea(
-          child: BlocListener<AuthCubit, AuthState>(
-            listener: _handleErrorSnackBar,
-            listenWhen: (p, c) => c is AuthError,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 32),
-              child: Column(
-                children: [
-                  Expanded(child: _LoginHero()),
-                  _LoginFooter(),
-                ],
+    return BlocBuilder<AuthCubit, AuthState>(
+      buildWhen: (p, c) =>
+          (p is AuthAuthenticating) != (c is AuthAuthenticating),
+      builder: (context, state) {
+        return SpLoadingScreen(
+          loading: state is AuthAuthenticating,
+          child: Scaffold(
+            body: FeltBackground(
+              child: SafeArea(
+                child: BlocListener<AuthCubit, AuthState>(
+                  listener: _handleErrorSnackBar,
+                  listenWhen: (p, c) => c is AuthError,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 32),
+                    child: Column(
+                      children: [
+                        Expanded(child: _LoginHero()),
+                        _LoginFooter(),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -189,33 +198,26 @@ class _LoginMobileButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AuthCubit, AuthState>(
-      builder: (context, state) {
-        final loading = state is AuthAuthenticating;
-        return Column(
-          children: [
-            // _AuthButton(
-            //   onPressed: loading ? null : () {}, // Apple a definir
-            //   bg: Colors.black,
-            //   fg: Colors.white,
-            //   borderColor: Colors.white.withValues(alpha: 0.15),
-            //   icon: const Icon(Icons.apple, color: Colors.white, size: 20),
-            //   label: 'Continue with Apple',
-            // ),
-            const SizedBox(height: 12),
-            _AuthButton(
-              onPressed: loading
-                  ? null
-                  : () => context.read<AuthCubit>().signInWithGoogle(),
-              bg: SpColors.cream,
-              fg: const Color(0xFF222222),
-              borderColor: Colors.white.withValues(alpha: 0.3),
-              icon: const _GoogleGlyph(),
-              label: loading ? 'Entrando...' : 'Continue with Google',
-            ),
-          ],
-        );
-      },
+    return Column(
+      children: [
+        // _AuthButton(
+        //   onPressed: () {}, // Apple a definir
+        //   bg: Colors.black,
+        //   fg: Colors.white,
+        //   borderColor: Colors.white.withValues(alpha: 0.15),
+        //   icon: const Icon(Icons.apple, color: Colors.white, size: 20),
+        //   label: 'Continue with Apple',
+        // ),
+        const SizedBox(height: 12),
+        _AuthButton(
+          onPressed: () => context.read<AuthCubit>().signInWithGoogle(),
+          bg: SpColors.cream,
+          fg: const Color(0xFF222222),
+          borderColor: Colors.white.withValues(alpha: 0.3),
+          icon: const _GoogleGlyph(),
+          label: 'Continue with Google',
+        ),
+      ],
     );
   }
 }
@@ -246,22 +248,6 @@ class _LoginWebGoogle extends StatelessWidget {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: buildGoogleSignInWebButton(),
-        ),
-        const SizedBox(height: 8),
-        BlocBuilder<AuthCubit, AuthState>(
-          builder: (context, state) {
-            if (state is AuthAuthenticating) {
-              return const SizedBox(
-                height: 18,
-                width: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: SpColors.goldBright,
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          },
         ),
       ],
     );

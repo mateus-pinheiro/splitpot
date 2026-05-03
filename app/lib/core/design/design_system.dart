@@ -9,5 +9,6 @@ export 'widgets/sp_app_header.dart';
 export 'widgets/sp_avatar.dart';
 export 'widgets/sp_buttons.dart';
 export 'widgets/sp_input.dart';
+export 'widgets/sp_loader.dart';
 export 'widgets/sp_logo.dart';
 export 'widgets/suit_glyph.dart';

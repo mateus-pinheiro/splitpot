@@ -6,6 +6,7 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/sign_in_outcome.dart';
 import '../../domain/usecases/get_current_user.dart';
+import '../../domain/usecases/observe_sign_in_attempts.dart';
 import '../../domain/usecases/observe_sign_in_outcomes.dart';
 import '../../domain/usecases/sign_in_with_google.dart';
 import '../../domain/usecases/sign_out.dart';
@@ -16,6 +17,7 @@ class AuthCubit extends Cubit<AuthState> {
   AuthCubit({
     required SignInWithGoogle signInWithGoogle,
     required ObserveSignInOutcomes observeSignInOutcomes,
+    required ObserveSignInAttempts observeSignInAttempts,
     required GetCurrentUser getCurrentUser,
     required UpdateProfile updateProfile,
     required SignOut signOut,
@@ -28,6 +30,9 @@ class AuthCubit extends Cubit<AuthState> {
       _onOutcome,
       onError: _onOutcomeError,
     );
+    _attemptsSub = observeSignInAttempts().listen(
+      (_) => emit(const AuthState.authenticating()),
+    );
   }
 
   final SignInWithGoogle _signInWithGoogle;
@@ -35,8 +40,10 @@ class AuthCubit extends Cubit<AuthState> {
   final UpdateProfile _updateProfile;
   final SignOut _signOut;
   late final StreamSubscription<SignInOutcome> _outcomesSub;
+  late final StreamSubscription<void> _attemptsSub;
 
   Future<void> bootstrap() async {
+    emit(const AuthState.authenticating());
     try {
       final user = await _getCurrentUser();
       if (user == null) {
@@ -87,6 +94,7 @@ class AuthCubit extends Cubit<AuthState> {
   @override
   Future<void> close() async {
     await _outcomesSub.cancel();
+    await _attemptsSub.cancel();
     return super.close();
   }
 

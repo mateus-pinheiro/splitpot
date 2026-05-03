@@ -18,6 +18,11 @@ abstract class AuthRepository {
   /// Resultado de cada login bem-sucedido (ou erro via onError).
   Stream<SignInOutcome> get signInOutcomes;
 
+  /// Emite um evento quando um sign-in começa a ser processado (credenciais
+  /// obtidas do Google, antes da chamada ao backend). Usado para emitir
+  /// [AuthAuthenticating] antes que o resultado chegue via [signInOutcomes].
+  Stream<void> get signInAttempted;
+
   /// Persiste o perfil no backend (provisiona se ainda não existe).
   Future<User> updateProfile({required String name, required String pixKey});
 
