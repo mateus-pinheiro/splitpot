@@ -7,6 +7,7 @@ class TablePreviewDto {
   static TablePreview fromJson(Map<String, dynamic> json) {
     return TablePreview(
       id: json['id'] as String,
+      ownerId: json['ownerId'] as String? ?? '',
       name: json['name'] as String,
       minBuyIn: _decimal(json['minBuyIn']),
       status: _status(json['status'] as String),

@@ -59,6 +59,7 @@ export class TablesService {
       where: { id: tableId },
       select: {
         id: true,
+        ownerId: true,
         name: true,
         minBuyIn: true,
         status: true,
@@ -69,6 +70,7 @@ export class TablesService {
     if (!table) throw new NotFoundException('Mesa não encontrada');
     return {
       id: table.id,
+      ownerId: table.ownerId,
       name: table.name,
       minBuyIn: table.minBuyIn,
       status: table.status,
@@ -97,6 +99,11 @@ export class TablesService {
             toUser: { select: { id: true, name: true, pixKey: true } },
           },
           orderBy: { createdAt: 'asc' },
+        },
+        actionRequests: {
+          where: { status: 'PENDING' },
+          include: { requestedBy: { select: { id: true, name: true } } },
+          orderBy: { requestedAt: 'asc' },
         },
       },
     });

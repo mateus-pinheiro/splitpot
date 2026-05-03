@@ -1,10 +1,12 @@
 import 'package:decimal/decimal.dart';
 
+import '../../domain/entities/action_request.dart';
 import '../../domain/entities/buy_in.dart';
 import '../../domain/entities/cash_out.dart';
 import '../../domain/entities/poker_table.dart';
 import '../../domain/entities/table_participation.dart';
 import '../../domain/entities/table_status.dart';
+import 'action_request_dto.dart';
 
 /// Mapeia o JSON retornado pela API (Nest + Prisma) pras entidades de
 /// domínio. A API serializa `Decimal` como string ("100.00") e enums
@@ -12,6 +14,7 @@ import '../../domain/entities/table_status.dart';
 class TableDto {
   static PokerTable fromJson(Map<String, dynamic> json) {
     final participationsJson = json['participations'] as List<dynamic>? ?? const [];
+    final actionRequestsJson = json['actionRequests'] as List<dynamic>? ?? const [];
     return PokerTable(
       id: json['id'] as String,
       ownerId: json['ownerId'] as String,
@@ -24,6 +27,9 @@ class TableDto {
           : DateTime.parse(json['closedAt'] as String),
       participations: participationsJson
           .map((p) => _participation(p as Map<String, dynamic>))
+          .toList(growable: false),
+      pendingRequests: actionRequestsJson
+          .map((r) => ActionRequestDto.fromJson(r as Map<String, dynamic>))
           .toList(growable: false),
     );
   }

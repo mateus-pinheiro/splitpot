@@ -9,15 +9,9 @@ class ParticipationsRepositoryImpl implements ParticipationsRepository {
   final ApiClient _api;
 
   @override
-  Future<void> joinTable({
-    required String tableId,
-    Decimal? initialBuyIn,
-  }) async {
-    await _api.post('/participations', body: {
-      'tableId': tableId,
-      if (initialBuyIn != null)
-        'initialBuyIn': double.parse(initialBuyIn.toString()),
-    });
+  Future<String> joinTable({required String tableId}) async {
+    final json = await _api.post('/participations', body: {'tableId': tableId});
+    return json['id'] as String;
   }
 
   @override

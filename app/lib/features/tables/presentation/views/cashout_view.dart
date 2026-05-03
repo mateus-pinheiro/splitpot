@@ -43,6 +43,8 @@ class _CashoutScaffold extends StatelessWidget {
             listener: (context, state) {
               if (state is CashoutSubmitted) {
                 context.go(AppRoutes.home);
+              } else if (state is CashoutAwaitingApproval) {
+                context.go(AppRoutes.live(tableId));
               } else if (state is CashoutSubmitError) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -102,6 +104,7 @@ class _Body extends StatelessWidget {
       CashoutSubmitError(:final participation) =>
         _Form(participation: participation, submitting: false),
       CashoutSubmitted() => const _Loading(),
+      CashoutAwaitingApproval() => const _Loading(),
     };
   }
 

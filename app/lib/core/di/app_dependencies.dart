@@ -1,6 +1,12 @@
 import 'package:splitpot/features/tables/domain/usecases/rejoin_table.dart';
 
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/tables/data/repositories/action_requests_repository_impl.dart';
+import '../../features/tables/domain/repositories/action_requests_repository.dart';
+import '../../features/tables/domain/usecases/approve_action_request.dart';
+import '../../features/tables/domain/usecases/reject_action_request.dart';
+import '../../features/tables/domain/usecases/request_action.dart';
+import '../../features/tables/presentation/cubit/pending_approvals_cubit.dart';
 import '../../features/auth/data/services/firebase_rest_auth_service.dart';
 import '../../features/auth/data/services/firebase_token_store.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
@@ -99,6 +105,9 @@ void registerAppDependencies(DIContainer di) {
   di.registerLazySingleton<SettlementsRepository>(
     () => SettlementsRepositoryImpl(di.get<ApiClient>()),
   );
+  di.registerLazySingleton<ActionRequestsRepository>(
+    () => ActionRequestsRepositoryImpl(di.get<ApiClient>()),
+  );
 
   // Tables — usecases
   di.registerFactory(() => CreateTable(di.get<TablesRepository>()));
@@ -112,6 +121,12 @@ void registerAppDependencies(DIContainer di) {
   di.registerFactory(() => SetCashOut(di.get<ParticipationsRepository>()));
   di.registerFactory(() => ListSettlements(di.get<SettlementsRepository>()));
   di.registerFactory(() => ConfirmSettlement(di.get<SettlementsRepository>()));
+  di.registerFactory(
+      () => RequestAction(di.get<ActionRequestsRepository>()));
+  di.registerFactory(
+      () => ApproveActionRequest(di.get<ActionRequestsRepository>()));
+  di.registerFactory(
+      () => RejectActionRequest(di.get<ActionRequestsRepository>()));
 
   // Tables — cubits (factory: instância nova por view)
   di.registerFactory(() => CreateTableCubit(di.get<CreateTable>(), di.get<UpdateTable>()));
@@ -122,6 +137,7 @@ void registerAppDependencies(DIContainer di) {
     () => RebuyCubit(
       addBuyIn: di.get<AddBuyIn>(),
       rejoinTable: di.get<RejoinTable>(),
+      requestAction: di.get<RequestAction>(),
     ),
   );
   di.registerFactory(
@@ -135,12 +151,20 @@ void registerAppDependencies(DIContainer di) {
     () => JoinByIdCubit(
       getTablePreview: di.get<GetTablePreview>(),
       joinTable: di.get<JoinTable>(),
+      requestAction: di.get<RequestAction>(),
     ),
   );
   di.registerFactory(
     () => CashoutCubit(
       getTable: di.get<GetTable>(),
       setCashOut: di.get<SetCashOut>(),
+      requestAction: di.get<RequestAction>(),
+    ),
+  );
+  di.registerFactory(
+    () => PendingApprovalsCubit(
+      approveActionRequest: di.get<ApproveActionRequest>(),
+      rejectActionRequest: di.get<RejectActionRequest>(),
     ),
   );
   di.registerFactory(

@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module.js';
 import { TablesModule } from './tables/tables.module.js';
 import { ParticipationsModule } from './participations/participations.module.js';
 import { SettlementsModule } from './settlements/settlements.module.js';
+import { ActionRequestsModule } from './action-requests/action-requests.module.js';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { SettlementsModule } from './settlements/settlements.module.js';
     TablesModule,
     ParticipationsModule,
     SettlementsModule,
+    ActionRequestsModule,
   ],
 })
 export class AppModule {}

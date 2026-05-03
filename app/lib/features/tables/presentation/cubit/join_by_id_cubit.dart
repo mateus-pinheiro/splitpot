@@ -3,20 +3,25 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../domain/entities/action_type.dart';
 import '../../domain/entities/table_preview.dart';
 import '../../domain/usecases/get_table_preview.dart';
 import '../../domain/usecases/join_table.dart';
+import '../../domain/usecases/request_action.dart';
 
 class JoinByIdCubit extends Cubit<JoinByIdState> {
   JoinByIdCubit({
     required GetTablePreview getTablePreview,
     required JoinTable joinTable,
+    required RequestAction requestAction,
   })  : _getTablePreview = getTablePreview,
         _joinTable = joinTable,
+        _requestAction = requestAction,
         super(const JoinByIdState.loading());
 
   final GetTablePreview _getTablePreview;
   final JoinTable _joinTable;
+  final RequestAction _requestAction;
 
   Future<void> load(String tableId) async {
     emit(const JoinByIdState.loading());
@@ -28,23 +33,48 @@ class JoinByIdCubit extends Cubit<JoinByIdState> {
     }
   }
 
-  Future<void> confirm(String tableId, {Decimal? initialBuyIn}) async {
+  Future<void> confirm(
+    String tableId, {
+    required Decimal buyInAmount,
+    required String currentUserId,
+  }) async {
     final current = state;
     if (current is! JoinByIdStateReady) return;
     emit(JoinByIdState.joining(current.preview));
+
+    final isOwner = current.preview.ownerId == currentUserId;
+
     try {
-      await _joinTable(tableId, initialBuyIn: initialBuyIn);
-      emit(JoinByIdState.joined(current.preview));
-    } on ApiException catch (e) {
-      // Backend retorna 400 "Usuário já participa dessa mesa" — pra essa
-      // experiência é igual a sucesso (vai pra /live).
-      final failure = e.failure;
-      if (failure is ValidationFailure &&
-          failure.message.toLowerCase().contains('já participa')) {
-        emit(JoinByIdState.joined(current.preview));
-        return;
+      String? participationId;
+      try {
+        participationId = await _joinTable(tableId);
+      } on ApiException catch (e) {
+        final failure = e.failure;
+        if (failure is ValidationFailure &&
+            failure.message.toLowerCase().contains('já participa')) {
+          // Já é participante — vai direto pra mesa ao vivo.
+          emit(JoinByIdState.joined(current.preview));
+          return;
+        }
+        rethrow;
       }
-      emit(JoinByIdState.joinError(current.preview, failure));
+
+      if (isOwner) {
+        // Host está entrando na própria mesa; buy-in direto (sem aprovação).
+        // Usa a rota interna de buy-in via participationsRepository.
+        // Na prática o owner já tem participação criada no create, então o
+        // fluxo acima captura o "já participa" antes de chegar aqui.
+        emit(JoinByIdState.joined(current.preview));
+      } else {
+        await _requestAction(
+          participationId: participationId,
+          type: ActionType.buyin,
+          amount: buyInAmount,
+        );
+        emit(JoinByIdState.joined(current.preview));
+      }
+    } on ApiException catch (e) {
+      emit(JoinByIdState.joinError(current.preview, e.failure));
     }
   }
 }

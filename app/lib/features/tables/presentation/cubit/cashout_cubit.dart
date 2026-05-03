@@ -3,23 +3,29 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../domain/entities/action_type.dart';
 import '../../domain/entities/poker_table.dart';
 import '../../domain/entities/table_participation.dart';
 import '../../domain/usecases/get_table.dart';
+import '../../domain/usecases/request_action.dart';
 import '../../domain/usecases/set_cash_out.dart';
 
-/// Carrega a mesa + participation do usuário e dispara o
-/// `PUT /participations/:id/cash-out` no submit.
+/// Carrega a mesa + participation do usuário e dispara cash-out.
+/// Se o usuário for o host, executa diretamente; caso contrário cria
+/// uma ActionRequest pendente de aprovação do host.
 class CashoutCubit extends Cubit<CashoutState> {
   CashoutCubit({
     required GetTable getTable,
     required SetCashOut setCashOut,
+    required RequestAction requestAction,
   })  : _getTable = getTable,
         _setCashOut = setCashOut,
+        _requestAction = requestAction,
         super(const CashoutState.loading());
 
   final GetTable _getTable;
   final SetCashOut _setCashOut;
+  final RequestAction _requestAction;
 
   Future<void> load({
     required String tableId,
@@ -40,7 +46,12 @@ class CashoutCubit extends Cubit<CashoutState> {
         ));
         return;
       }
-      emit(CashoutState.ready(table: table, participation: mine));
+      final isHost = table.ownerId == currentUserId;
+      emit(CashoutState.ready(
+        table: table,
+        participation: mine,
+        isHost: isHost,
+      ));
     } on ApiException catch (e) {
       emit(CashoutState.error(e.failure));
     }
@@ -48,21 +59,45 @@ class CashoutCubit extends Cubit<CashoutState> {
 
   Future<void> submit(Decimal amount) async {
     final cur = state;
-    if (cur is! CashoutReady) return;
+    final PokerTable table;
+    final TableParticipation participation;
+    final bool isHost;
+    if (cur is CashoutReady) {
+      table = cur.table;
+      participation = cur.participation;
+      isHost = cur.isHost;
+    } else if (cur is CashoutSubmitError) {
+      table = cur.table;
+      participation = cur.participation;
+      isHost = cur.isHost;
+    } else {
+      return;
+    }
     emit(CashoutState.submitting(
-      table: cur.table,
-      participation: cur.participation,
+      table: table,
+      participation: participation,
+      isHost: isHost,
     ));
     try {
-      await _setCashOut(
-        participationId: cur.participation.id,
-        amount: amount,
-      );
-      emit(CashoutState.submitted(table: cur.table));
+      if (isHost) {
+        await _setCashOut(
+          participationId: participation.id,
+          amount: amount,
+        );
+        emit(CashoutState.submitted(table: table));
+      } else {
+        await _requestAction(
+          participationId: participation.id,
+          type: ActionType.leave,
+          amount: amount,
+        );
+        emit(const CashoutState.awaitingApproval());
+      }
     } on ApiException catch (e) {
       emit(CashoutState.submitError(
-        table: cur.table,
-        participation: cur.participation,
+        table: table,
+        participation: participation,
+        isHost: isHost,
         failure: e.failure,
       ));
     }
@@ -84,19 +119,24 @@ sealed class CashoutState {
   const factory CashoutState.ready({
     required PokerTable table,
     required TableParticipation participation,
+    required bool isHost,
   }) = CashoutReady;
 
   const factory CashoutState.submitting({
     required PokerTable table,
     required TableParticipation participation,
+    required bool isHost,
   }) = CashoutSubmitting;
 
   const factory CashoutState.submitted({required PokerTable table}) =
       CashoutSubmitted;
 
+  const factory CashoutState.awaitingApproval() = CashoutAwaitingApproval;
+
   const factory CashoutState.submitError({
     required PokerTable table,
     required TableParticipation participation,
+    required bool isHost,
     required Failure failure,
   }) = CashoutSubmitError;
 
@@ -108,15 +148,25 @@ class CashoutLoading extends CashoutState {
 }
 
 class CashoutReady extends CashoutState {
-  const CashoutReady({required this.table, required this.participation});
+  const CashoutReady({
+    required this.table,
+    required this.participation,
+    required this.isHost,
+  });
   final PokerTable table;
   final TableParticipation participation;
+  final bool isHost;
 }
 
 class CashoutSubmitting extends CashoutState {
-  const CashoutSubmitting({required this.table, required this.participation});
+  const CashoutSubmitting({
+    required this.table,
+    required this.participation,
+    required this.isHost,
+  });
   final PokerTable table;
   final TableParticipation participation;
+  final bool isHost;
 }
 
 class CashoutSubmitted extends CashoutState {
@@ -124,14 +174,20 @@ class CashoutSubmitted extends CashoutState {
   final PokerTable table;
 }
 
+class CashoutAwaitingApproval extends CashoutState {
+  const CashoutAwaitingApproval();
+}
+
 class CashoutSubmitError extends CashoutState {
   const CashoutSubmitError({
     required this.table,
     required this.participation,
+    required this.isHost,
     required this.failure,
   });
   final PokerTable table;
   final TableParticipation participation;
+  final bool isHost;
   final Failure failure;
 }
 

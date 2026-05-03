@@ -11,10 +11,13 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
+import '../../domain/entities/action_request.dart';
+import '../../domain/entities/action_type.dart';
 import '../../domain/entities/buy_in.dart';
 import '../../domain/entities/poker_table.dart';
 import '../../domain/entities/table_participation.dart';
 import '../cubit/live_cubit.dart';
+import '../cubit/pending_approvals_cubit.dart';
 import '../cubit/rebuy_cubit.dart';
 import '../utils/join_link.dart';
 import '../widgets/rebuy_dialog.dart';
@@ -25,28 +28,68 @@ class LiveView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<LiveCubit>(
-      create: (_) => appDI.get<LiveCubit>()..start(tableId),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<LiveCubit>(
+          create: (_) => appDI.get<LiveCubit>()..start(tableId),
+        ),
+        BlocProvider<PendingApprovalsCubit>(
+          create: (_) => appDI.get<PendingApprovalsCubit>(),
+        ),
+      ],
       child: _LiveScaffold(tableId: tableId),
     );
   }
 }
 
-class _LiveScaffold extends StatelessWidget {
+class _LiveScaffold extends StatefulWidget {
   const _LiveScaffold({required this.tableId});
   final String tableId;
+
+  @override
+  State<_LiveScaffold> createState() => _LiveScaffoldState();
+}
+
+class _LiveScaffoldState extends State<_LiveScaffold> {
+  bool _hadPendingLeave = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: FeltBackground(
         child: SafeArea(
-          child: BlocBuilder<LiveCubit, LiveState>(
+          child: BlocConsumer<LiveCubit, LiveState>(
+            listener: (context, state) {
+              if (state is! LiveStateLoaded) return;
+              final auth = context.read<AuthCubit>().state;
+              final currentUserId =
+                  auth is AuthAuthenticated ? auth.user.id : null;
+              if (currentUserId == null) return;
+
+              final myParticipation = state.table.participations
+                  .where((p) => p.userId == currentUserId)
+                  .firstOrNull;
+
+              final hasPendingLeave = state.table.pendingRequests.any(
+                (r) =>
+                    r.requestedById == currentUserId &&
+                    r.type == ActionType.leave,
+              );
+
+              if (_hadPendingLeave &&
+                  !hasPendingLeave &&
+                  myParticipation?.cashOut != null) {
+                context.go(AppRoutes.home);
+                return;
+              }
+
+              _hadPendingLeave = hasPendingLeave;
+            },
             builder: (context, state) => switch (state) {
               LiveStateLoading() => const _Loading(),
               LiveStateError(:final failure) => _ErrorView(failure: failure),
               LiveStateLoaded(:final table) =>
-                _LoadedBody(table: table, tableId: tableId),
+                _LoadedBody(table: table, tableId: widget.tableId),
             },
           ),
         ),
@@ -136,6 +179,12 @@ class _LoadedBody extends StatelessWidget {
 
     final isHost = currentUserId != null && currentUserId == table.ownerId;
 
+    final myPendingRequests = currentUserId == null
+        ? <ActionRequest>[]
+        : table.pendingRequests
+            .where((r) => r.requestedById == currentUserId)
+            .toList();
+
     return Stack(
       children: [
         Column(
@@ -164,6 +213,18 @@ class _LoadedBody extends StatelessWidget {
                     playerCount: participations.length,
                     rebuys: rebuyCount,
                   ),
+                  if (isHost && table.pendingRequests.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    _PendingApprovalsSection(
+                      requests: table.pendingRequests,
+                      tableId: tableId,
+                      onRefresh: () => context.read<LiveCubit>().refresh(),
+                    ),
+                  ],
+                  if (!isHost && myPendingRequests.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    _PlayerPendingBanner(requests: myPendingRequests),
+                  ],
                   const SizedBox(height: 18),
                   if (participations.isEmpty)
                     const _EmptyParticipations()
@@ -176,6 +237,9 @@ class _LoadedBody extends StatelessWidget {
                           isOwner: p.userId == table.ownerId,
                           isCurrentUser: currentUserId != null &&
                               p.userId == currentUserId,
+                          pendingRequest: table.pendingRequests
+                              .where((r) => r.participationId == p.id)
+                              .firstOrNull,
                         ),
                       ),
                 ],
@@ -189,7 +253,9 @@ class _LoadedBody extends StatelessWidget {
             isHost: isHost,
             hasLeftTable:
                 myParticipation != null && myParticipation.cashOut != null,
-                
+            hasPendingLeave: myPendingRequests.any(
+              (r) => r.type.name == 'leave' || r.type.name == 'rejoin',
+            ),
             onCashout: () => context.go(AppRoutes.cashout(tableId)),
             onClose: () => context.go(AppRoutes.closeTable(tableId)),
             onRebuy: myParticipation == null
@@ -198,6 +264,7 @@ class _LoadedBody extends StatelessWidget {
                       context,
                       participationId: myParticipation.id,
                       minBuyIn: table.minBuyIn,
+                      isHost: isHost,
                       mode: RebuyMode.rebuy,
                     ),
             onRejoin: myParticipation == null
@@ -206,6 +273,7 @@ class _LoadedBody extends StatelessWidget {
                       context,
                       participationId: myParticipation.id,
                       minBuyIn: table.minBuyIn,
+                      isHost: isHost,
                       mode: RebuyMode.rejoin,
                     ),
           ),
@@ -255,6 +323,7 @@ class _LoadedBody extends StatelessWidget {
     BuildContext context, {
     required String participationId,
     required Decimal minBuyIn,
+    required bool isHost,
     required RebuyMode mode,
   }) async {
     final liveCubit = context.read<LiveCubit>();
@@ -262,6 +331,7 @@ class _LoadedBody extends StatelessWidget {
       context,
       participationId: participationId,
       minBuyIn: minBuyIn,
+      isHost: isHost,
       mode: mode,
     );
     if (!ok) return;
@@ -383,10 +453,12 @@ class _PlayerRow extends StatelessWidget {
     required this.participation,
     required this.isOwner,
     required this.isCurrentUser,
+    this.pendingRequest,
   });
   final TableParticipation participation;
   final bool isOwner;
   final bool isCurrentUser;
+  final ActionRequest? pendingRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -440,6 +512,10 @@ class _PlayerRow extends StatelessWidget {
                     if (isCurrentUser) ...[
                       const SizedBox(width: 6),
                       const _RoleBadge(role: 'VOCÊ'),
+                    ],
+                    if (pendingRequest != null) ...[
+                      const SizedBox(width: 6),
+                      const _RoleBadge(role: 'PENDENTE', pending: true),
                     ],
                   ],
                 ),
@@ -513,18 +589,29 @@ class _PlayerRow extends StatelessWidget {
 }
 
 class _RoleBadge extends StatelessWidget {
-  const _RoleBadge({required this.role});
+  const _RoleBadge({required this.role, this.pending = false});
   final String role;
+  final bool pending;
 
   @override
   Widget build(BuildContext context) {
     final isHost = role == 'HOST';
+    final Color bg;
+    final Color fg;
+    if (pending) {
+      bg = SpColors.goldDark.withValues(alpha: 0.25);
+      fg = SpColors.goldDark;
+    } else if (isHost) {
+      bg = SpColors.gold.withValues(alpha: 0.25);
+      fg = SpColors.goldBright;
+    } else {
+      bg = SpColors.success.withValues(alpha: 0.25);
+      fg = SpColors.successSoft;
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: isHost
-            ? SpColors.gold.withValues(alpha: 0.25)
-            : SpColors.success.withValues(alpha: 0.25),
+        color: bg,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -533,7 +620,7 @@ class _RoleBadge extends StatelessWidget {
           fontFamily: SpTypography.uiFamily,
           fontSize: 9,
           fontWeight: FontWeight.w700,
-          color: isHost ? SpColors.goldBright : SpColors.successSoft,
+          color: fg,
           letterSpacing: 1.0,
         ),
       ),
@@ -545,21 +632,20 @@ class _ActionBar extends StatelessWidget {
   const _ActionBar({
     required this.isHost,
     required this.hasLeftTable,
+    required this.hasPendingLeave,
     required this.onCashout,
     required this.onClose,
     required this.onRebuy,
     required this.onRejoin,
   });
   final bool isHost;
-
-  /// `true` se o participante atual já registrou cash-out — barra muda
-  /// pra um único CTA "Entrar novamente".
   final bool hasLeftTable;
+
+  /// `true` se há uma solicitação de saída/rejoin pendente de aprovação.
+  final bool hasPendingLeave;
 
   final VoidCallback onCashout;
   final VoidCallback onClose;
-
-  /// `null` se o usuário atual não é participant — desabilita o botão.
   final VoidCallback? onRebuy;
   final VoidCallback? onRejoin;
 
@@ -580,8 +666,10 @@ class _ActionBar extends StatelessWidget {
       ),
       child: hasLeftTable
           ? SpGoldButton(
-              label: 'Entrar novamente',
-              onPressed: onRejoin,
+              label: hasPendingLeave
+                  ? 'Aguardando aprovação...'
+                  : 'Entrar novamente',
+              onPressed: hasPendingLeave ? null : onRejoin,
               height: 52,
             )
           : Row(
@@ -593,25 +681,260 @@ class _ActionBar extends StatelessWidget {
                 Expanded(
                   child: SpGhostButton(
                     label: 'Sair da mesa',
-                    onPressed: onCashout,
+                    onPressed: hasPendingLeave ? null : onCashout,
                     color: SpColors.dangerSoft,
                     borderColor: SpColors.dangerSoft.withValues(alpha: 0.4),
                   ),
                 ),
-                // if (isHost) ...[
-                //   const SizedBox(width: 10),
-                //   Expanded(
-                //     flex: 2,
-                //     child: SpGoldButton(
-                //       label: 'Fechar mesa',
-                //       onPressed: onClose,
-                //       height: 48,
-                //       fontSize: 14,
-                //     ),
-                //   ),
-                // ],
               ],
             ),
+    );
+  }
+}
+
+class _PendingApprovalsSection extends StatelessWidget {
+  const _PendingApprovalsSection({
+    required this.requests,
+    required this.tableId,
+    required this.onRefresh,
+  });
+  final List<ActionRequest> requests;
+  final String tableId;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<PendingApprovalsCubit, PendingApprovalsState>(
+      listener: (context, state) {
+        if (state is PendingApprovalsDone) {
+          onRefresh();
+          context.read<PendingApprovalsCubit>().reset();
+        } else if (state is PendingApprovalsError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: SpColors.danger,
+              content: Text(_messageFor(state.failure)),
+            ),
+          );
+          context.read<PendingApprovalsCubit>().reset();
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: SpColors.goldDark.withValues(alpha: 0.1),
+          border: Border.all(color: SpColors.gold.withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'APROVAÇÕES PENDENTES',
+              style: TextStyle(
+                fontFamily: SpTypography.uiFamily,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: SpColors.gold,
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 10),
+            BlocBuilder<PendingApprovalsCubit, PendingApprovalsState>(
+              builder: (context, state) {
+                return Column(
+                  children: [
+                    for (int i = 0; i < requests.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 8),
+                      _ApprovalItem(
+                        request: requests[i],
+                        loading: state is PendingApprovalsLoading &&
+                            state.requestId == requests[i].id,
+                        disabled: state is PendingApprovalsLoading,
+                      ),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _messageFor(Failure failure) => switch (failure) {
+        UnauthorizedFailure(:final message) =>
+          message ?? 'Sem permissão para aprovar.',
+        NotFoundFailure() => 'Solicitação não encontrada.',
+        NetworkFailure() => 'Sem conexão com o servidor.',
+        _ => 'Não foi possível processar a solicitação.',
+      };
+}
+
+class _ApprovalItem extends StatelessWidget {
+  const _ApprovalItem({
+    required this.request,
+    required this.loading,
+    required this.disabled,
+  });
+  final ActionRequest request;
+  final bool loading;
+  final bool disabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: SpColors.feltRail.withValues(alpha: 0.5),
+        border: Border.all(color: SpColors.cream.withValues(alpha: 0.08)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          SpAvatar(name: request.requestedByName, size: 32),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  request.requestedByName,
+                  style: const TextStyle(
+                    fontFamily: SpTypography.uiFamily,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: SpColors.cream,
+                  ),
+                ),
+                Text(
+                  request.amount != null
+                      ? '${request.typeLabel} · ${brlFromDecimal(request.amount!)}'
+                      : request.typeLabel,
+                  style: const TextStyle(
+                    fontFamily: SpTypography.uiFamily,
+                    fontSize: 11,
+                    color: SpColors.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (loading)
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: SpColors.goldBright,
+              ),
+            )
+          else ...[
+            _IconBtn(
+              icon: Icons.close,
+              color: SpColors.dangerSoft,
+              onPressed: disabled
+                  ? null
+                  : () =>
+                      context.read<PendingApprovalsCubit>().reject(request.id),
+            ),
+            const SizedBox(width: 6),
+            _IconBtn(
+              icon: Icons.check,
+              color: SpColors.successSoft,
+              onPressed: disabled
+                  ? null
+                  : () => context
+                      .read<PendingApprovalsCubit>()
+                      .approve(request.id),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _IconBtn extends StatelessWidget {
+  const _IconBtn({
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+  });
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color.withValues(alpha: onPressed == null ? 0.1 : 0.15),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(icon, color: color, size: 18),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlayerPendingBanner extends StatelessWidget {
+  const _PlayerPendingBanner({required this.requests});
+  final List<ActionRequest> requests;
+
+  @override
+  Widget build(BuildContext context) {
+    final labels = requests.map((r) => r.typeLabel).join(', ');
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: SpColors.goldDark.withValues(alpha: 0.1),
+        border: Border.all(color: SpColors.gold.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: SpColors.goldBright,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Aguardando aprovação do host',
+                  style: TextStyle(
+                    fontFamily: SpTypography.uiFamily,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: SpColors.cream,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  labels,
+                  style: const TextStyle(
+                    fontFamily: SpTypography.uiFamily,
+                    fontSize: 11,
+                    color: SpColors.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

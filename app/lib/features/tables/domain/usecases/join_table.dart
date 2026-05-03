@@ -1,5 +1,3 @@
-import 'package:decimal/decimal.dart';
-
 import '../repositories/participations_repository.dart';
 
 class JoinTable {
@@ -7,6 +5,6 @@ class JoinTable {
 
   final ParticipationsRepository _repository;
 
-  Future<void> call(String tableId, {Decimal? initialBuyIn}) =>
-      _repository.joinTable(tableId: tableId, initialBuyIn: initialBuyIn);
+  Future<String> call(String tableId) =>
+      _repository.joinTable(tableId: tableId);
 }

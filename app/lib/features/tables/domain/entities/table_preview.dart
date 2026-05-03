@@ -8,6 +8,7 @@ import 'table_status.dart';
 class TablePreview {
   const TablePreview({
     required this.id,
+    required this.ownerId,
     required this.name,
     required this.minBuyIn,
     required this.status,
@@ -16,6 +17,7 @@ class TablePreview {
   });
 
   final String id;
+  final String ownerId;
   final String name;
   final Decimal minBuyIn;
   final TableStatus status;

@@ -18,6 +18,7 @@ Future<bool> showRebuyDialog(
   BuildContext context, {
   required String participationId,
   required Decimal minBuyIn,
+  required bool isHost,
   RebuyMode mode = RebuyMode.rebuy,
 }) async {
   final result = await showDialog<bool>(
@@ -28,6 +29,7 @@ Future<bool> showRebuyDialog(
       child: _RebuyDialog(
         participationId: participationId,
         minBuyIn: minBuyIn,
+        isHost: isHost,
         mode: mode,
       ),
     ),
@@ -39,11 +41,13 @@ class _RebuyDialog extends StatefulWidget {
   const _RebuyDialog({
     required this.participationId,
     required this.minBuyIn,
+    required this.isHost,
     required this.mode,
   });
 
   final String participationId;
   final Decimal minBuyIn;
+  final bool isHost;
   final RebuyMode mode;
 
   @override
@@ -88,6 +92,7 @@ class _RebuyDialogState extends State<_RebuyDialog> {
     context.read<RebuyCubit>().submit(
           participationId: widget.participationId,
           amount: amount,
+          isHost: widget.isHost,
           mode: widget.mode,
         );
   }
@@ -98,6 +103,8 @@ class _RebuyDialogState extends State<_RebuyDialog> {
     return BlocListener<RebuyCubit, RebuyState>(
       listener: (context, state) {
         if (state is RebuySuccess) {
+          Navigator.of(context).pop(true);
+        } else if (state is RebuyAwaitingApproval) {
           Navigator.of(context).pop(true);
         } else if (state is RebuyError) {
           ScaffoldMessenger.of(context).showSnackBar(

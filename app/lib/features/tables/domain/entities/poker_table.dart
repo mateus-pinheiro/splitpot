@@ -1,6 +1,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'action_request.dart';
 import 'table_participation.dart';
 import 'table_status.dart';
 
@@ -22,5 +23,6 @@ abstract class PokerTable with _$PokerTable {
     required DateTime createdAt,
     DateTime? closedAt,
     @Default(<TableParticipation>[]) List<TableParticipation> participations,
+    @Default(<ActionRequest>[]) List<ActionRequest> pendingRequests,
   }) = _PokerTable;
 }

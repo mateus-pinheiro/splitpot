@@ -106,12 +106,7 @@ export class ParticipationsService {
   async addBuyIn(firebaseUid: string, participationId: string, dto: AddBuyInDto) {
     const caller = await this.users.requireByFirebaseUid(firebaseUid);
     const participation = await this.requireEditable(participationId, caller.id);
-    return this.prisma.buyIn.create({
-      data: {
-        participationId: participation.id,
-        amount: new Prisma.Decimal(dto.amount),
-      },
-    });
+    return this.executeBuyIn(participation.id, new Prisma.Decimal(dto.amount));
   }
 
   async removeBuyIn(firebaseUid: string, participationId: string, buyInId: string) {
@@ -127,16 +122,43 @@ export class ParticipationsService {
   async setCashOut(firebaseUid: string, participationId: string, dto: SetCashOutDto) {
     const caller = await this.users.requireByFirebaseUid(firebaseUid);
     const participation = await this.requireEditable(participationId, caller.id);
+    return this.executeCashOut(participation.id, new Prisma.Decimal(dto.amount));
+  }
+
+  async removeCashOut(firebaseUid: string, participationId: string) {
+    const caller = await this.users.requireByFirebaseUid(firebaseUid);
+    await this.requireEditable(participationId, caller.id);
+    await this.prisma.cashOut.deleteMany({ where: { participationId } });
+  }
+
+  async rejoin(firebaseUid: string, participationId: string, dto: AddBuyInDto) {
+    const caller = await this.users.requireByFirebaseUid(firebaseUid);
+    await this.requireEditable(participationId, caller.id);
+    return this.executeRejoin(participationId, new Prisma.Decimal(dto.amount));
+  }
+
+  // ── Internal execution methods (sem verificação de autenticação) ──────────
+  // Chamados pelo ActionRequestsService ao aprovar uma solicitação.
+
+  async executeBuyIn(participationId: string, amount: Prisma.Decimal) {
+    return this.prisma.buyIn.create({
+      data: { participationId, amount },
+    });
+  }
+
+  async executeCashOut(participationId: string, amount: Prisma.Decimal) {
+    const participation = await this.prisma.tableParticipation.findUnique({
+      where: { id: participationId },
+      select: { tableId: true },
+    });
+    if (!participation) throw new NotFoundException('Participação não encontrada');
+
     const cashOut = await this.prisma.cashOut.upsert({
-      where: { participationId: participation.id },
-      create: {
-        participationId: participation.id,
-        amount: new Prisma.Decimal(dto.amount),
-      },
-      update: { amount: new Prisma.Decimal(dto.amount) },
+      where: { participationId },
+      create: { participationId, amount },
+      update: { amount },
     });
 
-    // Se todos os participantes já têm cash-out, fecha a mesa automaticamente.
     const activeParticipations = await this.prisma.tableParticipation.findMany({
       where: { tableId: participation.tableId, leftAt: null },
       select: { id: true },
@@ -151,26 +173,11 @@ export class ParticipationsService {
     return cashOut;
   }
 
-  async removeCashOut(firebaseUid: string, participationId: string) {
-    const caller = await this.users.requireByFirebaseUid(firebaseUid);
-    await this.requireEditable(participationId, caller.id);
-    // deleteMany evita 404 caso o participante nunca tenha gravado um cash-out.
-    await this.prisma.cashOut.deleteMany({ where: { participationId } });
-  }
-
-  /// Volta um participante que tinha saído: numa única transação remove
-  /// o cash-out (se houver) e grava o novo buy-in. Atômico — evita
-  /// estado intermediário "saiu mas sem aporte de retorno".
-  async rejoin(firebaseUid: string, participationId: string, dto: AddBuyInDto) {
-    const caller = await this.users.requireByFirebaseUid(firebaseUid);
-    await this.requireEditable(participationId, caller.id);
+  async executeRejoin(participationId: string, amount: Prisma.Decimal) {
     return this.prisma.$transaction(async (tx) => {
       await tx.cashOut.deleteMany({ where: { participationId } });
       return tx.buyIn.create({
-        data: {
-          participationId,
-          amount: new Prisma.Decimal(dto.amount),
-        },
+        data: { participationId, amount },
       });
     });
   }
