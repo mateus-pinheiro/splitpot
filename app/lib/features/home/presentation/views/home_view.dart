@@ -719,8 +719,16 @@ class _StatusBadge extends StatelessWidget {
 }
 
 /// Bloco "Você deve" — só aparece quando há settlements pendentes.
-class _DebtsBlock extends StatelessWidget {
+class _DebtsBlock extends StatefulWidget {
   const _DebtsBlock();
+
+  @override
+  State<_DebtsBlock> createState() => _DebtsBlockState();
+}
+
+class _DebtsBlockState extends State<_DebtsBlock> {
+  final Set<String> _seenDebtIds = <String>{};
+  bool _seeded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -730,6 +738,11 @@ class _DebtsBlock extends StatelessWidget {
         if (state is! HomeStatsLoaded) return const SizedBox.shrink();
         final debts = state.stats.debts;
         if (debts.isEmpty) return const SizedBox.shrink();
+
+        if (!_seeded) {
+          _seenDebtIds.addAll(debts.map((d) => d.id));
+          _seeded = true;
+        }
 
         final total = debts.fold<Decimal>(
           Decimal.zero,
@@ -770,8 +783,12 @@ class _DebtsBlock extends StatelessWidget {
               const SizedBox(height: 12),
               for (final d in debts)
                 Padding(
+                  key: ValueKey('debt-${d.id}'),
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: _DebtRow(debt: d),
+                  child: _NewHomeItemReveal(
+                    animate: _markAndCheckNewDebt(d.id),
+                    child: _DebtRow(debt: d),
+                  ),
                 ),
             ],
           ),
@@ -779,12 +796,26 @@ class _DebtsBlock extends StatelessWidget {
       },
     );
   }
+
+  bool _markAndCheckNewDebt(String id) {
+    if (_seenDebtIds.contains(id)) return false;
+    _seenDebtIds.add(id);
+    return true;
+  }
 }
 
 /// Bloco "Você tem a receber" — só aparece quando há settlements pendentes
 /// em que o usuário é recebedor.
-class _ReceivablesBlock extends StatelessWidget {
+class _ReceivablesBlock extends StatefulWidget {
   const _ReceivablesBlock();
+
+  @override
+  State<_ReceivablesBlock> createState() => _ReceivablesBlockState();
+}
+
+class _ReceivablesBlockState extends State<_ReceivablesBlock> {
+  final Set<String> _seenReceivableIds = <String>{};
+  bool _seeded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -794,6 +825,11 @@ class _ReceivablesBlock extends StatelessWidget {
         if (state is! HomeStatsLoaded) return const SizedBox.shrink();
         final receivables = state.stats.receivables;
         if (receivables.isEmpty) return const SizedBox.shrink();
+
+        if (!_seeded) {
+          _seenReceivableIds.addAll(receivables.map((r) => r.id));
+          _seeded = true;
+        }
 
         final total = receivables.fold<Decimal>(
           Decimal.zero,
@@ -834,13 +870,63 @@ class _ReceivablesBlock extends StatelessWidget {
               const SizedBox(height: 12),
               for (final r in receivables)
                 Padding(
+                  key: ValueKey('receivable-${r.id}'),
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: _ReceivableRow(receivable: r),
+                  child: _NewHomeItemReveal(
+                    animate: _markAndCheckNewReceivable(r.id),
+                    child: _ReceivableRow(receivable: r),
+                  ),
                 ),
             ],
           ),
         );
       },
+    );
+  }
+
+  bool _markAndCheckNewReceivable(String id) {
+    if (_seenReceivableIds.contains(id)) return false;
+    _seenReceivableIds.add(id);
+    return true;
+  }
+}
+
+class _NewHomeItemReveal extends StatefulWidget {
+  const _NewHomeItemReveal({required this.animate, required this.child});
+
+  final bool animate;
+  final Widget child;
+
+  @override
+  State<_NewHomeItemReveal> createState() => _NewHomeItemRevealState();
+}
+
+class _NewHomeItemRevealState extends State<_NewHomeItemReveal> {
+  late bool _visible = !widget.animate;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.animate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _visible = true);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: _visible ? 1.0 : 0.0,
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOut,
+      child: AnimatedSlide(
+        offset: _visible ? Offset.zero : const Offset(0.0, 0.1),
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeOutCubic,
+        child: widget.child,
+      ),
     );
   }
 }
