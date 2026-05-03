@@ -2,7 +2,11 @@
   "hosting": {
     "site": "splitpot-4338d",
     "public": "app/build/web",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "rewrites": [
       {
         "source": "**",
