@@ -13,7 +13,7 @@ class AppConfig {
     return const AppConfig(
       apiBaseUrl: String.fromEnvironment(
         'API_BASE_URL',
-        defaultValue: 'http://localhost:3000/api',
+        defaultValue: 'https://splitpot-coral.vercel.app/api',
       ),
       firebaseWebApiKey: String.fromEnvironment(
         'FIREBASE_WEB_API_KEY',
