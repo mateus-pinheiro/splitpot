@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'core/design/tokens.dart';
 import 'core/design/widgets/sp_loader.dart';
@@ -16,6 +17,7 @@ import 'features/auth/presentation/cubit/auth_state.dart';
 import 'features/auth/presentation/views/splash_view.dart';
 
 Future<void> main() async {
+  usePathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
 
   setAppDI(GetItContainer());

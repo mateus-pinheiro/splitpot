@@ -1,12 +1,16 @@
 /// Constrói a URL pública que um convidado vai abrir.
 ///
-/// Flutter web usa hash routing por default, então o link fica com `/#/…`.
-/// Em mobile `Uri.base.origin` é vazio — caímos num placeholder até termos
-/// deep-link real. Quando tivermos domínio de prod, trocar o fallback.
+/// Usa path routing (sem `#`) para funcionar tanto no web app (o Firebase
+/// Hosting tem rewrite catch-all para index.html) quanto no app nativo via
+/// universal links / deep links.
+///
+/// No iOS/Android, `Uri.base` é `file:///` e `.origin` lança StateError —
+/// por isso verificamos o scheme antes de acessar `.origin`.
 String buildJoinUrl(String tableId) {
-  final origin =
-      Uri.base.origin.isEmpty ? 'https://splitpot.app' : Uri.base.origin;
-  return '$origin/#/table/$tableId/join';
+  final base = Uri.base;
+  final isWeb = base.scheme == 'http' || base.scheme == 'https';
+  final origin = isWeb ? base.origin : 'https://splitpot.app';
+  return '$origin/table/$tableId/join';
 }
 
 /// Código curto exibido pro usuário (6 chars, uppercase). É só os primeiros
