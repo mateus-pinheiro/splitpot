@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'core/design/tokens.dart';
+import 'core/design/widgets/sp_loader.dart';
 import 'core/di/app_dependencies.dart';
 import 'core/di/di_container.dart';
 import 'core/di/get_it_container.dart';
@@ -41,33 +43,8 @@ class SplitPotApp extends StatefulWidget {
 
 class _SplitPotAppState extends State<SplitPotApp> {
   late final AppRouter _router = AppRouter(authCubit: widget.authCubit);
-
   final GlobalKey<SplashViewState> _splashKey = GlobalKey<SplashViewState>();
   bool _splashVisible = true;
-  StreamSubscription<AuthState>? _authSub;
-
-  @override
-  void initState() {
-    super.initState();
-    // Minimum display time so the splash doesn't flash away instantly.
-    const minDisplay = Duration(milliseconds: 1000);
-    final minFuture = Future<void>.delayed(minDisplay);
-
-    _authSub = widget.authCubit.stream
-        .where((s) => s is! AuthAuthenticating)
-        .take(1)
-        .listen((_) async {
-      await minFuture;
-      if (!mounted) return;
-      _splashKey.currentState?.startExit();
-    });
-  }
-
-  @override
-  void dispose() {
-    _authSub?.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +61,37 @@ class _SplitPotAppState extends State<SplitPotApp> {
               darkTheme: AppTheme.dark(),
               routerConfig: _router.router,
             ),
+            if (!_splashVisible)
+              BlocBuilder<AuthCubit, AuthState>(
+                builder: (context, state) {
+                  final authenticating = state is AuthAuthenticating;
+                  return AnimatedOpacity(
+                    opacity: authenticating ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeIn,
+                    child: IgnorePointer(
+                      ignoring: !authenticating,
+                      child: const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            center: Alignment(0, -1.2),
+                            radius: 1.3,
+                            colors: [
+                              SpColors.feltLight,
+                              SpColors.felt,
+                              SpColors.feltDeep,
+                            ],
+                            stops: [0.0, 0.4, 1.0],
+                          ),
+                        ),
+                        child: SizedBox.expand(
+                          child: Center(child: SpLoader()),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
             if (_splashVisible)
               SplashView(
                 key: _splashKey,

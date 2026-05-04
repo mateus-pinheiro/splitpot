@@ -53,8 +53,9 @@ class SplashViewState extends State<SplashView>
   @override
   void initState() {
     super.initState();
-    // Drive the logo entrance immediately.
-    _ctrl.animateTo(0.55, duration: const Duration(milliseconds: 1500));
+    _ctrl
+        .animateTo(0.55, duration: const Duration(milliseconds: 1500))
+        .whenComplete(startExit);
   }
 
   @override
