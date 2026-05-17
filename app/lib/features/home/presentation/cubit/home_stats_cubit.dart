@@ -8,7 +8,7 @@ import '../../../tables/domain/usecases/get_user_stats.dart';
 
 class HomeStatsCubit extends Cubit<HomeStatsState> {
   HomeStatsCubit(this._getUserStats, this._confirmSettlement)
-      : super(const HomeStatsState.loading());
+    : super(const HomeStatsState.loading());
 
   final GetUserStats _getUserStats;
   final ConfirmSettlement _confirmSettlement;
@@ -42,9 +42,6 @@ class HomeStatsCubit extends Cubit<HomeStatsState> {
     await _confirmSettlement(settlementId);
     await load();
   }
-
-  @override
-  Future<void> close() => super.close();
 }
 
 sealed class HomeStatsState {

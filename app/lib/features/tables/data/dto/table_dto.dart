@@ -1,6 +1,5 @@
 import 'package:decimal/decimal.dart';
 
-import '../../domain/entities/action_request.dart';
 import '../../domain/entities/buy_in.dart';
 import '../../domain/entities/cash_out.dart';
 import '../../domain/entities/poker_table.dart';
