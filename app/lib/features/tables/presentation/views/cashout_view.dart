@@ -8,10 +8,8 @@ import '../../../../core/design/design_system.dart';
 import '../../../../core/di/di_container.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/router/app_routes.dart';
-import '../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../auth/presentation/cubit/auth_state.dart';
-import '../../domain/entities/buy_in.dart';
-import '../../domain/entities/table_participation.dart';
+import '../../../auth/presentation/cubit/cubit.dart';
+import '../../domain/entities/entities.dart';
 import '../cubit/cashout_cubit.dart';
 
 class CashoutView extends StatelessWidget {

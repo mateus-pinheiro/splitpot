@@ -1,0 +1,11 @@
+export 'cashout_view.dart';
+export 'close_table_view.dart';
+export 'create_table_view.dart';
+export 'history_view.dart';
+export 'initial_buy_in_view.dart';
+export 'join_by_id_view.dart';
+export 'join_view.dart';
+export 'live_view.dart';
+export 'pix_view.dart';
+export 'qr_view.dart';
+export 'table_detail_view.dart';

@@ -1,9 +1,6 @@
 import 'package:decimal/decimal.dart';
 
-import '../entities/poker_table.dart';
-import '../entities/settlement_draft.dart';
-import '../entities/table_preview.dart';
-import '../entities/user_stats.dart';
+import '../entities/entities.dart';
 
 /// Contrato do repositório de mesas.
 abstract class TablesRepository {

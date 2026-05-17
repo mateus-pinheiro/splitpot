@@ -1,7 +1,6 @@
 import 'package:decimal/decimal.dart';
 
-import '../../domain/entities/table_status.dart';
-import '../../domain/entities/user_stats.dart';
+import '../../domain/entities/entities.dart';
 
 class UserStatsDto {
   static UserStats fromJson(Map<String, dynamic> json) {

@@ -1,22 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/presentation/cubit/auth_cubit.dart';
-import '../../features/auth/presentation/cubit/auth_state.dart';
-import '../../features/auth/presentation/views/complete_profile_view.dart';
-import '../../features/auth/presentation/views/login_view.dart';
+import '../../features/auth/presentation/cubit/cubit.dart';
+import '../../features/auth/presentation/views/views.dart';
 import '../../features/home/presentation/views/home_view.dart';
-import '../../features/tables/presentation/views/cashout_view.dart';
-import '../../features/tables/presentation/views/close_table_view.dart';
-import '../../features/tables/presentation/views/create_table_view.dart';
-import '../../features/tables/presentation/views/history_view.dart';
-import '../../features/tables/presentation/views/initial_buy_in_view.dart';
-import '../../features/tables/presentation/views/join_by_id_view.dart';
-import '../../features/tables/presentation/views/join_view.dart';
-import '../../features/tables/presentation/views/live_view.dart';
-import '../../features/tables/presentation/views/pix_view.dart';
-import '../../features/tables/presentation/views/qr_view.dart';
-import '../../features/tables/presentation/views/table_detail_view.dart';
+import '../../features/tables/presentation/views/views.dart';
 import 'app_routes.dart';
 import 'go_router_refresh_stream.dart';
 

@@ -1,10 +1,6 @@
 import 'package:decimal/decimal.dart';
 
-import '../../domain/entities/buy_in.dart';
-import '../../domain/entities/cash_out.dart';
-import '../../domain/entities/poker_table.dart';
-import '../../domain/entities/table_participation.dart';
-import '../../domain/entities/table_status.dart';
+import '../../domain/entities/entities.dart';
 import 'action_request_dto.dart';
 
 /// Mapeia o JSON retornado pela API (Nest + Prisma) pras entidades de

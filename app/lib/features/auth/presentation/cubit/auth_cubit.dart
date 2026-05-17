@@ -5,12 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/sign_in_outcome.dart';
-import '../../domain/usecases/get_current_user.dart';
-import '../../domain/usecases/observe_sign_in_attempts.dart';
-import '../../domain/usecases/observe_sign_in_outcomes.dart';
-import '../../domain/usecases/sign_in_with_google.dart';
-import '../../domain/usecases/sign_out.dart';
-import '../../domain/usecases/update_profile.dart';
+import '../../domain/usecases/usecases.dart';
 import 'auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {

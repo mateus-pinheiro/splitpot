@@ -3,12 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
-import '../../domain/entities/action_type.dart';
-import '../../domain/entities/poker_table.dart';
-import '../../domain/entities/table_participation.dart';
-import '../../domain/usecases/get_table.dart';
-import '../../domain/usecases/request_action.dart';
-import '../../domain/usecases/set_cash_out.dart';
+import '../../domain/entities/entities.dart';
+import '../../domain/usecases/usecases.dart';
 
 /// Carrega a mesa + participation do usuário e dispara cash-out.
 /// Se o usuário for o host, executa diretamente; caso contrário cria

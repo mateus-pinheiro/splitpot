@@ -8,10 +8,8 @@ import '../../../../core/design/design_system.dart';
 import '../../../../core/di/di_container.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../auth/domain/entities/user.dart';
-import '../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../auth/presentation/cubit/auth_state.dart';
-import '../../../tables/domain/entities/table_status.dart';
-import '../../../tables/domain/entities/user_stats.dart';
+import '../../../auth/presentation/cubit/cubit.dart';
+import '../../../tables/domain/entities/entities.dart';
 import '../cubit/home_stats_cubit.dart';
 
 class HomeView extends StatelessWidget {

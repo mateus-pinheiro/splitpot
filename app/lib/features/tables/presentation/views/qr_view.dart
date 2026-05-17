@@ -7,8 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../../../core/design/design_system.dart';
 import '../../../../core/di/di_container.dart';
 import '../../../../core/router/app_routes.dart';
-import '../../domain/entities/poker_table.dart';
-import '../../domain/entities/table_participation.dart';
+import '../../domain/entities/entities.dart';
 import '../cubit/qr_cubit.dart';
 import '../utils/join_link.dart';
 

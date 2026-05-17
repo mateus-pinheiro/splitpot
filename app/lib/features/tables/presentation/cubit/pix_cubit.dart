@@ -3,8 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/settlement.dart';
-import '../../domain/usecases/confirm_settlement.dart';
-import '../../domain/usecases/list_settlements.dart';
+import '../../domain/usecases/usecases.dart';
 
 class PixCubit extends Cubit<PixState> {
   PixCubit({

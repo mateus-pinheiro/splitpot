@@ -1,7 +1,6 @@
 import 'dart:async';
 
-import '../../domain/entities/sign_in_outcome.dart';
-import '../../domain/entities/user.dart';
+import '../../domain/entities/entities.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 /// Implementação mock do [AuthRepository] para testes sem backend.

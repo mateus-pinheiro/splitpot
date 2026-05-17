@@ -1,7 +1,6 @@
 import 'package:decimal/decimal.dart';
 
-import '../../domain/entities/table_preview.dart';
-import '../../domain/entities/table_status.dart';
+import '../../domain/entities/entities.dart';
 
 class TablePreviewDto {
   static TablePreview fromJson(Map<String, dynamic> json) {

@@ -8,8 +8,7 @@ import '../../../../core/di/di_container.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../home/presentation/cubit/home_stats_cubit.dart';
-import '../../domain/entities/table_status.dart';
-import '../../domain/entities/user_stats.dart';
+import '../../domain/entities/entities.dart';
 
 class HistoryView extends StatelessWidget {
   const HistoryView({super.key});

@@ -8,11 +8,8 @@ import '../../../../core/design/design_system.dart';
 import '../../../../core/di/di_container.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/router/app_routes.dart';
-import '../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../auth/presentation/cubit/auth_state.dart';
-import '../../domain/entities/poker_table.dart';
-import '../../domain/entities/table_participation.dart';
-import '../../domain/entities/table_status.dart';
+import '../../../auth/presentation/cubit/cubit.dart';
+import '../../domain/entities/entities.dart';
 import '../cubit/table_detail_cubit.dart';
 
 class TableDetailView extends StatelessWidget {

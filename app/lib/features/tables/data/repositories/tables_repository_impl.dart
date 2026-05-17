@@ -1,15 +1,10 @@
 import 'package:decimal/decimal.dart';
 
 import '../../../../core/network/api_client.dart';
-import '../../domain/entities/poker_table.dart';
-import '../../domain/entities/table_preview.dart';
-import '../../domain/entities/user_stats.dart';
+import '../../domain/entities/entities.dart';
 import '../../domain/repositories/tables_repository.dart';
 import '../../domain/usecases/calculate_settlements.dart';
-import '../dto/settlement_dto.dart';
-import '../dto/table_dto.dart';
-import '../dto/table_preview_dto.dart';
-import '../dto/user_stats_dto.dart';
+import '../dto/dto.dart';
 
 /// Implementação de [TablesRepository] sobre os endpoints Nest
 /// (`/tables`, `/settlements`, `/users/me/stats`).

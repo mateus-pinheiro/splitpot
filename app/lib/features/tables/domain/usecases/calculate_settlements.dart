@@ -1,8 +1,6 @@
 import 'package:decimal/decimal.dart';
 
-import '../entities/poker_table.dart';
-import '../entities/settlement_draft.dart';
-import '../entities/table_participation.dart';
+import '../entities/entities.dart';
 
 /// Calcula o menor conjunto de transferências P2P para acertar a mesa.
 ///

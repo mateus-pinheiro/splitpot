@@ -2,8 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
-import '../../domain/usecases/approve_action_request.dart';
-import '../../domain/usecases/reject_action_request.dart';
+import '../../domain/usecases/usecases.dart';
 
 class PendingApprovalsCubit extends Cubit<PendingApprovalsState> {
   PendingApprovalsCubit({

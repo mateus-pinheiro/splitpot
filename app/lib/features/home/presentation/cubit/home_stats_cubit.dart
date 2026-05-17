@@ -3,8 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../tables/domain/entities/user_stats.dart';
-import '../../../tables/domain/usecases/confirm_settlement.dart';
-import '../../../tables/domain/usecases/get_user_stats.dart';
+import '../../../tables/domain/usecases/usecases.dart';
 
 class HomeStatsCubit extends Cubit<HomeStatsState> {
   HomeStatsCubit(this._getUserStats, this._confirmSettlement)

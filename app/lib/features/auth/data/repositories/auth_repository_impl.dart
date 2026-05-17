@@ -1,11 +1,8 @@
-import '../../../../core/network/api_client.dart';
-import '../../../../core/network/api_exception.dart';
-import '../../domain/entities/sign_in_outcome.dart';
-import '../../domain/entities/user.dart';
+import '../../../../core/network/network.dart';
+import '../../domain/entities/entities.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../dto/user_dto.dart';
-import '../services/firebase_rest_auth_service.dart';
-import '../services/firebase_token_store.dart';
+import '../services/services.dart';
 
 /// Implementação de [AuthRepository] sobre Google Sign-In + backend Nest.
 ///

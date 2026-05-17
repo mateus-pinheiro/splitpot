@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:splitpot/core/router/app_routes.dart';
 
 import '../../../../core/design/design_system.dart';
-import '../cubit/auth_cubit.dart';
-import '../cubit/auth_state.dart';
+import '../cubit/cubit.dart';
 
 class CompleteProfileView extends StatefulWidget {
   const CompleteProfileView({super.key});

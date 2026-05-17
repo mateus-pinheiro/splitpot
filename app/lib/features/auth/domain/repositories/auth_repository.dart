@@ -1,5 +1,4 @@
-import '../entities/sign_in_outcome.dart';
-import '../entities/user.dart';
+import '../entities/entities.dart';
 
 /// Contrato do repositório de autenticação.
 ///

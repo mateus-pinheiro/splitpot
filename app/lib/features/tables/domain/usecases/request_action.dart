@@ -1,7 +1,6 @@
 import 'package:decimal/decimal.dart';
 
-import '../entities/action_request.dart';
-import '../entities/action_type.dart';
+import '../entities/entities.dart';
 import '../repositories/action_requests_repository.dart';
 
 class RequestAction {

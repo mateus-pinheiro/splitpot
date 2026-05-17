@@ -6,14 +6,11 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'core/design/tokens.dart';
 import 'core/design/widgets/sp_loader.dart';
-import 'core/di/app_dependencies.dart';
-import 'core/di/di_container.dart';
-import 'core/di/get_it_container.dart';
+import 'core/di/di.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/data/services/firebase_rest_auth_service.dart';
-import 'features/auth/presentation/cubit/auth_cubit.dart';
-import 'features/auth/presentation/cubit/auth_state.dart';
+import 'features/auth/presentation/cubit/cubit.dart';
 import 'features/auth/presentation/views/splash_view.dart';
 
 Future<void> main() async {

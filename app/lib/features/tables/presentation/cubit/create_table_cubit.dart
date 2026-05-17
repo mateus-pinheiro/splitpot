@@ -3,8 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
-import '../../domain/usecases/create_table.dart';
-import '../../domain/usecases/update_table.dart';
+import '../../domain/usecases/usecases.dart';
 import 'create_table_state.dart';
 
 class CreateTableCubit extends Cubit<CreateTableState> {

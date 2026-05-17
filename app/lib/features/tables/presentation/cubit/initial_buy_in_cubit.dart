@@ -4,8 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/poker_table.dart';
-import '../../domain/usecases/add_buy_in.dart';
-import '../../domain/usecases/get_table.dart';
+import '../../domain/usecases/usecases.dart';
 
 /// Carrega a mesa recém-criada para o owner declarar seu aporte inicial.
 /// Identifica a `participation` do owner pelo userId e dispara o

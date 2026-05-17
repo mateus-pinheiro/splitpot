@@ -8,8 +8,7 @@ import '../../../../core/design/design_system.dart';
 import '../../../../core/di/di_container.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/router/app_routes.dart';
-import '../cubit/create_table_cubit.dart';
-import '../cubit/create_table_state.dart';
+import '../cubit/cubit.dart';
 
 class CreateTableView extends StatelessWidget {
   const CreateTableView({

@@ -1,7 +1,6 @@
 import 'package:decimal/decimal.dart';
 
-import '../../domain/entities/action_request.dart';
-import '../../domain/entities/action_type.dart';
+import '../../domain/entities/entities.dart';
 
 class ActionRequestDto {
   static ActionRequest fromJson(Map<String, dynamic> json) {
