@@ -57,6 +57,27 @@ class TablesRepositoryImpl implements TablesRepository {
   @override
   Future<CloseTableResult> closeTable(String id) async {
     final closeJson = await _api.post('/tables/$id/close');
+    return _closeResult(closeJson);
+  }
+
+  @override
+  Future<CloseTableResult> reconcileAndClose(
+    String id,
+    ReconcileStrategy strategy,
+  ) async {
+    final closeJson = await _api.post(
+      '/tables/$id/reconcile-and-close',
+      body: {
+        'strategy': switch (strategy) {
+          ReconcileStrategy.hostAbsorb => 'HOST_ABSORB',
+          ReconcileStrategy.splitEvenly => 'SPLIT_EVENLY',
+        },
+      },
+    );
+    return _closeResult(closeJson);
+  }
+
+  CloseTableResult _closeResult(Map<String, dynamic> closeJson) {
     final table = TableDto.fromJson(closeJson);
     final settlementsJson =
         closeJson['settlements'] as List<dynamic>? ?? const [];

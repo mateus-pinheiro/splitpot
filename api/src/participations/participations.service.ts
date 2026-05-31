@@ -167,7 +167,15 @@ export class ParticipationsService {
       where: { participationId: { in: activeParticipations.map((p) => p.id) } },
     });
     if (activeParticipations.length > 0 && cashOutCount === activeParticipations.length) {
-      await this.tables.closeBySystem(participation.tableId);
+      // Auto-close best-effort: when buy-ins and cash-outs don't reconcile,
+      // closeBySystem throws BadRequestException. The cash-out itself is
+      // already committed and the table moves into a "needs reconciliation"
+      // state (surfaced via GET /tables/:id) instead of failing the request.
+      try {
+        await this.tables.closeBySystem(participation.tableId);
+      } catch (err) {
+        if (!(err instanceof BadRequestException)) throw err;
+      }
     }
 
     return cashOut;

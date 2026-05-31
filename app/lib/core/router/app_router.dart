@@ -102,6 +102,11 @@ class AppRouter {
             _slide(s, CloseTableView(tableId: s.pathParameters['id']!)),
       ),
       GoRoute(
+        path: AppRoutes.checkPattern,
+        pageBuilder: (_, s) =>
+            _slide(s, CheckTableView(tableId: s.pathParameters['id']!)),
+      ),
+      GoRoute(
         path: AppRoutes.pixPattern,
         pageBuilder: (_, s) =>
             _slide(s, PixView(tableId: s.pathParameters['id']!)),

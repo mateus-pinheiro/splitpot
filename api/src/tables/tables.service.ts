@@ -8,6 +8,7 @@ import { Prisma, TableStatus, type Table } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import type { CreateTableDto } from './dto/create-table.dto.js';
+import { ReconcileStrategy } from './dto/reconcile-and-close.dto.js';
 import type { UpdateTableDto } from './dto/update-table.dto.js';
 import { computeSettlements, type ParticipantNet } from './settlement-calculator.js';
 
@@ -114,7 +115,41 @@ export class TablesService {
     if (!isOwner && !isParticipant) {
       throw new ForbiddenException('Sem acesso a essa mesa');
     }
-    return table;
+    return { ...table, ...this.summarizeBalance(table) };
+  }
+
+  /**
+   * Computes totalBuyIn / totalCashOut for active (non-left) participants and
+   * a `needsReconciliation` flag. The flag is true when an OPEN table has
+   * cash-outs for every active participant but the sums don't match — i.e.
+   * the auto-close fired and was rejected. Used by the app to render the
+   * host's reconciliation ("check") view.
+   */
+  private summarizeBalance(table: {
+    status: TableStatus;
+    participations: {
+      leftAt: Date | null;
+      buyIns: { amount: Prisma.Decimal }[];
+      cashOut: { amount: Prisma.Decimal } | null;
+    }[];
+  }) {
+    let totalBuyIn = new Prisma.Decimal(0);
+    let totalCashOut = new Prisma.Decimal(0);
+    let activeCount = 0;
+    let cashedOutCount = 0;
+    for (const p of table.participations) {
+      if (p.leftAt !== null) continue;
+      activeCount += 1;
+      for (const b of p.buyIns) totalBuyIn = totalBuyIn.plus(b.amount);
+      if (p.cashOut) {
+        cashedOutCount += 1;
+        totalCashOut = totalCashOut.plus(p.cashOut.amount);
+      }
+    }
+    const allCashedOut = activeCount > 0 && cashedOutCount === activeCount;
+    const needsReconciliation =
+      table.status === TableStatus.OPEN && allCashedOut && !totalBuyIn.equals(totalCashOut);
+    return { totalBuyIn, totalCashOut, needsReconciliation };
   }
 
   async update(firebaseUid: string, tableId: string, dto: UpdateTableDto): Promise<Table> {
@@ -168,75 +203,161 @@ export class TablesService {
   }
 
   async closeBySystem(tableId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const table = await tx.table.findUnique({
-        where: { id: tableId },
-        include: {
-          participations: {
-            where: { leftAt: null },
-            include: { buyIns: true, cashOut: true },
-          },
-        },
-      });
-      if (!table) throw new NotFoundException('Mesa não encontrada');
-      if (table.status !== TableStatus.OPEN) {
-        throw new BadRequestException('Mesa já está fechada');
-      }
-      if (table.participations.length === 0) {
-        throw new BadRequestException('Mesa sem participantes');
-      }
+    return this.prisma.$transaction((tx) => this.closeInTransaction(tx, tableId));
+  }
 
-      const missingCashOut = table.participations.filter((p) => !p.cashOut);
-      if (missingCashOut.length > 0) {
+  /**
+   * Host-driven reconciliation: when buy-ins ≠ cash-outs and the auto-close
+   * is blocked, the host can absorb the diff themselves (HOST_ABSORB) or
+   * split it equally across active participants (SPLIT_EVENLY). The
+   * adjustment and the close run atomically so we never leave the cash-outs
+   * mutated without a corresponding settlement set.
+   */
+  async reconcileAndClose(
+    firebaseUid: string,
+    tableId: string,
+    strategy: ReconcileStrategy,
+  ) {
+    const user = await this.users.requireByFirebaseUid(firebaseUid);
+    const table = await this.prisma.table.findUnique({ where: { id: tableId } });
+    if (!table) throw new NotFoundException('Mesa não encontrada');
+    if (table.ownerId !== user.id) {
+      throw new ForbiddenException('Apenas o dono pode reconciliar');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const active = await tx.tableParticipation.findMany({
+        where: { tableId, leftAt: null },
+        include: { buyIns: true, cashOut: true },
+      });
+      if (active.length === 0) throw new BadRequestException('Mesa sem participantes');
+      const missing = active.filter((p) => !p.cashOut);
+      if (missing.length > 0) {
         throw new BadRequestException(
-          `Cash-out pendente para ${missingCashOut.length} participante(s)`,
+          `Cash-out pendente para ${missing.length} participante(s) — reconciliação só funciona com todos cashados`,
         );
       }
 
       let totalBuyIn = new Prisma.Decimal(0);
       let totalCashOut = new Prisma.Decimal(0);
-      const nets: ParticipantNet[] = table.participations.map((p) => {
-        const buyInSum = p.buyIns.reduce(
-          (acc, b) => acc.plus(b.amount),
-          new Prisma.Decimal(0),
-        );
-        const cashOutAmount = p.cashOut!.amount;
-        totalBuyIn = totalBuyIn.plus(buyInSum);
-        totalCashOut = totalCashOut.plus(cashOutAmount);
-        return { userId: p.userId, net: cashOutAmount.minus(buyInSum) };
+      for (const p of active) {
+        for (const b of p.buyIns) totalBuyIn = totalBuyIn.plus(b.amount);
+        totalCashOut = totalCashOut.plus(p.cashOut!.amount);
+      }
+
+      // diff > 0 means cash-outs are inflated vs buy-ins (need to subtract).
+      // diff < 0 means cash-outs short of buy-ins (need to add).
+      const diff = totalCashOut.minus(totalBuyIn);
+
+      if (!diff.isZero()) {
+        if (strategy === ReconcileStrategy.HOST_ABSORB) {
+          const host = active.find((p) => p.userId === user.id);
+          if (!host) {
+            throw new BadRequestException(
+              'Host não está jogando — escolha "Dividir entre todos"',
+            );
+          }
+          const newAmount = host.cashOut!.amount.minus(diff);
+          await tx.cashOut.update({
+            where: { participationId: host.id },
+            data: { amount: newAmount },
+          });
+        } else {
+          // SPLIT_EVENLY: subtract diff/N from each cash-out. Round to cents
+          // and dump the rounding residue on the host (or first participant
+          // if the host isn't playing) so the totals zero out exactly.
+          const n = active.length;
+          const perHead = diff.dividedBy(n).toDecimalPlaces(2);
+          const residue = diff.minus(perHead.times(n));
+          const residueTarget =
+            active.find((p) => p.userId === user.id) ?? active[0]!;
+
+          for (const p of active) {
+            const extra = p.id === residueTarget.id ? residue : new Prisma.Decimal(0);
+            const newAmount = p.cashOut!.amount.minus(perHead).minus(extra);
+            await tx.cashOut.update({
+              where: { participationId: p.id },
+              data: { amount: newAmount },
+            });
+          }
+        }
+      }
+
+      return this.closeInTransaction(tx, tableId);
+    });
+  }
+
+  private async closeInTransaction(
+    tx: Prisma.TransactionClient,
+    tableId: string,
+  ) {
+    const table = await tx.table.findUnique({
+      where: { id: tableId },
+      include: {
+        participations: {
+          where: { leftAt: null },
+          include: { buyIns: true, cashOut: true },
+        },
+      },
+    });
+    if (!table) throw new NotFoundException('Mesa não encontrada');
+    if (table.status !== TableStatus.OPEN) {
+      throw new BadRequestException('Mesa já está fechada');
+    }
+    if (table.participations.length === 0) {
+      throw new BadRequestException('Mesa sem participantes');
+    }
+
+    const missingCashOut = table.participations.filter((p) => !p.cashOut);
+    if (missingCashOut.length > 0) {
+      throw new BadRequestException(
+        `Cash-out pendente para ${missingCashOut.length} participante(s)`,
+      );
+    }
+
+    let totalBuyIn = new Prisma.Decimal(0);
+    let totalCashOut = new Prisma.Decimal(0);
+    const nets: ParticipantNet[] = table.participations.map((p) => {
+      const buyInSum = p.buyIns.reduce(
+        (acc, b) => acc.plus(b.amount),
+        new Prisma.Decimal(0),
+      );
+      const cashOutAmount = p.cashOut!.amount;
+      totalBuyIn = totalBuyIn.plus(buyInSum);
+      totalCashOut = totalCashOut.plus(cashOutAmount);
+      return { userId: p.userId, net: cashOutAmount.minus(buyInSum) };
+    });
+
+    if (!totalBuyIn.equals(totalCashOut)) {
+      throw new BadRequestException(
+        `Soma de buy-ins (${totalBuyIn.toFixed(2)}) diferente da soma de cash-outs (${totalCashOut.toFixed(2)})`,
+      );
+    }
+
+    const plans = computeSettlements(nets);
+
+    if (plans.length > 0) {
+      await tx.settlement.createMany({
+        data: plans.map((p) => ({
+          tableId: table.id,
+          fromUserId: p.fromUserId,
+          toUserId: p.toUserId,
+          amount: p.amount,
+        })),
       });
+    }
 
-      if (!totalBuyIn.equals(totalCashOut)) {
-        throw new BadRequestException(
-          `Soma de buy-ins (${totalBuyIn.toFixed(2)}) diferente da soma de cash-outs (${totalCashOut.toFixed(2)})`,
-        );
-      }
-
-      const plans = computeSettlements(nets);
-
-      if (plans.length > 0) {
-        await tx.settlement.createMany({
-          data: plans.map((p) => ({
-            tableId: table.id,
-            fromUserId: p.fromUserId,
-            toUserId: p.toUserId,
-            amount: p.amount,
-          })),
-        });
-      }
-
-      return tx.table.update({
-        where: { id: table.id },
-        data: { status: TableStatus.CLOSED, closedAt: new Date() },
-        include: {
-          settlements: {
-            include: {
-              fromUser: { select: { id: true, name: true, pixKey: true } },
-              toUser: { select: { id: true, name: true, pixKey: true } },
-            },
+    return tx.table.update({
+      where: { id: table.id },
+      data: { status: TableStatus.CLOSED, closedAt: new Date() },
+      include: {
+        settlements: {
+          include: {
+            fromUser: { select: { id: true, name: true, pixKey: true } },
+            toUser: { select: { id: true, name: true, pixKey: true } },
           },
         },
-      });
+      },
     });
   }
 }

@@ -1,4 +1,5 @@
 export 'cashout_view.dart';
+export 'check_table_view.dart';
 export 'close_table_view.dart';
 export 'create_table_view.dart';
 export 'history_view.dart';

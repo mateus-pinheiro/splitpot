@@ -29,6 +29,9 @@ class AppRoutes {
   static const closePattern = '/table/:id/close';
   static String closeTable(String id) => '/table/$id/close';
 
+  static const checkPattern = '/table/:id/check';
+  static String checkTable(String id) => '/table/$id/check';
+
   static const pixPattern = '/table/:id/pix';
   static String pix(String id) => '/table/$id/pix';
 

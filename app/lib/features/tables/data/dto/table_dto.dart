@@ -26,6 +26,10 @@ class TableDto {
       pendingRequests: actionRequestsJson
           .map((r) => ActionRequestDto.fromJson(r as Map<String, dynamic>))
           .toList(growable: false),
+      needsReconciliation: json['needsReconciliation'] as bool? ?? false,
+      totalBuyIn: json['totalBuyIn'] == null ? null : _decimal(json['totalBuyIn']),
+      totalCashOut:
+          json['totalCashOut'] == null ? null : _decimal(json['totalCashOut']),
     );
   }
 

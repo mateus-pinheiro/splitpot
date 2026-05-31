@@ -1,4 +1,5 @@
 export 'cashout_cubit.dart';
+export 'check_table_cubit.dart';
 export 'close_table_cubit.dart';
 export 'create_table_cubit.dart';
 export 'create_table_state.dart';

@@ -2,6 +2,7 @@ export 'add_buy_in.dart';
 export 'approve_action_request.dart';
 export 'calculate_settlements.dart';
 export 'close_table.dart';
+export 'reconcile_and_close.dart';
 export 'confirm_settlement.dart';
 export 'create_table.dart';
 export 'get_table.dart';

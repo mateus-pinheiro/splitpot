@@ -34,8 +34,25 @@ abstract class TablesRepository {
   /// (decidido em 2026-04-22 — pode mudar com demanda real).
   Future<CloseTableResult> closeTable(String id);
 
+  /// Aplica uma estratégia de reconciliação e fecha a mesa numa única
+  /// operação atômica. Usado na tela "Conferir saídas" quando as saídas
+  /// não batem com o pote.
+  Future<CloseTableResult> reconcileAndClose(
+    String id,
+    ReconcileStrategy strategy,
+  );
+
   /// Stats agregadas pra home (P&L total, mesas, vitórias, recentes).
   Future<UserStats> getUserStats();
+}
+
+/// Como o host quer absorver a diferença entre buy-ins e cash-outs.
+enum ReconcileStrategy {
+  /// O host assume a diferença inteira ajustando o próprio cash-out.
+  hostAbsorb,
+
+  /// A diferença é dividida igualmente entre todos os participantes ativos.
+  splitEvenly,
 }
 
 class CloseTableResult {

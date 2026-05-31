@@ -78,6 +78,8 @@ void registerAppDependencies(DIContainer di) {
   di.registerFactory(() => UpdateTable(di.get<TablesRepository>()));
   di.registerFactory(() => GetTable(di.get<TablesRepository>()));
   di.registerFactory(() => GetTablePreview(di.get<TablesRepository>()));
+  di.registerFactory(() => CloseTable(di.get<TablesRepository>()));
+  di.registerFactory(() => ReconcileAndClose(di.get<TablesRepository>()));
   di.registerFactory(() => GetUserStats(di.get<TablesRepository>()));
   di.registerFactory(() => JoinTable(di.get<ParticipationsRepository>()));
   di.registerFactory(() => AddBuyIn(di.get<ParticipationsRepository>()));
@@ -135,6 +137,14 @@ void registerAppDependencies(DIContainer di) {
     () => PixCubit(
       listSettlements: di.get<ListSettlements>(),
       confirmSettlement: di.get<ConfirmSettlement>(),
+    ),
+  );
+  di.registerFactory(
+    () => CheckTableCubit(
+      getTable: di.get<GetTable>(),
+      setCashOut: di.get<SetCashOut>(),
+      closeTable: di.get<CloseTable>(),
+      reconcileAndClose: di.get<ReconcileAndClose>(),
     ),
   );
 }

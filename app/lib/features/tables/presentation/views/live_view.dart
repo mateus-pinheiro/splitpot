@@ -206,6 +206,10 @@ class _LoadedBody extends StatelessWidget {
                     playerCount: participations.length,
                     rebuys: rebuyCount,
                   ),
+                  if (isHost && table.needsReconciliation) ...[
+                    const SizedBox(height: 18),
+                    _ReconcileBanner(tableId: tableId, table: table),
+                  ],
                   if (isHost && table.pendingRequests.isNotEmpty) ...[
                     const SizedBox(height: 18),
                     _PendingApprovalsSection(
@@ -870,6 +874,69 @@ class _IconBtn extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(6),
           child: Icon(icon, color: color, size: 18),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReconcileBanner extends StatelessWidget {
+  const _ReconcileBanner({required this.tableId, required this.table});
+  final String tableId;
+  final PokerTable table;
+
+  @override
+  Widget build(BuildContext context) {
+    final pot = table.totalBuyIn ?? Decimal.zero;
+    final declared = table.totalCashOut ?? Decimal.zero;
+    final diff = (declared - pot).abs();
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => context.go(AppRoutes.checkTable(tableId)),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: SpColors.danger.withValues(alpha: 0.10),
+            border: Border.all(color: SpColors.danger.withValues(alpha: 0.30)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  color: SpColors.dangerSoft, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Saídas não batem com o pote',
+                      style: TextStyle(
+                        fontFamily: SpTypography.uiFamily,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: SpColors.cream,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Diferença de ${brlFromDecimal(diff, decimals: 2)} — toque para conferir.',
+                      style: const TextStyle(
+                        fontFamily: SpTypography.uiFamily,
+                        fontSize: 12,
+                        color: SpColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right,
+                  color: SpColors.dangerSoft, size: 20),
+            ],
+          ),
         ),
       ),
     );
