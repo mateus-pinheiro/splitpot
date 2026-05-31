@@ -266,8 +266,8 @@ class _FormState extends State<_Form> {
                     child: _QuickPill(
                       label: 'Empate',
                       dangerous: false,
-                      onTap: () => _controller.text =
-                          summary.invested.toBigInt().toString(),
+                      onTap: () =>
+                          _controller.text = summary.invested.toString(),
                     ),
                   ),
                 ],

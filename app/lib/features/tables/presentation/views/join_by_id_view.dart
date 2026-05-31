@@ -169,9 +169,8 @@ class _ReadyBodyState extends State<_ReadyBody> {
   @override
   void initState() {
     super.initState();
-    // Pré-popula com o mínimo da mesa (em inteiro, conforme o design).
     _controller = TextEditingController(
-      text: widget.preview.minBuyIn.toBigInt().toString(),
+      text: widget.preview.minBuyIn.toString(),
     );
     _controller.addListener(() => setState(() {}));
   }
@@ -222,7 +221,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
   Widget build(BuildContext context) {
     final amount = _parsedAmount;
     final buttonLabel = amount != null
-        ? 'Confirmar entrada · R\$ ${_format(amount)}'
+        ? 'Confirmar entrada · ${brlFromDecimal(amount)}'
         : 'Confirmar entrada';
     return Column(
       children: [
@@ -259,13 +258,6 @@ class _ReadyBodyState extends State<_ReadyBody> {
         ),
       ],
     );
-  }
-
-  /// Mostra inteiros sem decimais e mantém duas casas se o usuário digitou
-  /// algo fracionário.
-  static String _format(Decimal d) {
-    if (d.toBigInt().toString() == d.toString()) return d.toBigInt().toString();
-    return d.toString();
   }
 }
 

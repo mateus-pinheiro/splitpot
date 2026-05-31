@@ -61,7 +61,7 @@ class _RebuyDialogState extends State<_RebuyDialog> {
   void initState() {
     super.initState();
     _controller = TextEditingController(
-      text: widget.minBuyIn.toBigInt().toString(),
+      text: widget.minBuyIn.toString(),
     );
     _controller.addListener(() => setState(() {}));
   }
@@ -133,7 +133,7 @@ class _RebuyDialogState extends State<_RebuyDialog> {
                 final submitting = state is RebuySubmitting;
                 final amount = _amount;
                 final buttonLabel = amount != null
-                    ? '${copy.confirmLabel} · R\$ ${_format(amount)}'
+                    ? '${copy.confirmLabel} · ${brlFromDecimal(amount)}'
                     : copy.confirmLabel;
                 return Column(
                   mainAxisSize: MainAxisSize.min,
@@ -182,11 +182,6 @@ class _RebuyDialogState extends State<_RebuyDialog> {
         ),
       ),
     );
-  }
-
-  static String _format(Decimal d) {
-    if (d.toBigInt().toString() == d.toString()) return d.toBigInt().toString();
-    return d.toString();
   }
 
   static String _messageFor(Failure failure, _Copy copy) => switch (failure) {

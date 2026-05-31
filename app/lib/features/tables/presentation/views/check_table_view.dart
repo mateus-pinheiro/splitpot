@@ -12,10 +12,6 @@ import '../../../auth/presentation/cubit/cubit.dart';
 import '../../domain/entities/entities.dart';
 import '../cubit/check_table_cubit.dart';
 
-/// Reconciliation is a cents-precision task — rounding R$9.50 → R$10 in
-/// the UI hides exactly the kind of mismatch the host is here to fix.
-String _money(Decimal d) => brlFromDecimal(d, decimals: 2);
-
 /// "Conferir saídas" — tela exclusiva do host quando as cash-outs da mesa
 /// não batem com o pote. Reproduz fielmente o design-handoff (ver
 /// `design_system/ScreenReconcile.jsx`).
@@ -514,7 +510,7 @@ class _BalanceHero extends StatelessWidget {
                 Expanded(
                   child: _MoneyColumn(
                     eyebrow: 'TOTAL EM JOGO',
-                    value: _money(pot),
+                    value: brlFromDecimal(pot),
                     caption: 'pote (aportes + rebuys)',
                     valueColor: SpColors.cream,
                   ),
@@ -527,7 +523,7 @@ class _BalanceHero extends StatelessWidget {
                 Expanded(
                   child: _MoneyColumn(
                     eyebrow: 'SAÍDAS DECLARADAS',
-                    value: _money(declared),
+                    value: brlFromDecimal(declared),
                     caption: 'soma das fichas',
                     valueColor: declaredColor,
                   ),
@@ -589,9 +585,9 @@ class _BalanceHero extends StatelessWidget {
                 ),
                 Text(
                   balanced
-                      ? _money(Decimal.zero)
+                      ? brlFromDecimal(Decimal.zero)
                       : (diff > Decimal.zero ? '−' : '+') +
-                          _money(diff.abs()),
+                          brlFromDecimal(diff.abs()),
                   style: TextStyle(
                     fontFamily: SpTypography.numFamily,
                     fontSize: 18,
@@ -706,7 +702,7 @@ class _MethodPicker extends StatelessWidget {
           selected: selected == ReconcileMethod.split,
           icon: Icons.group_outlined,
           title: 'Dividir entre todos',
-          subtitle: 'Cada jogador absorve ${_money(perHead)}',
+          subtitle: 'Cada jogador absorve ${brlFromDecimal(perHead)}',
           onTap: () => onSelect(ReconcileMethod.split),
         ),
         const SizedBox(height: 8),
@@ -714,7 +710,7 @@ class _MethodPicker extends StatelessWidget {
           selected: selected == ReconcileMethod.host,
           icon: Icons.shield_outlined,
           title: 'Assumir como host',
-          subtitle: 'Você cobre ${_money(absDiff)} via PIX',
+          subtitle: 'Você cobre ${brlFromDecimal(absDiff)} via PIX',
           onTap: () => onSelect(ReconcileMethod.host),
         ),
       ],
@@ -1016,8 +1012,8 @@ class _EditableRowState extends State<_EditableRow> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'entrou ${_money(invested)} · '
-                  '${pl >= Decimal.zero ? '+' : ''}${_money(pl)}',
+                  'entrou ${brlFromDecimal(invested)} · '
+                  '${pl >= Decimal.zero ? '+' : ''}${brlFromDecimal(pl)}',
                   style: const TextStyle(
                     fontFamily: SpTypography.numFamily,
                     fontSize: 11,
@@ -1254,7 +1250,7 @@ class _SplitPanel extends StatelessWidget {
               : TextSpan(children: [
                   const TextSpan(text: 'O excedente de '),
                   TextSpan(
-                    text: _money(absDiff),
+                    text: brlFromDecimal(absDiff),
                     style: const TextStyle(
                       color: SpColors.goldBright,
                       fontWeight: FontWeight.w700,
@@ -1265,7 +1261,7 @@ class _SplitPanel extends StatelessWidget {
                         ' é dividido igualmente. Cada um dos jogadores absorve ',
                   ),
                   TextSpan(
-                    text: _money(perHead),
+                    text: brlFromDecimal(perHead),
                     style: const TextStyle(
                       color: SpColors.goldBright,
                       fontWeight: FontWeight.w700,
@@ -1372,7 +1368,7 @@ class _BeforeAfterRow extends StatelessWidget {
             ),
           ),
           Text(
-            '${before >= Decimal.zero ? '+' : ''}${_money(before)}',
+            '${before >= Decimal.zero ? '+' : ''}${brlFromDecimal(before)}',
             style: const TextStyle(
               fontFamily: SpTypography.numFamily,
               fontSize: 12,
@@ -1383,7 +1379,7 @@ class _BeforeAfterRow extends StatelessWidget {
           const Icon(Icons.arrow_forward, color: SpColors.goldDark, size: 16),
           const SizedBox(width: 8),
           Text(
-            '${after >= Decimal.zero ? '+' : ''}${_money(after)}',
+            '${after >= Decimal.zero ? '+' : ''}${brlFromDecimal(after)}',
             textAlign: TextAlign.right,
             style: TextStyle(
               fontFamily: SpTypography.numFamily,
@@ -1449,7 +1445,7 @@ class _HostPanel extends StatelessWidget {
               : TextSpan(children: [
                   const TextSpan(text: 'Você assume o excedente de '),
                   TextSpan(
-                    text: _money(absDiff),
+                    text: brlFromDecimal(absDiff),
                     style: const TextStyle(
                       color: SpColors.goldBright,
                       fontWeight: FontWeight.w700,
@@ -1510,7 +1506,7 @@ class _HostPanel extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  '${hostBefore! >= Decimal.zero ? '+' : ''}${_money(hostBefore)}',
+                  '${hostBefore! >= Decimal.zero ? '+' : ''}${brlFromDecimal(hostBefore)}',
                   style: const TextStyle(
                     fontFamily: SpTypography.numFamily,
                     fontSize: 13,
@@ -1522,7 +1518,7 @@ class _HostPanel extends StatelessWidget {
                     color: SpColors.goldDark, size: 16),
                 const SizedBox(width: 8),
                 Text(
-                  '${hostAfter! >= Decimal.zero ? '+' : ''}${_money(hostAfter)}',
+                  '${hostAfter! >= Decimal.zero ? '+' : ''}${brlFromDecimal(hostAfter)}',
                   style: TextStyle(
                     fontFamily: SpTypography.numFamily,
                     fontSize: 16,
@@ -1602,7 +1598,7 @@ class _HostTransferCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        _money(absDiff),
+                        brlFromDecimal(absDiff),
                         style: const TextStyle(
                           fontFamily: SpTypography.numFamily,
                           fontSize: 13,
@@ -1753,7 +1749,7 @@ class _StickyFooter extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
-                'Ajuste as saídas — diferença de ${_money(absDiff)} '
+                'Ajuste as saídas — diferença de ${brlFromDecimal(absDiff)} '
                 'para fechar.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(

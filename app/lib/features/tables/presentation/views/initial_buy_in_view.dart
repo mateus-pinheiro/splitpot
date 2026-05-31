@@ -205,7 +205,7 @@ class _FormState extends State<_Form> {
   void initState() {
     super.initState();
     _controller = TextEditingController(
-      text: widget.table.minBuyIn.toBigInt().toString(),
+      text: widget.table.minBuyIn.toString(),
     );
     _controller.addListener(() => setState(() {}));
   }
@@ -249,7 +249,7 @@ class _FormState extends State<_Form> {
   Widget build(BuildContext context) {
     final amount = _amount;
     final buttonLabel = amount != null
-        ? 'Confirmar · R\$ ${_format(amount)}'
+        ? 'Confirmar · ${brlFromDecimal(amount)}'
         : 'Confirmar aporte';
     return Column(
       children: [
@@ -292,11 +292,6 @@ class _FormState extends State<_Form> {
         ),
       ],
     );
-  }
-
-  static String _format(Decimal d) {
-    if (d.toBigInt().toString() == d.toString()) return d.toBigInt().toString();
-    return d.toString();
   }
 }
 
