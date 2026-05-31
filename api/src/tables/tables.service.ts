@@ -21,18 +21,33 @@ export class TablesService {
 
   async create(firebaseUid: string, dto: CreateTableDto): Promise<Table> {
     const owner = await this.users.requireByFirebaseUid(firebaseUid);
+    const minBuyIn = new Prisma.Decimal(dto.minBuyIn);
+    const initialBuyIn =
+      dto.initialBuyIn !== undefined ? new Prisma.Decimal(dto.initialBuyIn) : null;
+    if (initialBuyIn !== null && dto.joinAsPlayer !== true) {
+      throw new BadRequestException(
+        'initialBuyIn só é permitido quando joinAsPlayer é true',
+      );
+    }
+    if (initialBuyIn !== null && initialBuyIn.lessThan(minBuyIn)) {
+      throw new BadRequestException(
+        `Aporte inicial (${initialBuyIn.toFixed(2)}) menor que o mínimo (${minBuyIn.toFixed(2)})`,
+      );
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const table = await tx.table.create({
-        data: {
-          ownerId: owner.id,
-          name: dto.name,
-          minBuyIn: new Prisma.Decimal(dto.minBuyIn),
-        },
+        data: { ownerId: owner.id, name: dto.name, minBuyIn },
       });
       if (dto.joinAsPlayer === true) {
-        await tx.tableParticipation.create({
+        const participation = await tx.tableParticipation.create({
           data: { tableId: table.id, userId: owner.id },
         });
+        if (initialBuyIn !== null) {
+          await tx.buyIn.create({
+            data: { participationId: participation.id, amount: initialBuyIn },
+          });
+        }
       }
       return table;
     });

@@ -5,12 +5,14 @@ import '../entities/entities.dart';
 /// Contrato do repositório de mesas.
 abstract class TablesRepository {
   /// Cria uma nova mesa aberta com o usuário logado como owner. Quando
-  /// `joinAsPlayer` é `true`, o owner também já entra como participante
-  /// (sem aporte inicial — declara depois).
+  /// `joinAsPlayer` é `true`, o owner também já entra como participante;
+  /// se `initialBuyIn` também vier preenchido, o aporte inicial é gravado
+  /// na mesma transação.
   Future<PokerTable> createTable({
     required String name,
     required Decimal minBuyIn,
     bool joinAsPlayer = false,
+    Decimal? initialBuyIn,
   });
 
   /// Busca uma mesa pelo id. Lança [StateError] se não encontrar.
@@ -19,14 +21,6 @@ abstract class TablesRepository {
   /// Visão pública mínima da mesa — usada na tela de pre-join, antes do
   /// usuário virar participant. Não exige acesso owner/participant.
   Future<TablePreview> getTablePreview(String id);
-
-  /// Atualiza nome e buy-in mínimo de uma mesa existente.
-  Future<PokerTable> updateTable({
-    required String id,
-    required String name,
-    required Decimal minBuyIn,
-    bool joinAsPlayer = false,
-  });
 
   /// Fecha a mesa e retorna o plano de acertos P2P.
   ///

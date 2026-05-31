@@ -19,8 +19,17 @@ export class CreateTableDto {
   minBuyIn!: number;
 
   /// Quando `true`, o owner já entra como participante na criação.
-  /// Sem aporte inicial — ele declara o buy-in depois.
+  /// Se vier acompanhado de `initialBuyIn`, o buy-in inicial é gravado na
+  /// mesma transação — caso contrário ele declara depois.
   @IsOptional()
   @IsBoolean()
   joinAsPlayer?: boolean;
+
+  /// Aporte inicial do owner. Só usado se `joinAsPlayer === true`. Tem que
+  /// ser >= `minBuyIn` (validado no serviço, não no DTO, porque precisa do
+  /// outro campo).
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  initialBuyIn?: number;
 }

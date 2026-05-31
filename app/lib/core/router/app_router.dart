@@ -63,8 +63,6 @@ class AppRouter {
           CreateTableView(
             initialName: s.uri.queryParameters['name'],
             initialMinBuyIn: s.uri.queryParameters['minBuyIn'],
-            initialTableId: s.uri.queryParameters['tableId'],
-            returnTo: s.uri.queryParameters['returnTo'],
           ),
         ),
       ),
@@ -80,11 +78,6 @@ class AppRouter {
         path: AppRoutes.qrPattern,
         pageBuilder: (_, s) =>
             _slide(s, QrView(tableId: s.pathParameters['id']!)),
-      ),
-      GoRoute(
-        path: AppRoutes.initialBuyInPattern,
-        pageBuilder: (_, s) =>
-            _slide(s, InitialBuyInView(tableId: s.pathParameters['id']!)),
       ),
       GoRoute(
         path: AppRoutes.livePattern,

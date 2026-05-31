@@ -7,43 +7,29 @@ import '../../domain/usecases/usecases.dart';
 import 'create_table_state.dart';
 
 class CreateTableCubit extends Cubit<CreateTableState> {
-  CreateTableCubit(this._createTable, this._updateTable)
-      : super(const CreateTableState.idle());
+  CreateTableCubit(this._createTable) : super(const CreateTableState.idle());
 
   final CreateTable _createTable;
-  final UpdateTable _updateTable;
 
   Future<void> submit({
     required String name,
     required Decimal minBuyIn,
     bool joinAsPlayer = false,
-    String? tableId,
+    Decimal? initialBuyIn,
   }) async {
     if (state is CreateTableCreating) return;
     emit(const CreateTableState.creating());
     try {
-      if (tableId != null) {
-        final table = await _updateTable(
-          id: tableId,
-          name: name,
-          minBuyIn: minBuyIn,
-          joinAsPlayer: joinAsPlayer,
-        );
-        emit(CreateTableState.created(
-          tableId: table.id,
-          joinedAsPlayer: joinAsPlayer,
-        ));
-      } else {
-        final table = await _createTable(
-          name: name,
-          minBuyIn: minBuyIn,
-          joinAsPlayer: joinAsPlayer,
-        );
-        emit(CreateTableState.created(
-          tableId: table.id,
-          joinedAsPlayer: joinAsPlayer,
-        ));
-      }
+      final table = await _createTable(
+        name: name,
+        minBuyIn: minBuyIn,
+        joinAsPlayer: joinAsPlayer,
+        initialBuyIn: initialBuyIn,
+      );
+      emit(CreateTableState.created(
+        tableId: table.id,
+        joinedAsPlayer: joinAsPlayer,
+      ));
     } on ApiException catch (e) {
       emit(CreateTableState.error(e.failure));
     } on Object catch (e) {

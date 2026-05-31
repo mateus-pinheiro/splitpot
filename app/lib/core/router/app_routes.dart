@@ -20,9 +20,6 @@ class AppRoutes {
   static const qrPattern = '/table/:id/qr';
   static String qr(String id) => '/table/$id/qr';
 
-  static const initialBuyInPattern = '/table/:id/initial-buy-in';
-  static String initialBuyIn(String id) => '/table/$id/initial-buy-in';
-
   static const cashoutPattern = '/table/:id/cashout';
   static String cashout(String id) => '/table/$id/cashout';
 

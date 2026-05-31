@@ -12,11 +12,13 @@ class CreateTable {
     required String name,
     required Decimal minBuyIn,
     bool joinAsPlayer = false,
+    Decimal? initialBuyIn,
   }) {
     return _repository.createTable(
       name: name,
       minBuyIn: minBuyIn,
       joinAsPlayer: joinAsPlayer,
+      initialBuyIn: initialBuyIn,
     );
   }
 }

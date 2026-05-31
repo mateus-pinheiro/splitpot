@@ -75,7 +75,6 @@ void registerAppDependencies(DIContainer di) {
 
   // Tables — usecases
   di.registerFactory(() => CreateTable(di.get<TablesRepository>()));
-  di.registerFactory(() => UpdateTable(di.get<TablesRepository>()));
   di.registerFactory(() => GetTable(di.get<TablesRepository>()));
   di.registerFactory(() => GetTablePreview(di.get<TablesRepository>()));
   di.registerFactory(() => CloseTable(di.get<TablesRepository>()));
@@ -95,7 +94,7 @@ void registerAppDependencies(DIContainer di) {
       () => RejectActionRequest(di.get<ActionRequestsRepository>()));
 
   // Tables — cubits (factory: instância nova por view)
-  di.registerFactory(() => CreateTableCubit(di.get<CreateTable>(), di.get<UpdateTable>()));
+  di.registerFactory(() => CreateTableCubit(di.get<CreateTable>()));
   di.registerFactory(() => TableDetailCubit(di.get<GetTable>()));
   di.registerFactory(() => QrCubit(di.get<GetTable>()));
   di.registerFactory(() => LiveCubit(di.get<GetTable>()));
@@ -104,12 +103,6 @@ void registerAppDependencies(DIContainer di) {
       addBuyIn: di.get<AddBuyIn>(),
       rejoinTable: di.get<RejoinTable>(),
       requestAction: di.get<RequestAction>(),
-    ),
-  );
-  di.registerFactory(
-    () => InitialBuyInCubit(
-      getTable: di.get<GetTable>(),
-      addBuyIn: di.get<AddBuyIn>(),
     ),
   );
   di.registerFactory(() => HomeStatsCubit(di.get<GetUserStats>(), di.get<ConfirmSettlement>()));

@@ -18,26 +18,14 @@ class TablesRepositoryImpl implements TablesRepository {
     required String name,
     required Decimal minBuyIn,
     bool joinAsPlayer = false,
+    Decimal? initialBuyIn,
   }) async {
     final json = await _api.post('/tables', body: {
       'name': name,
       'minBuyIn': double.parse(minBuyIn.toString()),
       if (joinAsPlayer) 'joinAsPlayer': true,
-    });
-    return TableDto.fromJson(json);
-  }
-
-  @override
-  Future<PokerTable> updateTable({
-    required String id,
-    required String name,
-    required Decimal minBuyIn,
-    bool joinAsPlayer = false,
-  }) async {
-    final json = await _api.patch('/tables/$id', body: {
-      'name': name,
-      'minBuyIn': double.parse(minBuyIn.toString()),
-      'joinAsPlayer': joinAsPlayer,
+      if (initialBuyIn != null)
+        'initialBuyIn': double.parse(initialBuyIn.toString()),
     });
     return TableDto.fromJson(json);
   }
