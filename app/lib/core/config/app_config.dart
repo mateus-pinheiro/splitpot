@@ -5,6 +5,7 @@
 class AppConfig {
   const AppConfig({
     required this.apiBaseUrl,
+    required this.webBaseUrl,
     required this.firebaseWebApiKey,
     required this.googleClientId,
   });
@@ -14,6 +15,10 @@ class AppConfig {
       apiBaseUrl: String.fromEnvironment(
         'API_BASE_URL',
         defaultValue: 'https://splitpot-coral.vercel.app/api',
+      ),
+      webBaseUrl: String.fromEnvironment(
+        'WEB_BASE_URL',
+        defaultValue: 'https://splitpot.com.br',
       ),
       firebaseWebApiKey: String.fromEnvironment(
         'FIREBASE_WEB_API_KEY',
@@ -27,6 +32,7 @@ class AppConfig {
   }
 
   final String apiBaseUrl;
+  final String webBaseUrl;
   final String firebaseWebApiKey;
   final String googleClientId;
 }

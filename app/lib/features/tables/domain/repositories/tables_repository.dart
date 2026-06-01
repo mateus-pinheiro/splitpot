@@ -5,12 +5,14 @@ import '../entities/entities.dart';
 /// Contrato do repositório de mesas.
 abstract class TablesRepository {
   /// Cria uma nova mesa aberta com o usuário logado como owner. Quando
-  /// `joinAsPlayer` é `true`, o owner também já entra como participante
-  /// (sem aporte inicial — declara depois).
+  /// `joinAsPlayer` é `true`, o owner também já entra como participante;
+  /// se `initialBuyIn` também vier preenchido, o aporte inicial é gravado
+  /// na mesma transação.
   Future<PokerTable> createTable({
     required String name,
     required Decimal minBuyIn,
     bool joinAsPlayer = false,
+    Decimal? initialBuyIn,
   });
 
   /// Busca uma mesa pelo id. Lança [StateError] se não encontrar.
@@ -20,22 +22,39 @@ abstract class TablesRepository {
   /// usuário virar participant. Não exige acesso owner/participant.
   Future<TablePreview> getTablePreview(String id);
 
-  /// Atualiza nome e buy-in mínimo de uma mesa existente.
-  Future<PokerTable> updateTable({
-    required String id,
-    required String name,
-    required Decimal minBuyIn,
-    bool joinAsPlayer = false,
-  });
-
   /// Fecha a mesa e retorna o plano de acertos P2P.
   ///
   /// Só o owner pode fechar. Depois de fechada a mesa é imutável
   /// (decidido em 2026-04-22 — pode mudar com demanda real).
   Future<CloseTableResult> closeTable(String id);
 
+  /// Aplica uma estratégia de reconciliação e fecha a mesa numa única
+  /// operação atômica. Usado na tela "Conferir saídas" quando as saídas
+  /// não batem com o pote.
+  Future<CloseTableResult> reconcileAndClose(
+    String id,
+    ReconcileStrategy strategy,
+  );
+
+  /// Transfere o papel de host para outro participante ativo da mesa.
+  /// O `newOwnerId` é o `User.id` do novo host. Backend valida que o caller
+  /// é o host atual e que o alvo é participante ativo (sem cash-out).
+  Future<PokerTable> transferHost({
+    required String tableId,
+    required String newOwnerId,
+  });
+
   /// Stats agregadas pra home (P&L total, mesas, vitórias, recentes).
   Future<UserStats> getUserStats();
+}
+
+/// Como o host quer absorver a diferença entre buy-ins e cash-outs.
+enum ReconcileStrategy {
+  /// O host assume a diferença inteira ajustando o próprio cash-out.
+  hostAbsorb,
+
+  /// A diferença é dividida igualmente entre todos os participantes ativos.
+  splitEvenly,
 }
 
 class CloseTableResult {

@@ -418,14 +418,28 @@ class _PixRow extends StatelessWidget {
             const SizedBox(height: 10),
             _CopyPixButton(settlement: settlement),
             const SizedBox(height: 8),
-            Text(
-              'Aguardando ${settlement.toName.split(' ').first} confirmar o recebimento.',
-              style: const TextStyle(
-                fontFamily: SpTypography.uiFamily,
-                fontSize: 11,
-                color: SpColors.muted,
-              ),
+            SpGoldButton(
+              label: settlement.isToGuest
+                  ? 'Marcar como pago ao convidado'
+                  : 'Marcar como pago',
+              loading: submitting,
+              onPressed: submitting
+                  ? null
+                  : () => context.read<PixCubit>().confirm(settlement.id),
+              height: 38,
+              fontSize: 12,
             ),
+            if (settlement.isToGuest) ...[
+              const SizedBox(height: 6),
+              Text(
+                '${settlement.toName} é convidado — só o host pode confirmar.',
+                style: const TextStyle(
+                  fontFamily: SpTypography.uiFamily,
+                  fontSize: 11,
+                  color: SpColors.muted,
+                ),
+              ),
+            ],
           ],
         ],
       ),

@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PokerTable {
 
- String get id; String get ownerId; String get name; Decimal get minBuyIn; TableStatus get status; DateTime get createdAt; DateTime? get closedAt; List<TableParticipation> get participations; List<ActionRequest> get pendingRequests;
+ String get id; String get ownerId; String get name; Decimal get minBuyIn; TableStatus get status; DateTime get createdAt; DateTime? get closedAt; List<TableParticipation> get participations; List<ActionRequest> get pendingRequests; bool get needsReconciliation; Decimal? get totalBuyIn; Decimal? get totalCashOut;
 /// Create a copy of PokerTable
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $PokerTableCopyWith<PokerTable> get copyWith => _$PokerTableCopyWithImpl<PokerTa
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PokerTable&&(identical(other.id, id) || other.id == id)&&(identical(other.ownerId, ownerId) || other.ownerId == ownerId)&&(identical(other.name, name) || other.name == name)&&(identical(other.minBuyIn, minBuyIn) || other.minBuyIn == minBuyIn)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.closedAt, closedAt) || other.closedAt == closedAt)&&const DeepCollectionEquality().equals(other.participations, participations)&&const DeepCollectionEquality().equals(other.pendingRequests, pendingRequests));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PokerTable&&(identical(other.id, id) || other.id == id)&&(identical(other.ownerId, ownerId) || other.ownerId == ownerId)&&(identical(other.name, name) || other.name == name)&&(identical(other.minBuyIn, minBuyIn) || other.minBuyIn == minBuyIn)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.closedAt, closedAt) || other.closedAt == closedAt)&&const DeepCollectionEquality().equals(other.participations, participations)&&const DeepCollectionEquality().equals(other.pendingRequests, pendingRequests)&&(identical(other.needsReconciliation, needsReconciliation) || other.needsReconciliation == needsReconciliation)&&(identical(other.totalBuyIn, totalBuyIn) || other.totalBuyIn == totalBuyIn)&&(identical(other.totalCashOut, totalCashOut) || other.totalCashOut == totalCashOut));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,ownerId,name,minBuyIn,status,createdAt,closedAt,const DeepCollectionEquality().hash(participations),const DeepCollectionEquality().hash(pendingRequests));
+int get hashCode => Object.hash(runtimeType,id,ownerId,name,minBuyIn,status,createdAt,closedAt,const DeepCollectionEquality().hash(participations),const DeepCollectionEquality().hash(pendingRequests),needsReconciliation,totalBuyIn,totalCashOut);
 
 @override
 String toString() {
-  return 'PokerTable(id: $id, ownerId: $ownerId, name: $name, minBuyIn: $minBuyIn, status: $status, createdAt: $createdAt, closedAt: $closedAt, participations: $participations, pendingRequests: $pendingRequests)';
+  return 'PokerTable(id: $id, ownerId: $ownerId, name: $name, minBuyIn: $minBuyIn, status: $status, createdAt: $createdAt, closedAt: $closedAt, participations: $participations, pendingRequests: $pendingRequests, needsReconciliation: $needsReconciliation, totalBuyIn: $totalBuyIn, totalCashOut: $totalCashOut)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $PokerTableCopyWith<$Res>  {
   factory $PokerTableCopyWith(PokerTable value, $Res Function(PokerTable) _then) = _$PokerTableCopyWithImpl;
 @useResult
 $Res call({
- String id, String ownerId, String name, Decimal minBuyIn, TableStatus status, DateTime createdAt, DateTime? closedAt, List<TableParticipation> participations, List<ActionRequest> pendingRequests
+ String id, String ownerId, String name, Decimal minBuyIn, TableStatus status, DateTime createdAt, DateTime? closedAt, List<TableParticipation> participations, List<ActionRequest> pendingRequests, bool needsReconciliation, Decimal? totalBuyIn, Decimal? totalCashOut
 });
 
 
@@ -62,7 +62,7 @@ class _$PokerTableCopyWithImpl<$Res>
 
 /// Create a copy of PokerTable
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ownerId = null,Object? name = null,Object? minBuyIn = null,Object? status = null,Object? createdAt = null,Object? closedAt = freezed,Object? participations = null,Object? pendingRequests = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ownerId = null,Object? name = null,Object? minBuyIn = null,Object? status = null,Object? createdAt = null,Object? closedAt = freezed,Object? participations = null,Object? pendingRequests = null,Object? needsReconciliation = null,Object? totalBuyIn = freezed,Object? totalCashOut = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ownerId: null == ownerId ? _self.ownerId : ownerId // ignore: cast_nullable_to_non_nullable
@@ -73,7 +73,10 @@ as TableStatus,createdAt: null == createdAt ? _self.createdAt : createdAt // ign
 as DateTime,closedAt: freezed == closedAt ? _self.closedAt : closedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,participations: null == participations ? _self.participations : participations // ignore: cast_nullable_to_non_nullable
 as List<TableParticipation>,pendingRequests: null == pendingRequests ? _self.pendingRequests : pendingRequests // ignore: cast_nullable_to_non_nullable
-as List<ActionRequest>,
+as List<ActionRequest>,needsReconciliation: null == needsReconciliation ? _self.needsReconciliation : needsReconciliation // ignore: cast_nullable_to_non_nullable
+as bool,totalBuyIn: freezed == totalBuyIn ? _self.totalBuyIn : totalBuyIn // ignore: cast_nullable_to_non_nullable
+as Decimal?,totalCashOut: freezed == totalCashOut ? _self.totalCashOut : totalCashOut // ignore: cast_nullable_to_non_nullable
+as Decimal?,
   ));
 }
 
@@ -82,6 +85,18 @@ as List<ActionRequest>,
 
 /// Adds pattern-matching-related methods to [PokerTable].
 extension PokerTablePatterns on PokerTable {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
 @optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _PokerTable value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
@@ -91,6 +106,18 @@ return $default(_that);case _:
 
 }
 }
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
 
 @optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _PokerTable value)  $default,){
 final _that = this;
@@ -101,6 +128,17 @@ return $default(_that);case _:
 
 }
 }
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
 
 @optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _PokerTable value)?  $default,){
 final _that = this;
@@ -111,29 +149,63 @@ return $default(_that);case _:
 
 }
 }
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ownerId,  String name,  Decimal minBuyIn,  TableStatus status,  DateTime createdAt,  DateTime? closedAt,  List<TableParticipation> participations,  List<ActionRequest> pendingRequests)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ownerId,  String name,  Decimal minBuyIn,  TableStatus status,  DateTime createdAt,  DateTime? closedAt,  List<TableParticipation> participations,  List<ActionRequest> pendingRequests,  bool needsReconciliation,  Decimal? totalBuyIn,  Decimal? totalCashOut)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PokerTable() when $default != null:
-return $default(_that.id,_that.ownerId,_that.name,_that.minBuyIn,_that.status,_that.createdAt,_that.closedAt,_that.participations,_that.pendingRequests);case _:
+return $default(_that.id,_that.ownerId,_that.name,_that.minBuyIn,_that.status,_that.createdAt,_that.closedAt,_that.participations,_that.pendingRequests,_that.needsReconciliation,_that.totalBuyIn,_that.totalCashOut);case _:
   return orElse();
 
 }
 }
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ownerId,  String name,  Decimal minBuyIn,  TableStatus status,  DateTime createdAt,  DateTime? closedAt,  List<TableParticipation> participations,  List<ActionRequest> pendingRequests)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ownerId,  String name,  Decimal minBuyIn,  TableStatus status,  DateTime createdAt,  DateTime? closedAt,  List<TableParticipation> participations,  List<ActionRequest> pendingRequests,  bool needsReconciliation,  Decimal? totalBuyIn,  Decimal? totalCashOut)  $default,) {final _that = this;
 switch (_that) {
 case _PokerTable():
-return $default(_that.id,_that.ownerId,_that.name,_that.minBuyIn,_that.status,_that.createdAt,_that.closedAt,_that.participations,_that.pendingRequests);case _:
+return $default(_that.id,_that.ownerId,_that.name,_that.minBuyIn,_that.status,_that.createdAt,_that.closedAt,_that.participations,_that.pendingRequests,_that.needsReconciliation,_that.totalBuyIn,_that.totalCashOut);case _:
   throw StateError('Unexpected subclass');
 
 }
 }
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ownerId,  String name,  Decimal minBuyIn,  TableStatus status,  DateTime createdAt,  DateTime? closedAt,  List<TableParticipation> participations,  List<ActionRequest> pendingRequests)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ownerId,  String name,  Decimal minBuyIn,  TableStatus status,  DateTime createdAt,  DateTime? closedAt,  List<TableParticipation> participations,  List<ActionRequest> pendingRequests,  bool needsReconciliation,  Decimal? totalBuyIn,  Decimal? totalCashOut)?  $default,) {final _that = this;
 switch (_that) {
 case _PokerTable() when $default != null:
-return $default(_that.id,_that.ownerId,_that.name,_that.minBuyIn,_that.status,_that.createdAt,_that.closedAt,_that.participations,_that.pendingRequests);case _:
+return $default(_that.id,_that.ownerId,_that.name,_that.minBuyIn,_that.status,_that.createdAt,_that.closedAt,_that.participations,_that.pendingRequests,_that.needsReconciliation,_that.totalBuyIn,_that.totalCashOut);case _:
   return null;
 
 }
@@ -145,8 +217,8 @@ return $default(_that.id,_that.ownerId,_that.name,_that.minBuyIn,_that.status,_t
 
 
 class _PokerTable implements PokerTable {
-  const _PokerTable({required this.id, required this.ownerId, required this.name, required this.minBuyIn, required this.status, required this.createdAt, this.closedAt, final  List<TableParticipation> participations = const <TableParticipation>[], final  List<ActionRequest> pendingRequests = const <ActionRequest>[]}): _participations = participations, _pendingRequests = pendingRequests;
-
+  const _PokerTable({required this.id, required this.ownerId, required this.name, required this.minBuyIn, required this.status, required this.createdAt, this.closedAt, final  List<TableParticipation> participations = const <TableParticipation>[], final  List<ActionRequest> pendingRequests = const <ActionRequest>[], this.needsReconciliation = false, this.totalBuyIn, this.totalCashOut}): _participations = participations,_pendingRequests = pendingRequests;
+  
 
 @override final  String id;
 @override final  String ownerId;
@@ -169,6 +241,9 @@ class _PokerTable implements PokerTable {
   return EqualUnmodifiableListView(_pendingRequests);
 }
 
+@override@JsonKey() final  bool needsReconciliation;
+@override final  Decimal? totalBuyIn;
+@override final  Decimal? totalCashOut;
 
 /// Create a copy of PokerTable
 /// with the given fields replaced by the non-null parameter values.
@@ -180,16 +255,16 @@ _$PokerTableCopyWith<_PokerTable> get copyWith => __$PokerTableCopyWithImpl<_Pok
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PokerTable&&(identical(other.id, id) || other.id == id)&&(identical(other.ownerId, ownerId) || other.ownerId == ownerId)&&(identical(other.name, name) || other.name == name)&&(identical(other.minBuyIn, minBuyIn) || other.minBuyIn == minBuyIn)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.closedAt, closedAt) || other.closedAt == closedAt)&&const DeepCollectionEquality().equals(other._participations, _participations)&&const DeepCollectionEquality().equals(other._pendingRequests, _pendingRequests));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PokerTable&&(identical(other.id, id) || other.id == id)&&(identical(other.ownerId, ownerId) || other.ownerId == ownerId)&&(identical(other.name, name) || other.name == name)&&(identical(other.minBuyIn, minBuyIn) || other.minBuyIn == minBuyIn)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.closedAt, closedAt) || other.closedAt == closedAt)&&const DeepCollectionEquality().equals(other._participations, _participations)&&const DeepCollectionEquality().equals(other._pendingRequests, _pendingRequests)&&(identical(other.needsReconciliation, needsReconciliation) || other.needsReconciliation == needsReconciliation)&&(identical(other.totalBuyIn, totalBuyIn) || other.totalBuyIn == totalBuyIn)&&(identical(other.totalCashOut, totalCashOut) || other.totalCashOut == totalCashOut));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,ownerId,name,minBuyIn,status,createdAt,closedAt,const DeepCollectionEquality().hash(_participations),const DeepCollectionEquality().hash(_pendingRequests));
+int get hashCode => Object.hash(runtimeType,id,ownerId,name,minBuyIn,status,createdAt,closedAt,const DeepCollectionEquality().hash(_participations),const DeepCollectionEquality().hash(_pendingRequests),needsReconciliation,totalBuyIn,totalCashOut);
 
 @override
 String toString() {
-  return 'PokerTable(id: $id, ownerId: $ownerId, name: $name, minBuyIn: $minBuyIn, status: $status, createdAt: $createdAt, closedAt: $closedAt, participations: $participations, pendingRequests: $pendingRequests)';
+  return 'PokerTable(id: $id, ownerId: $ownerId, name: $name, minBuyIn: $minBuyIn, status: $status, createdAt: $createdAt, closedAt: $closedAt, participations: $participations, pendingRequests: $pendingRequests, needsReconciliation: $needsReconciliation, totalBuyIn: $totalBuyIn, totalCashOut: $totalCashOut)';
 }
 
 
@@ -200,7 +275,7 @@ abstract mixin class _$PokerTableCopyWith<$Res> implements $PokerTableCopyWith<$
   factory _$PokerTableCopyWith(_PokerTable value, $Res Function(_PokerTable) _then) = __$PokerTableCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String ownerId, String name, Decimal minBuyIn, TableStatus status, DateTime createdAt, DateTime? closedAt, List<TableParticipation> participations, List<ActionRequest> pendingRequests
+ String id, String ownerId, String name, Decimal minBuyIn, TableStatus status, DateTime createdAt, DateTime? closedAt, List<TableParticipation> participations, List<ActionRequest> pendingRequests, bool needsReconciliation, Decimal? totalBuyIn, Decimal? totalCashOut
 });
 
 
@@ -217,7 +292,7 @@ class __$PokerTableCopyWithImpl<$Res>
 
 /// Create a copy of PokerTable
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ownerId = null,Object? name = null,Object? minBuyIn = null,Object? status = null,Object? createdAt = null,Object? closedAt = freezed,Object? participations = null,Object? pendingRequests = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ownerId = null,Object? name = null,Object? minBuyIn = null,Object? status = null,Object? createdAt = null,Object? closedAt = freezed,Object? participations = null,Object? pendingRequests = null,Object? needsReconciliation = null,Object? totalBuyIn = freezed,Object? totalCashOut = freezed,}) {
   return _then(_PokerTable(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ownerId: null == ownerId ? _self.ownerId : ownerId // ignore: cast_nullable_to_non_nullable
@@ -228,7 +303,10 @@ as TableStatus,createdAt: null == createdAt ? _self.createdAt : createdAt // ign
 as DateTime,closedAt: freezed == closedAt ? _self.closedAt : closedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,participations: null == participations ? _self._participations : participations // ignore: cast_nullable_to_non_nullable
 as List<TableParticipation>,pendingRequests: null == pendingRequests ? _self._pendingRequests : pendingRequests // ignore: cast_nullable_to_non_nullable
-as List<ActionRequest>,
+as List<ActionRequest>,needsReconciliation: null == needsReconciliation ? _self.needsReconciliation : needsReconciliation // ignore: cast_nullable_to_non_nullable
+as bool,totalBuyIn: freezed == totalBuyIn ? _self.totalBuyIn : totalBuyIn // ignore: cast_nullable_to_non_nullable
+as Decimal?,totalCashOut: freezed == totalCashOut ? _self.totalCashOut : totalCashOut // ignore: cast_nullable_to_non_nullable
+as Decimal?,
   ));
 }
 

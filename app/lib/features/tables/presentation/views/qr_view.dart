@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/design/design_system.dart';
 import '../../../../core/di/di_container.dart';
 import '../../../../core/router/app_routes.dart';
@@ -42,7 +43,7 @@ class _QrScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final joinUrl = buildJoinUrl(tableId);
+    final joinUrl = buildJoinUrl(tableId, appDI.get<AppConfig>().webBaseUrl);
     final shortCode = shortTableCode(tableId);
 
     return Scaffold(

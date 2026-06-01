@@ -18,26 +18,14 @@ class TablesRepositoryImpl implements TablesRepository {
     required String name,
     required Decimal minBuyIn,
     bool joinAsPlayer = false,
+    Decimal? initialBuyIn,
   }) async {
     final json = await _api.post('/tables', body: {
       'name': name,
       'minBuyIn': double.parse(minBuyIn.toString()),
       if (joinAsPlayer) 'joinAsPlayer': true,
-    });
-    return TableDto.fromJson(json);
-  }
-
-  @override
-  Future<PokerTable> updateTable({
-    required String id,
-    required String name,
-    required Decimal minBuyIn,
-    bool joinAsPlayer = false,
-  }) async {
-    final json = await _api.patch('/tables/$id', body: {
-      'name': name,
-      'minBuyIn': double.parse(minBuyIn.toString()),
-      'joinAsPlayer': joinAsPlayer,
+      if (initialBuyIn != null)
+        'initialBuyIn': double.parse(initialBuyIn.toString()),
     });
     return TableDto.fromJson(json);
   }
@@ -57,6 +45,27 @@ class TablesRepositoryImpl implements TablesRepository {
   @override
   Future<CloseTableResult> closeTable(String id) async {
     final closeJson = await _api.post('/tables/$id/close');
+    return _closeResult(closeJson);
+  }
+
+  @override
+  Future<CloseTableResult> reconcileAndClose(
+    String id,
+    ReconcileStrategy strategy,
+  ) async {
+    final closeJson = await _api.post(
+      '/tables/$id/reconcile-and-close',
+      body: {
+        'strategy': switch (strategy) {
+          ReconcileStrategy.hostAbsorb => 'HOST_ABSORB',
+          ReconcileStrategy.splitEvenly => 'SPLIT_EVENLY',
+        },
+      },
+    );
+    return _closeResult(closeJson);
+  }
+
+  CloseTableResult _closeResult(Map<String, dynamic> closeJson) {
     final table = TableDto.fromJson(closeJson);
     final settlementsJson =
         closeJson['settlements'] as List<dynamic>? ?? const [];
@@ -68,6 +77,18 @@ class TablesRepositoryImpl implements TablesRepository {
       settlements: settlements,
       divergence: tableDivergence(table),
     );
+  }
+
+  @override
+  Future<PokerTable> transferHost({
+    required String tableId,
+    required String newOwnerId,
+  }) async {
+    final json = await _api.post(
+      '/tables/$tableId/transfer-host',
+      body: {'newOwnerId': newOwnerId},
+    );
+    return TableDto.fromJson(json);
   }
 
   @override

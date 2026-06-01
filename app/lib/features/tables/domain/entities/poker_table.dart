@@ -24,5 +24,8 @@ abstract class PokerTable with _$PokerTable {
     DateTime? closedAt,
     @Default(<TableParticipation>[]) List<TableParticipation> participations,
     @Default(<ActionRequest>[]) List<ActionRequest> pendingRequests,
+    @Default(false) bool needsReconciliation,
+    Decimal? totalBuyIn,
+    Decimal? totalCashOut,
   }) = _PokerTable;
 }

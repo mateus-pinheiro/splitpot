@@ -1139,7 +1139,7 @@ class _DebtPixDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pixText = debt.pixCopiaECola ?? debt.toPixKey;
+    final pixText = debt.pixCopiaECola ?? debt.toPixKey ?? '—';
     final isFullPix = debt.pixCopiaECola != null;
 
     return Dialog(

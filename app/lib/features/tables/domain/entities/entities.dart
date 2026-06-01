@@ -9,3 +9,4 @@ export 'table_participation.dart';
 export 'table_preview.dart';
 export 'table_status.dart';
 export 'user_stats.dart';
+export 'user_summary.dart';

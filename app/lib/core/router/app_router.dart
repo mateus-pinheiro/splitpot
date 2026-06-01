@@ -63,8 +63,6 @@ class AppRouter {
           CreateTableView(
             initialName: s.uri.queryParameters['name'],
             initialMinBuyIn: s.uri.queryParameters['minBuyIn'],
-            initialTableId: s.uri.queryParameters['tableId'],
-            returnTo: s.uri.queryParameters['returnTo'],
           ),
         ),
       ),
@@ -82,11 +80,6 @@ class AppRouter {
             _slide(s, QrView(tableId: s.pathParameters['id']!)),
       ),
       GoRoute(
-        path: AppRoutes.initialBuyInPattern,
-        pageBuilder: (_, s) =>
-            _slide(s, InitialBuyInView(tableId: s.pathParameters['id']!)),
-      ),
-      GoRoute(
         path: AppRoutes.livePattern,
         pageBuilder: (_, s) =>
             _slide(s, LiveView(tableId: s.pathParameters['id']!)),
@@ -102,6 +95,11 @@ class AppRouter {
             _slide(s, CloseTableView(tableId: s.pathParameters['id']!)),
       ),
       GoRoute(
+        path: AppRoutes.checkPattern,
+        pageBuilder: (_, s) =>
+            _slide(s, CheckTableView(tableId: s.pathParameters['id']!)),
+      ),
+      GoRoute(
         path: AppRoutes.pixPattern,
         pageBuilder: (_, s) =>
             _slide(s, PixView(tableId: s.pathParameters['id']!)),
@@ -110,6 +108,21 @@ class AppRouter {
         path: AppRoutes.joinByIdPattern,
         pageBuilder: (_, s) =>
             _slide(s, JoinByIdView(tableId: s.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: AppRoutes.addPlayerPattern,
+        pageBuilder: (_, s) =>
+            _slide(s, AddPlayerView(tableId: s.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: AppRoutes.editBuyInsPattern,
+        pageBuilder: (_, s) => _slide(
+          s,
+          EditBuyInsView(
+            tableId: s.pathParameters['id']!,
+            participationId: s.pathParameters['pid']!,
+          ),
+        ),
       ),
       GoRoute(
         path: AppRoutes.tableDetailPattern,

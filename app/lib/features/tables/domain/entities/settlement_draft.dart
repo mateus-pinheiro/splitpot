@@ -10,9 +10,9 @@ part 'settlement_draft.freezed.dart';
 @freezed
 abstract class SettlementDraft with _$SettlementDraft {
   const factory SettlementDraft({
-    required String fromUserId,
+    String? fromUserId,
     required String fromUserName,
-    required String toUserId,
+    String? toUserId,
     required String toUserName,
     required String toPixKey,
     required Decimal amount,

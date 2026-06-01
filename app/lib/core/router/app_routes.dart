@@ -20,17 +20,24 @@ class AppRoutes {
   static const qrPattern = '/table/:id/qr';
   static String qr(String id) => '/table/$id/qr';
 
-  static const initialBuyInPattern = '/table/:id/initial-buy-in';
-  static String initialBuyIn(String id) => '/table/$id/initial-buy-in';
-
   static const cashoutPattern = '/table/:id/cashout';
   static String cashout(String id) => '/table/$id/cashout';
 
   static const closePattern = '/table/:id/close';
   static String closeTable(String id) => '/table/$id/close';
 
+  static const checkPattern = '/table/:id/check';
+  static String checkTable(String id) => '/table/$id/check';
+
   static const pixPattern = '/table/:id/pix';
   static String pix(String id) => '/table/$id/pix';
+
+  static const addPlayerPattern = '/table/:id/add-player';
+  static String addPlayer(String id) => '/table/$id/add-player';
+
+  static const editBuyInsPattern = '/table/:id/participations/:pid/edit-buyins';
+  static String editBuyIns(String tableId, String participationId) =>
+      '/table/$tableId/participations/$participationId/edit-buyins';
 
   static const history = '/history';
 }

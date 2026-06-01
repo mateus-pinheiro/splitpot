@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { User } from '@prisma/client';
 import { Prisma, SettlementStatus, TableStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -26,17 +30,39 @@ export class UsersService {
         update: { email, name: dto.name, pixKey: dto.pixKey },
       });
     } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
         throw new ConflictException('Email já utilizado por outro usuário');
       }
       throw err;
     }
   }
 
+  async search(q: string) {
+    const trimmed = q.trim();
+    if (trimmed.length < 2) return [];
+    const rows = await this.prisma.user.findMany({
+      where: {
+        OR: [
+          { name: { contains: trimmed, mode: 'insensitive' } },
+          { email: { contains: trimmed, mode: 'insensitive' } },
+        ],
+      },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: 'asc' },
+      take: 10,
+    });
+    return rows;
+  }
+
   async requireByFirebaseUid(firebaseUid: string): Promise<User> {
     const user = await this.prisma.user.findUnique({ where: { firebaseUid } });
     if (!user) {
-      throw new NotFoundException('Usuário ainda não provisionado: chame POST /users/me');
+      throw new NotFoundException(
+        'Usuário ainda não provisionado: chame POST /users/me',
+      );
     }
     return user;
   }
@@ -45,7 +71,10 @@ export class UsersService {
     const current = await this.requireByFirebaseUid(firebaseUid);
     return this.prisma.user.update({
       where: { id: current.id },
-      data: { name: dto.name ?? current.name, pixKey: dto.pixKey ?? current.pixKey },
+      data: {
+        name: dto.name ?? current.name,
+        pixKey: dto.pixKey ?? current.pixKey,
+      },
     });
   }
 
@@ -135,9 +164,9 @@ export class UsersService {
     const debts = debtRows.map((s) => ({
       id: s.id,
       amount: s.amount.toFixed(2),
-      toUserId: s.toUser.id,
-      toName: s.toUser.name,
-      toPixKey: s.toUser.pixKey,
+      toUserId: s.toUser?.id ?? null,
+      toName: s.toUser?.name ?? s.toGuestName ?? 'Convidado',
+      toPixKey: s.toPixKey ?? s.toUser?.pixKey ?? null,
       tableId: s.table.id,
       tableName: s.table.name,
       pixCopiaECola: s.pixCopiaECola,
@@ -159,8 +188,8 @@ export class UsersService {
     const receivables = receivableRows.map((s) => ({
       id: s.id,
       amount: s.amount.toFixed(2),
-      fromUserId: s.fromUser.id,
-      fromName: s.fromUser.name,
+      fromUserId: s.fromUser?.id ?? null,
+      fromName: s.fromUser?.name ?? s.fromGuestName ?? 'Convidado',
       tableId: s.table.id,
       tableName: s.table.name,
     }));

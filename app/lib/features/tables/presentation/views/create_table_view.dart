@@ -14,15 +14,11 @@ class CreateTableView extends StatelessWidget {
   const CreateTableView({
     this.initialName,
     this.initialMinBuyIn,
-    this.initialTableId,
-    this.returnTo,
     super.key,
   });
 
   final String? initialName;
   final String? initialMinBuyIn;
-  final String? initialTableId;
-  final String? returnTo;
 
   @override
   Widget build(BuildContext context) {
@@ -31,8 +27,6 @@ class CreateTableView extends StatelessWidget {
       child: _CreateTableScaffold(
         initialName: initialName,
         initialMinBuyIn: initialMinBuyIn,
-        initialTableId: initialTableId,
-        returnTo: returnTo,
       ),
     );
   }
@@ -42,14 +36,10 @@ class _CreateTableScaffold extends StatelessWidget {
   const _CreateTableScaffold({
     this.initialName,
     this.initialMinBuyIn,
-    this.initialTableId,
-    this.returnTo,
   });
 
   final String? initialName;
   final String? initialMinBuyIn;
-  final String? initialTableId;
-  final String? returnTo;
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +61,6 @@ class _CreateTableScaffold extends StatelessWidget {
                       child: _CreateTableForm(
                         initialName: initialName,
                         initialMinBuyIn: initialMinBuyIn,
-                        initialTableId: initialTableId,
                       ),
                     ),
                   ],
@@ -87,14 +76,10 @@ class _CreateTableScaffold extends StatelessWidget {
 
   void _onStateChange(BuildContext context, CreateTableState state) {
     switch (state) {
-      case CreateTableCreated(:final tableId, :final joinedAsPlayer):
-        if (joinedAsPlayer) {
-          context.go(AppRoutes.initialBuyIn(tableId));
-        } else if (returnTo == 'initialBuyIn') {
-          context.go(AppRoutes.qr(tableId));
-        } else {
-          context.go(AppRoutes.qr(tableId));
-        }
+      case CreateTableCreated(:final tableId):
+        // Buy-in (when host plays) is already wired into the create call,
+        // so we always land on the QR sharing screen next.
+        context.go(AppRoutes.qr(tableId));
       case CreateTableError(:final failure):
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -179,12 +164,10 @@ class _CreateTableForm extends StatefulWidget {
   const _CreateTableForm({
     this.initialName,
     this.initialMinBuyIn,
-    this.initialTableId,
   });
 
   final String? initialName;
   final String? initialMinBuyIn;
-  final String? initialTableId;
 
   @override
   State<_CreateTableForm> createState() => _CreateTableFormState();
@@ -193,6 +176,7 @@ class _CreateTableForm extends StatefulWidget {
 class _CreateTableFormState extends State<_CreateTableForm> {
   late final TextEditingController _nameController;
   late final TextEditingController _minController;
+  late final TextEditingController _initialController;
 
   bool _willPlay = true;
 
@@ -201,6 +185,15 @@ class _CreateTableFormState extends State<_CreateTableForm> {
     super.initState();
     _nameController = TextEditingController(text: widget.initialName ?? '');
     _minController = TextEditingController(text: widget.initialMinBuyIn ?? '');
+    _initialController = TextEditingController();
+    // Rebuild on every keystroke so the CTA can flip enabled/disabled live.
+    _nameController.addListener(_onFieldChanged);
+    _minController.addListener(_onFieldChanged);
+    _initialController.addListener(_onFieldChanged);
+  }
+
+  void _onFieldChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -224,40 +217,56 @@ class _CreateTableFormState extends State<_CreateTableForm> {
   void dispose() {
     _nameController.dispose();
     _minController.dispose();
+    _initialController.dispose();
     super.dispose();
   }
 
-  void _submit() {
+  Decimal? _parseAmount(String raw) {
+    final trimmed = raw.trim().replaceAll(',', '.');
+    if (trimmed.isEmpty) return null;
+    return Decimal.tryParse(trimmed);
+  }
+
+  /// Validated input snapshot, or `null` if any required field is invalid.
+  /// Drives both the CTA's enabled state and the submit payload — single
+  /// source of truth keeps the button label and the API call in sync.
+  _CreateTableInput? get _validInput {
     final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      _showValidationError('Dê um nome para a mesa.');
-      return;
+    if (name.isEmpty) return null;
+    final min = _parseAmount(_minController.text);
+    if (min == null || min <= Decimal.zero) return null;
+    if (!_willPlay) {
+      return _CreateTableInput(name: name, minBuyIn: min, initialBuyIn: null);
     }
-    final minText = _minController.text.trim();
-    if (minText.isEmpty) {
-      _showValidationError('Informe o buy-in mínimo.');
-      return;
-    }
-    final min = Decimal.tryParse(minText.replaceAll(',', '.'));
-    if (min == null || min <= Decimal.zero) {
-      _showValidationError('Informe um buy-in mínimo maior que zero.');
-      return;
-    }
+    final initial = _parseAmount(_initialController.text);
+    if (initial == null || initial <= Decimal.zero) return null;
+    if (initial < min) return null;
+    return _CreateTableInput(
+      name: name,
+      minBuyIn: min,
+      initialBuyIn: initial,
+    );
+  }
+
+  void _submit() {
+    final input = _validInput;
+    if (input == null) return;
     context.read<CreateTableCubit>().submit(
-          name: name,
-          minBuyIn: min,
+          name: input.name,
+          minBuyIn: input.minBuyIn,
           joinAsPlayer: _willPlay,
-          tableId: widget.initialTableId,
+          initialBuyIn: input.initialBuyIn,
         );
   }
 
-  void _showValidationError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: SpColors.danger,
-        content: Text(msg),
-      ),
-    );
+  /// True when the user typed a buy-in that's below the table minimum —
+  /// so we can show a hint nudging them to bump it up. Only relevant when
+  /// both fields have been touched.
+  bool _initialNeedsMinHint() {
+    final min = _parseAmount(_minController.text);
+    final initial = _parseAmount(_initialController.text);
+    if (min == null || initial == null) return false;
+    return initial < min;
   }
 
   @override
@@ -321,8 +330,33 @@ class _CreateTableFormState extends State<_CreateTableForm> {
                   const SizedBox(height: 22),
                   _WillPlayToggle(
                     value: _willPlay,
-                    onChanged: (v) => setState(() => _willPlay = v),
+                    onChanged: (v) => setState(() {
+                      _willPlay = v;
+                      if (!v) _initialController.clear();
+                    }),
                   ),
+                  if (_willPlay) ...[
+                    const SizedBox(height: 14),
+                    _InsetNumberField(
+                      label: 'Seu buy-in',
+                      controller: _initialController,
+                      hintText: _minController.text.isEmpty
+                          ? 'mínimo da mesa'
+                          : _minController.text,
+                    ),
+                    if (_initialNeedsMinHint())
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          'Mínimo R\$ ${_minController.text}.',
+                          style: const TextStyle(
+                            fontFamily: SpTypography.uiFamily,
+                            fontSize: 12,
+                            color: SpColors.dangerSoft,
+                          ),
+                        ),
+                      ),
+                  ],
                 ],
               ),
             ),
@@ -331,7 +365,7 @@ class _CreateTableFormState extends State<_CreateTableForm> {
               child: SpGoldButton(
                 label: 'Abrir mesa',
                 loading: submitting,
-                onPressed: submitting ? null : _submit,
+                onPressed: (submitting || _validInput == null) ? null : _submit,
               ),
             ),
           ],
@@ -339,6 +373,17 @@ class _CreateTableFormState extends State<_CreateTableForm> {
       },
     );
   }
+}
+
+class _CreateTableInput {
+  const _CreateTableInput({
+    required this.name,
+    required this.minBuyIn,
+    required this.initialBuyIn,
+  });
+  final String name;
+  final Decimal minBuyIn;
+  final Decimal? initialBuyIn;
 }
 
 class _InsetNumberField extends StatelessWidget {
@@ -359,8 +404,10 @@ class _InsetNumberField extends StatelessWidget {
         SpInput(
           controller: controller,
           hintText: hintText,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+          ],
           contentPadding: const EdgeInsets.fromLTRB(14, 22, 14, 10),
           style: const TextStyle(
             fontFamily: SpTypography.numFamily,

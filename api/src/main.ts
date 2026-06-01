@@ -32,7 +32,10 @@ async function bootstrap() {
   if (!process.env.VERCEL) {
     const port = process.env.PORT ?? 3000;
     server.listen(port, () => {
-      Logger.log(`SplitPot API listening on http://localhost:${port}/api`, 'Bootstrap');
+      Logger.log(
+        `SplitPot API listening on http://localhost:${port}/api`,
+        'Bootstrap',
+      );
     });
   }
 }

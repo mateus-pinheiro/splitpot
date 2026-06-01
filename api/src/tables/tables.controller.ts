@@ -11,6 +11,8 @@ import {
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import { FirebaseUser } from '../auth/decorators/firebase-user.decorator.js';
 import { CreateTableDto } from './dto/create-table.dto.js';
+import { ReconcileAndCloseDto } from './dto/reconcile-and-close.dto.js';
+import { TransferHostDto } from './dto/transfer-host.dto.js';
 import { UpdateTableDto } from './dto/update-table.dto.js';
 import { TablesService } from './tables.service.js';
 
@@ -47,9 +49,29 @@ export class TablesController {
     return this.tables.update(token.uid, id, dto);
   }
 
+  @Post(':id/transfer-host')
+  @HttpCode(HttpStatus.OK)
+  transferHost(
+    @FirebaseUser() token: DecodedIdToken,
+    @Param('id') id: string,
+    @Body() dto: TransferHostDto,
+  ) {
+    return this.tables.transferHost(token.uid, id, dto.newOwnerId);
+  }
+
   @Post(':id/close')
   @HttpCode(HttpStatus.OK)
   close(@FirebaseUser() token: DecodedIdToken, @Param('id') id: string) {
     return this.tables.close(token.uid, id);
+  }
+
+  @Post(':id/reconcile-and-close')
+  @HttpCode(HttpStatus.OK)
+  reconcileAndClose(
+    @FirebaseUser() token: DecodedIdToken,
+    @Param('id') id: string,
+    @Body() dto: ReconcileAndCloseDto,
+  ) {
+    return this.tables.reconcileAndClose(token.uid, id, dto.strategy);
   }
 }

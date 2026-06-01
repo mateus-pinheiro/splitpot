@@ -48,9 +48,9 @@ class UserStatsDto {
     return DebtItem(
       id: json['id'] as String,
       amount: _decimal(json['amount']),
-      toUserId: json['toUserId'] as String,
+      toUserId: json['toUserId'] as String?,
       toName: json['toName'] as String,
-      toPixKey: json['toPixKey'] as String,
+      toPixKey: json['toPixKey'] as String?,
       tableId: json['tableId'] as String,
       tableName: json['tableName'] as String,
       pixCopiaECola: json['pixCopiaECola'] as String?,
@@ -61,7 +61,7 @@ class UserStatsDto {
     return ReceivableItem(
       id: json['id'] as String,
       amount: _decimal(json['amount']),
-      fromUserId: json['fromUserId'] as String,
+      fromUserId: json['fromUserId'] as String?,
       fromName: json['fromName'] as String,
       tableId: json['tableId'] as String,
       tableName: json['tableName'] as String,

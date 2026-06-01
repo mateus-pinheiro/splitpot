@@ -6,10 +6,10 @@ class Settlement {
   const Settlement({
     required this.id,
     required this.tableId,
-    required this.fromUserId,
+    this.fromUserId,
     required this.fromName,
     this.fromPixKey,
-    required this.toUserId,
+    this.toUserId,
     required this.toName,
     required this.toPixKey,
     required this.amount,
@@ -19,13 +19,22 @@ class Settlement {
 
   final String id;
   final String tableId;
-  final String fromUserId;
+
+  /// Nulo quando o pagador é convidado (sem conta).
+  final String? fromUserId;
   final String fromName;
   final String? fromPixKey;
-  final String toUserId;
+
+  /// Nulo quando o recebedor é convidado.
+  final String? toUserId;
   final String toName;
+
+  /// PIX do destinatário — vem denormalizado do backend (congela no fechamento).
   final String toPixKey;
   final Decimal amount;
   final SettlementStatus status;
   final String? pixCopiaECola;
+
+  bool get isFromGuest => fromUserId == null;
+  bool get isToGuest => toUserId == null;
 }

@@ -29,7 +29,9 @@ export class FirebaseAuthGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<AuthedRequest>();
     const header = req.headers.authorization;
     if (!header?.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Authorization header ausente ou inválido');
+      throw new UnauthorizedException(
+        'Authorization header ausente ou inválido',
+      );
     }
     const idToken = header.slice('Bearer '.length).trim();
     if (!idToken) {

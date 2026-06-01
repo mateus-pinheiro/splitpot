@@ -29,10 +29,16 @@ npm run lint                    # ESLint --fix
 
 ```bash
 flutter pub get
-flutter run -d chrome                                        # web dev
-dart run build_runner build --delete-conflicting-outputs    # regenerate freezed/json_serializable
-dart run build_runner watch --delete-conflicting-outputs    # watch mode for codegen
+flutter run -d chrome                                                  # web dev
+dart run build_runner build --delete-conflicting-outputs --force-jit  # regenerate freezed/json_serializable
+dart run build_runner watch --delete-conflicting-outputs --force-jit  # watch mode for codegen
 ```
+
+`--force-jit` is required on Dart 3.10+: `dart compile aot-snapshot` no longer
+supports the build-hooks API used by build_runner ≤ 2.15, so the default AOT
+path fails with `'dart compile' does not support build hooks, use 'dart build'
+instead`. JIT mode is slightly slower but otherwise equivalent. Drop the flag
+once build_runner ships a fix.
 
 ## Architecture overview
 

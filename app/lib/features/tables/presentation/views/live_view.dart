@@ -5,12 +5,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/design/design_system.dart';
 import '../../../../core/di/di_container.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../auth/presentation/cubit/cubit.dart';
 import '../../domain/entities/entities.dart';
+import '../../domain/usecases/usecases.dart';
 import '../cubit/cubit.dart';
 import '../utils/join_link.dart';
 import '../widgets/rebuy_dialog.dart';
@@ -159,6 +162,7 @@ class _LoadedBody extends StatelessWidget {
 
     final participations = table.participations;
     final total = _sumAllBuyIns(participations);
+    final cashedOut = _sumAllCashOuts(participations);
     final rebuyCount = _rebuyCount(participations);
     final duration =
         _formatElapsed(DateTime.now().difference(table.createdAt));
@@ -190,12 +194,19 @@ class _LoadedBody extends StatelessWidget {
               ),
               title: table.name,
               subtitle: SpLiveLabel(text: 'ao vivo · $duration'),
-              right: IconButton(
-                onPressed: () => _showTableInfoDialog(context, table),
-                color: SpColors.goldBright,
-                icon: const Icon(Icons.info_outline),
-                tooltip: 'Informações da mesa',
-              ),
+              right: isHost
+                  ? _HostActionsMenu(
+                      table: table,
+                      onShowInfo: () => _showTableInfoDialog(context, table),
+                      onTransferred: () =>
+                          context.read<LiveCubit>().refresh(),
+                    )
+                  : IconButton(
+                      onPressed: () => _showTableInfoDialog(context, table),
+                      color: SpColors.goldBright,
+                      icon: const Icon(Icons.info_outline),
+                      tooltip: 'Informações da mesa',
+                    ),
             ),
             Expanded(
               child: ListView(
@@ -203,9 +214,14 @@ class _LoadedBody extends StatelessWidget {
                 children: [
                   _PotCard(
                     total: total,
+                    cashedOut: cashedOut,
                     playerCount: participations.length,
                     rebuys: rebuyCount,
                   ),
+                  if (isHost && table.needsReconciliation) ...[
+                    const SizedBox(height: 18),
+                    _ReconcileBanner(tableId: tableId, table: table),
+                  ],
                   if (isHost && table.pendingRequests.isNotEmpty) ...[
                     const SizedBox(height: 18),
                     _PendingApprovalsSection(
@@ -219,6 +235,10 @@ class _LoadedBody extends StatelessWidget {
                     _PlayerPendingBanner(requests: myPendingRequests),
                   ],
                   const SizedBox(height: 18),
+                  if (isHost) ...[
+                    _AddPlayerButton(tableId: tableId),
+                    const SizedBox(height: 12),
+                  ],
                   if (participations.isEmpty)
                     const _EmptyParticipations()
                   else
@@ -226,10 +246,13 @@ class _LoadedBody extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: _PlayerRow(
+                          tableId: tableId,
+                          minBuyIn: table.minBuyIn,
                           participation: p,
                           isOwner: p.userId == table.ownerId,
                           isCurrentUser: currentUserId != null &&
                               p.userId == currentUserId,
+                          isHost: isHost,
                           pendingRequest: table.pendingRequests
                               .where((r) => r.participationId == p.id)
                               .firstOrNull,
@@ -281,6 +304,17 @@ class _LoadedBody extends StatelessWidget {
       for (final b in p.buyIns) {
         total += b.amount;
       }
+    }
+    return total;
+  }
+
+  /// Soma os cash-outs já declarados. Serve como previsão de quanto do
+  /// pote já está saindo da mesa enquanto a partida ainda roda.
+  static Decimal _sumAllCashOuts(List<TableParticipation> ps) {
+    var total = Decimal.zero;
+    for (final p in ps) {
+      final c = p.cashOut;
+      if (c != null) total += c.amount;
     }
     return total;
   }
@@ -360,10 +394,12 @@ class _EmptyParticipations extends StatelessWidget {
 class _PotCard extends StatelessWidget {
   const _PotCard({
     required this.total,
+    required this.cashedOut,
     required this.playerCount,
     required this.rebuys,
   });
   final Decimal total;
+  final Decimal cashedOut;
   final int playerCount;
   final int rebuys;
 
@@ -432,6 +468,19 @@ class _PotCard extends StatelessWidget {
                     color: SpColors.muted,
                   ),
                 ),
+                if (cashedOut > Decimal.zero) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Saindo ${brlFromDecimal(cashedOut)}',
+                    style: const TextStyle(
+                      fontFamily: SpTypography.uiFamily,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: SpColors.gold,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ],
               ],
             ),
           ],
@@ -443,14 +492,20 @@ class _PotCard extends StatelessWidget {
 
 class _PlayerRow extends StatelessWidget {
   const _PlayerRow({
+    required this.tableId,
+    required this.minBuyIn,
     required this.participation,
     required this.isOwner,
     required this.isCurrentUser,
+    required this.isHost,
     this.pendingRequest,
   });
+  final String tableId;
+  final Decimal minBuyIn;
   final TableParticipation participation;
   final bool isOwner;
   final bool isCurrentUser;
+  final bool isHost;
   final ActionRequest? pendingRequest;
 
   @override
@@ -506,6 +561,10 @@ class _PlayerRow extends StatelessWidget {
                       const SizedBox(width: 6),
                       const _RoleBadge(role: 'VOCÊ'),
                     ],
+                    if (participation.isGuest) ...[
+                      const SizedBox(width: 6),
+                      const _RoleBadge(role: 'CONVIDADO'),
+                    ],
                     if (pendingRequest != null) ...[
                       const SizedBox(width: 6),
                       const _RoleBadge(role: 'PENDENTE', pending: true),
@@ -538,7 +597,9 @@ class _PlayerRow extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                participation.cashOut == null ? 'EM JOGO' : 'SAIU',
+                participation.cashOut == null
+                    ? 'EM JOGO'
+                    : 'SAIU · ${brlFromDecimal(participation.cashOut!.amount)}',
                 style: TextStyle(
                   fontFamily: SpTypography.uiFamily,
                   fontSize: 10,
@@ -551,6 +612,14 @@ class _PlayerRow extends StatelessWidget {
               ),
             ],
           ),
+          if (isHost) ...[
+            const SizedBox(width: 4),
+            _PlayerHostMenu(
+              tableId: tableId,
+              participation: participation,
+              minBuyIn: minBuyIn,
+            ),
+          ],
         ],
       ),
     );
@@ -876,6 +945,69 @@ class _IconBtn extends StatelessWidget {
   }
 }
 
+class _ReconcileBanner extends StatelessWidget {
+  const _ReconcileBanner({required this.tableId, required this.table});
+  final String tableId;
+  final PokerTable table;
+
+  @override
+  Widget build(BuildContext context) {
+    final pot = table.totalBuyIn ?? Decimal.zero;
+    final declared = table.totalCashOut ?? Decimal.zero;
+    final diff = (declared - pot).abs();
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => context.go(AppRoutes.checkTable(tableId)),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: SpColors.danger.withValues(alpha: 0.10),
+            border: Border.all(color: SpColors.danger.withValues(alpha: 0.30)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  color: SpColors.dangerSoft, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Saídas não batem com o pote',
+                      style: TextStyle(
+                        fontFamily: SpTypography.uiFamily,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: SpColors.cream,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Diferença de ${brlFromDecimal(diff, decimals: 2)} — toque para conferir.',
+                      style: const TextStyle(
+                        fontFamily: SpTypography.uiFamily,
+                        fontSize: 12,
+                        color: SpColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right,
+                  color: SpColors.dangerSoft, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _PlayerPendingBanner extends StatelessWidget {
   const _PlayerPendingBanner({required this.requests});
   final List<ActionRequest> requests;
@@ -947,7 +1079,7 @@ class _TableInfoDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final code = shortTableCode(table.id);
-    final url = buildJoinUrl(table.id);
+    final url = buildJoinUrl(table.id, appDI.get<AppConfig>().webBaseUrl);
 
     return Dialog(
       backgroundColor: SpColors.feltDeep,
@@ -1167,6 +1299,579 @@ class _InlineCopyLink extends StatelessWidget {
               ),
               const Icon(Icons.content_copy,
                   color: SpColors.goldBright, size: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HostActionsMenu extends StatelessWidget {
+  const _HostActionsMenu({
+    required this.table,
+    required this.onShowInfo,
+    required this.onTransferred,
+  });
+
+  final PokerTable table;
+  final VoidCallback onShowInfo;
+  final VoidCallback onTransferred;
+
+  bool _isEligible(TableParticipation p) {
+    return p.userId != null &&
+        p.userId != table.ownerId &&
+        p.cashOut == null &&
+        p.leftAt == null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final eligible = table.participations.where(_isEligible).toList();
+    return PopupMenuButton<String>(
+      tooltip: 'Ações do host',
+      color: SpColors.feltDeep,
+      icon: const Icon(Icons.more_vert, color: SpColors.goldBright),
+      onSelected: (value) async {
+        if (value == 'info') {
+          onShowInfo();
+          return;
+        }
+        if (value != 'transfer_host') return;
+        final selected = await showDialog<TableParticipation>(
+          context: context,
+          builder: (_) => _TransferHostDialog(eligible: eligible),
+        );
+        if (selected == null || !context.mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        try {
+          await appDI.get<TransferHost>().call(
+                tableId: table.id,
+                newOwnerId: selected.userId!,
+              );
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                'Host transferido para ${selected.userName}',
+              ),
+            ),
+          );
+          onTransferred();
+        } catch (e) {
+          messenger.showSnackBar(
+            SnackBar(
+              backgroundColor: SpColors.danger,
+              content: Text(_hostActionMessage(e)),
+            ),
+          );
+        }
+      },
+      itemBuilder: (_) => [
+        const PopupMenuItem<String>(
+          value: 'info',
+          child: Text(
+            'Informações da mesa',
+            style: TextStyle(
+              fontFamily: SpTypography.uiFamily,
+              color: SpColors.cream,
+            ),
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'transfer_host',
+          enabled: eligible.isNotEmpty,
+          child: Text(
+            'Transferir host',
+            style: TextStyle(
+              fontFamily: SpTypography.uiFamily,
+              color: eligible.isEmpty ? SpColors.muted : SpColors.cream,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TransferHostDialog extends StatelessWidget {
+  const _TransferHostDialog({required this.eligible});
+
+  final List<TableParticipation> eligible;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: SpColors.feltDeep,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: SpColors.gold.withValues(alpha: 0.3)),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Transferir host',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: SpTypography.displayFamily,
+                  fontSize: 20,
+                  color: SpColors.goldBright,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Escolha o novo host. Só participantes ativos (sem cash-out) aparecem aqui.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: SpTypography.uiFamily,
+                  fontSize: 12,
+                  color: SpColors.muted,
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (eligible.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'Ninguém elegível no momento.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: SpTypography.uiFamily,
+                      fontSize: 13,
+                      color: SpColors.cream,
+                    ),
+                  ),
+                )
+              else
+                for (final p in eligible)
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      p.userName,
+                      style: const TextStyle(
+                        fontFamily: SpTypography.uiFamily,
+                        color: SpColors.cream,
+                      ),
+                    ),
+                    trailing: const Icon(Icons.chevron_right,
+                        color: SpColors.goldBright),
+                    onTap: () => Navigator.of(context).pop(p),
+                  ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(
+                    fontFamily: SpTypography.uiFamily,
+                    color: SpColors.muted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _hostActionMessage(Object error) {
+  if (error is ApiException) {
+    return switch (error.failure) {
+      ValidationFailure(:final message) => message,
+      UnauthorizedFailure(:final message) =>
+        message ?? 'Sem permissão pra essa ação.',
+      NotFoundFailure(:final message) =>
+        message ?? 'Não encontrado.',
+      NetworkFailure() => 'Sem conexão com o servidor.',
+      UnexpectedFailure(:final message) =>
+        message ?? 'Não foi possível concluir a ação.',
+      SignInCancelledFailure() => 'Ação cancelada.',
+    };
+  }
+  return 'Não foi possível concluir a ação.';
+}
+
+class _AddPlayerButton extends StatelessWidget {
+  const _AddPlayerButton({required this.tableId});
+
+  final String tableId;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => context.go(AppRoutes.addPlayer(tableId)),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: SpColors.feltRail.withValues(alpha: 0.35),
+          border: Border.all(
+            color: SpColors.gold.withValues(alpha: 0.35),
+            style: BorderStyle.solid,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.person_add_alt_1, color: SpColors.goldBright, size: 20),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Adicionar jogador',
+                style: TextStyle(
+                  fontFamily: SpTypography.uiFamily,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: SpColors.cream,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right, color: SpColors.goldBright, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlayerHostMenu extends StatelessWidget {
+  const _PlayerHostMenu({
+    required this.tableId,
+    required this.participation,
+    required this.minBuyIn,
+  });
+
+  final String tableId;
+  final TableParticipation participation;
+  final Decimal minBuyIn;
+
+  Future<void> _doRebuy(BuildContext context) async {
+    final liveCubit = context.read<LiveCubit>();
+    final ok = await showRebuyDialog(
+      context,
+      participationId: participation.id,
+      minBuyIn: minBuyIn,
+      isHost: true,
+      mode: participation.cashOut == null
+          ? RebuyMode.rebuy
+          : RebuyMode.rejoin,
+    );
+    if (!ok) return;
+    await liveCubit.refresh();
+  }
+
+  Future<void> _doCashOut(BuildContext context) async {
+    final liveCubit = context.read<LiveCubit>();
+    final amount = await showDialog<Decimal>(
+      context: context,
+      builder: (_) => _AmountPromptDialog(
+        title: 'Cash-out de ${participation.userName}',
+        hint: 'Valor com que saiu',
+        confirmLabel: 'Confirmar',
+        initial: participation.cashOut?.amount,
+      ),
+    );
+    if (amount == null || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await appDI.get<SetCashOut>().call(
+            participationId: participation.id,
+            amount: amount,
+          );
+      messenger.showSnackBar(
+        SnackBar(content: Text('Cash-out registrado para ${participation.userName}')),
+      );
+      await liveCubit.refresh();
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          backgroundColor: SpColors.danger,
+          content: Text(_hostActionMessage(e)),
+        ),
+      );
+    }
+  }
+
+  Future<void> _doRemove(BuildContext context) async {
+    final liveCubit = context.read<LiveCubit>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => _ConfirmDialog(
+        title: 'Remover ${participation.userName}?',
+        message:
+            'O jogador sai da mesa sem cash-out registrado. Os buy-ins ficam no histórico.',
+        confirmLabel: 'Remover',
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await appDI.get<LeaveTable>().call(participationId: participation.id);
+      messenger.showSnackBar(
+        SnackBar(content: Text('${participation.userName} saiu da mesa')),
+      );
+      await liveCubit.refresh();
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          backgroundColor: SpColors.danger,
+          content: Text(_hostActionMessage(e)),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCashOut = participation.cashOut != null;
+    return PopupMenuButton<String>(
+      tooltip: 'Ações',
+      color: SpColors.feltDeep,
+      icon: const Icon(Icons.more_vert, color: SpColors.muted, size: 20),
+      padding: EdgeInsets.zero,
+      onSelected: (value) async {
+        switch (value) {
+          case 'rebuy':
+            await _doRebuy(context);
+          case 'edit_buyins':
+            context.go(AppRoutes.editBuyIns(tableId, participation.id));
+          case 'cashout':
+            await _doCashOut(context);
+          case 'remove':
+            await _doRemove(context);
+        }
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem<String>(
+          value: 'rebuy',
+          child: Text(
+            hasCashOut ? 'Voltar para a mesa (rejoin)' : 'Adicionar rebuy',
+            style: const TextStyle(
+              fontFamily: SpTypography.uiFamily,
+              color: SpColors.cream,
+            ),
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'edit_buyins',
+          enabled: participation.buyIns.isNotEmpty,
+          child: Text(
+            'Editar entradas',
+            style: TextStyle(
+              fontFamily: SpTypography.uiFamily,
+              color: participation.buyIns.isEmpty
+                  ? SpColors.muted
+                  : SpColors.cream,
+            ),
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'cashout',
+          child: Text(
+            hasCashOut ? 'Editar cash-out' : 'Registrar cash-out',
+            style: const TextStyle(
+              fontFamily: SpTypography.uiFamily,
+              color: SpColors.cream,
+            ),
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
+          value: 'remove',
+          child: Text(
+            'Remover da mesa',
+            style: TextStyle(
+              fontFamily: SpTypography.uiFamily,
+              color: SpColors.dangerSoft,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AmountPromptDialog extends StatefulWidget {
+  const _AmountPromptDialog({
+    required this.title,
+    required this.hint,
+    required this.confirmLabel,
+    this.initial,
+  });
+
+  final String title;
+  final String hint;
+  final String confirmLabel;
+  final Decimal? initial;
+
+  @override
+  State<_AmountPromptDialog> createState() => _AmountPromptDialogState();
+}
+
+class _AmountPromptDialogState extends State<_AmountPromptDialog> {
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.initial?.toString() ?? '');
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _confirm() {
+    final raw = _ctrl.text.replaceAll(',', '.').trim();
+    final amount = Decimal.tryParse(raw);
+    // Permite 0 (jogador saiu sem nada). Bloqueia só nulo e negativo.
+    if (amount == null || amount < Decimal.zero) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: SpColors.danger,
+          content: Text('Valor inválido'),
+        ),
+      );
+      return;
+    }
+    Navigator.of(context).pop(amount);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: SpColors.feltDeep,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: SpColors.gold.withValues(alpha: 0.3)),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 340),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: SpTypography.displayFamily,
+                  fontSize: 18,
+                  color: SpColors.goldBright,
+                ),
+              ),
+              const SizedBox(height: 16),
+              SpInput(
+                controller: _ctrl,
+                hintText: widget.hint,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: SpGhostButton(
+                      label: 'Cancelar',
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SpGoldButton(
+                      label: widget.confirmLabel,
+                      onPressed: _confirm,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ConfirmDialog extends StatelessWidget {
+  const _ConfirmDialog({
+    required this.title,
+    required this.message,
+    required this.confirmLabel,
+  });
+
+  final String title;
+  final String message;
+  final String confirmLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: SpColors.feltDeep,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: SpColors.gold.withValues(alpha: 0.3)),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 340),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: SpTypography.displayFamily,
+                  fontSize: 18,
+                  color: SpColors.goldBright,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: SpTypography.uiFamily,
+                  fontSize: 13,
+                  color: SpColors.cream,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: SpGhostButton(
+                      label: 'Cancelar',
+                      onPressed: () => Navigator.of(context).pop(false),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SpGoldButton(
+                      label: confirmLabel,
+                      onPressed: () => Navigator.of(context).pop(true),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

@@ -10,6 +10,11 @@ class SetCashOut {
   Future<void> call({
     required String participationId,
     required Decimal amount,
+    bool skipAutoClose = false,
   }) =>
-      _repository.setCashOut(participationId: participationId, amount: amount);
+      _repository.setCashOut(
+        participationId: participationId,
+        amount: amount,
+        skipAutoClose: skipAutoClose,
+      );
 }

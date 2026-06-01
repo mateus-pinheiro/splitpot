@@ -6,15 +6,19 @@ class SettlementFullDto {
   static Settlement fromJson(Map<String, dynamic> json) {
     final from = json['fromUser'] as Map<String, dynamic>?;
     final to = json['toUser'] as Map<String, dynamic>?;
+    final fromGuest = json['fromGuestName'] as String?;
+    final toGuest = json['toGuestName'] as String?;
     return Settlement(
       id: json['id'] as String,
       tableId: json['tableId'] as String,
-      fromUserId: json['fromUserId'] as String,
-      fromName: from?['name'] as String? ?? '',
+      fromUserId: json['fromUserId'] as String?,
+      fromName: from?['name'] as String? ?? fromGuest ?? 'Convidado',
       fromPixKey: from?['pixKey'] as String?,
-      toUserId: json['toUserId'] as String,
-      toName: to?['name'] as String? ?? '',
-      toPixKey: to?['pixKey'] as String? ?? '',
+      toUserId: json['toUserId'] as String?,
+      toName: to?['name'] as String? ?? toGuest ?? 'Convidado',
+      toPixKey: json['toPixKey'] as String? ??
+          to?['pixKey'] as String? ??
+          '',
       amount: _decimal(json['amount']),
       status: _status(json['status'] as String),
       pixCopiaECola: json['pixCopiaECola'] as String?,

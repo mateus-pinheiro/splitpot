@@ -44,10 +44,16 @@ export class SettlementsService {
     const user = await this.users.requireByFirebaseUid(firebaseUid);
     const settlement = await this.prisma.settlement.findUnique({
       where: { id: settlementId },
+      include: { table: { select: { ownerId: true } } },
     });
     if (!settlement) throw new NotFoundException('Settlement não encontrado');
-    if (settlement.fromUserId !== user.id && settlement.toUserId !== user.id) {
-      throw new ForbiddenException('Sem permissão para confirmar este settlement');
+    const isParty =
+      settlement.fromUserId === user.id || settlement.toUserId === user.id;
+    const isHost = settlement.table.ownerId === user.id;
+    if (!isParty && !isHost) {
+      throw new ForbiddenException(
+        'Sem permissão para confirmar este settlement',
+      );
     }
     if (settlement.status === SettlementStatus.CONFIRMED) {
       throw new BadRequestException('Settlement já confirmado');
@@ -59,7 +65,41 @@ export class SettlementsService {
     });
   }
 
-  async setPix(firebaseUid: string, settlementId: string, dto: UpdateSettlementPixDto) {
+  /// Permite o host confirmar settlements em nome de convidados (que não têm
+  /// app pra confirmar). Restrito a settlements onde pelo menos uma das pontas
+  /// é convidada (sem userId).
+  async confirmOnBehalf(firebaseUid: string, settlementId: string) {
+    const caller = await this.users.requireByFirebaseUid(firebaseUid);
+    const settlement = await this.prisma.settlement.findUnique({
+      where: { id: settlementId },
+      include: { table: { select: { ownerId: true } } },
+    });
+    if (!settlement) throw new NotFoundException('Settlement não encontrado');
+    if (settlement.table.ownerId !== caller.id) {
+      throw new ForbiddenException(
+        'Apenas o host pode confirmar pelo convidado',
+      );
+    }
+    if (settlement.fromUserId !== null && settlement.toUserId !== null) {
+      throw new BadRequestException(
+        'Esse settlement não envolve convidado — confirme normalmente',
+      );
+    }
+    if (settlement.status === SettlementStatus.CONFIRMED) {
+      throw new BadRequestException('Settlement já confirmado');
+    }
+    return this.prisma.settlement.update({
+      where: { id: settlementId },
+      data: { status: SettlementStatus.CONFIRMED, confirmedAt: new Date() },
+      include: settlementInclude,
+    });
+  }
+
+  async setPix(
+    firebaseUid: string,
+    settlementId: string,
+    dto: UpdateSettlementPixDto,
+  ) {
     const user = await this.users.requireByFirebaseUid(firebaseUid);
     const settlement = await this.prisma.settlement.findUnique({
       where: { id: settlementId },

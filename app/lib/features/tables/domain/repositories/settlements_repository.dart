@@ -8,4 +8,9 @@ abstract class SettlementsRepository {
   /// Marca o settlement como pago. Apenas o `toUser` (recebedor)
   /// pode confirmar.
   Future<void> confirm(String settlementId);
+
+  /// Host marca como pago um settlement envolvendo convidado (que não tem
+  /// app pra confirmar sozinho). Backend valida que pelo menos uma ponta
+  /// é guest.
+  Future<void> confirmOnBehalf(String settlementId);
 }

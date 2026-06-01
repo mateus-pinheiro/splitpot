@@ -3,7 +3,9 @@ import type { DecodedIdToken } from 'firebase-admin/auth';
 
 export const FirebaseUser = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): DecodedIdToken => {
-    const req = ctx.switchToHttp().getRequest<{ firebaseUser: DecodedIdToken }>();
+    const req = ctx
+      .switchToHttp()
+      .getRequest<{ firebaseUser: DecodedIdToken }>();
     return req.firebaseUser;
   },
 );

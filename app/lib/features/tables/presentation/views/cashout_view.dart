@@ -179,11 +179,8 @@ class _FormState extends State<_Form> {
   @override
   void initState() {
     super.initState();
-    final invested = _summary(widget.participation).invested;
-    final initialText = (widget.participation.cashOut?.amount ?? invested)
-        .toBigInt()
-        .toString();
-    _controller = TextEditingController(text: initialText);
+    // Campo sempre começa vazio — pré-preencher induz a confirmar sem revisar.
+    _controller = TextEditingController();
     _controller.addListener(() => setState(() {}));
   }
 
@@ -266,8 +263,8 @@ class _FormState extends State<_Form> {
                     child: _QuickPill(
                       label: 'Empate',
                       dangerous: false,
-                      onTap: () => _controller.text =
-                          summary.invested.toBigInt().toString(),
+                      onTap: () =>
+                          _controller.text = summary.invested.toString(),
                     ),
                   ),
                 ],
@@ -282,7 +279,7 @@ class _FormState extends State<_Form> {
           child: SpGoldButton(
             label: 'Confirmar saída',
             loading: widget.submitting,
-            onPressed: widget.submitting ? null : _submit,
+            onPressed: widget.submitting || _stack == null ? null : _submit,
           ),
         ),
       ],
@@ -459,10 +456,18 @@ class _StackInput extends StatelessWidget {
                 color: SpColors.cream,
                 height: 1.0,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isCollapsed: true,
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
+                hintText: '0',
+                hintStyle: TextStyle(
+                  fontFamily: SpTypography.numFamily,
+                  fontSize: 48,
+                  fontWeight: FontWeight.w700,
+                  color: SpColors.cream.withValues(alpha: 0.25),
+                  height: 1.0,
+                ),
               ),
             ),
           ),

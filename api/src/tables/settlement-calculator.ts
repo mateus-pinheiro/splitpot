@@ -1,13 +1,13 @@
 import { Prisma } from '@prisma/client';
 
 export interface ParticipantNet {
-  userId: string;
+  participationId: string;
   net: Prisma.Decimal;
 }
 
 export interface SettlementPlan {
-  fromUserId: string;
-  toUserId: string;
+  fromParticipationId: string;
+  toParticipationId: string;
   amount: Prisma.Decimal;
 }
 
@@ -17,12 +17,15 @@ const ROUND_EPSILON = new Prisma.Decimal('0.01');
 export function computeSettlements(nets: ParticipantNet[]): SettlementPlan[] {
   const debtors = nets
     .filter((n) => n.net.lessThan(ZERO))
-    .map((n) => ({ userId: n.userId, remaining: n.net.negated() }))
+    .map((n) => ({
+      participationId: n.participationId,
+      remaining: n.net.negated(),
+    }))
     .sort((a, b) => b.remaining.comparedTo(a.remaining));
 
   const creditors = nets
     .filter((n) => n.net.greaterThan(ZERO))
-    .map((n) => ({ userId: n.userId, remaining: n.net }))
+    .map((n) => ({ participationId: n.participationId, remaining: n.net }))
     .sort((a, b) => b.remaining.comparedTo(a.remaining));
 
   const plans: SettlementPlan[] = [];
@@ -30,14 +33,14 @@ export function computeSettlements(nets: ParticipantNet[]): SettlementPlan[] {
   let j = 0;
 
   while (i < debtors.length && j < creditors.length) {
-    const debtor = debtors[i]!;
-    const creditor = creditors[j]!;
+    const debtor = debtors[i];
+    const creditor = creditors[j];
     const amount = Prisma.Decimal.min(debtor.remaining, creditor.remaining);
 
     if (amount.greaterThan(ZERO)) {
       plans.push({
-        fromUserId: debtor.userId,
-        toUserId: creditor.userId,
+        fromParticipationId: debtor.participationId,
+        toParticipationId: creditor.participationId,
         amount,
       });
     }

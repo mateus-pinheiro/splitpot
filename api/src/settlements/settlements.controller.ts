@@ -32,6 +32,15 @@ export class SettlementsController {
     return this.settlements.confirm(token.uid, id);
   }
 
+  @Post(':id/confirm-on-behalf')
+  @HttpCode(HttpStatus.OK)
+  confirmOnBehalf(
+    @FirebaseUser() token: DecodedIdToken,
+    @Param('id') id: string,
+  ) {
+    return this.settlements.confirmOnBehalf(token.uid, id);
+  }
+
   @Patch(':id/pix')
   setPix(
     @FirebaseUser() token: DecodedIdToken,
