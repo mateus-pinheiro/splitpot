@@ -32,18 +32,15 @@ export class ParticipationsService {
       );
     }
 
-    const targetUserId = dto.userId ?? caller.id;
-    if (targetUserId !== caller.id && table.ownerId !== caller.id) {
-      throw new ForbiddenException(
-        'Apenas o dono pode adicionar outros participantes',
-      );
+    const isGuest = dto.guestName !== undefined;
+    if (isGuest && dto.userId !== undefined) {
+      throw new BadRequestException('Informe userId OU guestName, nunca ambos');
     }
-
-    if (targetUserId !== caller.id) {
-      const exists = await this.prisma.user.findUnique({
-        where: { id: targetUserId },
-      });
-      if (!exists) throw new NotFoundException('Usuário alvo não encontrado');
+    if (isGuest && !dto.guestPixKey) {
+      throw new BadRequestException('Convidado precisa de PIX');
+    }
+    if (isGuest && table.ownerId !== caller.id) {
+      throw new ForbiddenException('Apenas o host pode adicionar convidados');
     }
 
     if (dto.initialBuyIn !== undefined) {
@@ -56,10 +53,38 @@ export class ParticipationsService {
       }
     }
 
+    let createData: Prisma.TableParticipationCreateInput;
+    if (isGuest) {
+      createData = {
+        table: { connect: { id: table.id } },
+        guestName: dto.guestName!,
+        guestPixKey: dto.guestPixKey!,
+      };
+    } else {
+      const targetUserId = dto.userId ?? caller.id;
+      if (targetUserId !== caller.id && table.ownerId !== caller.id) {
+        throw new ForbiddenException(
+          'Apenas o dono pode adicionar outros participantes',
+        );
+      }
+      if (targetUserId !== caller.id) {
+        const exists = await this.prisma.user.findUnique({
+          where: { id: targetUserId },
+        });
+        if (!exists) {
+          throw new NotFoundException('Usuário alvo não encontrado');
+        }
+      }
+      createData = {
+        table: { connect: { id: table.id } },
+        user: { connect: { id: targetUserId } },
+      };
+    }
+
     try {
       return await this.prisma.$transaction(async (tx) => {
         const participation = await tx.tableParticipation.create({
-          data: { tableId: table.id, userId: targetUserId },
+          data: createData,
         });
         if (dto.initialBuyIn !== undefined) {
           await tx.buyIn.create({
@@ -146,6 +171,26 @@ export class ParticipationsService {
       throw new NotFoundException('Buy-in não encontrado nessa participação');
     }
     await this.prisma.buyIn.delete({ where: { id: buyInId } });
+  }
+
+  async updateBuyIn(
+    firebaseUid: string,
+    participationId: string,
+    buyInId: string,
+    dto: AddBuyInDto,
+  ) {
+    const caller = await this.users.requireByFirebaseUid(firebaseUid);
+    await this.requireEditable(participationId, caller.id);
+    const buyIn = await this.prisma.buyIn.findUnique({
+      where: { id: buyInId },
+    });
+    if (!buyIn || buyIn.participationId !== participationId) {
+      throw new NotFoundException('Buy-in não encontrado nessa participação');
+    }
+    return this.prisma.buyIn.update({
+      where: { id: buyInId },
+      data: { amount: new Prisma.Decimal(dto.amount) },
+    });
   }
 
   async setCashOut(

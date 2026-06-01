@@ -383,7 +383,11 @@ export class TablesService {
       include: {
         participations: {
           where: { leftAt: null },
-          include: { buyIns: true, cashOut: true },
+          include: {
+            buyIns: true,
+            cashOut: true,
+            user: { select: { id: true, pixKey: true } },
+          },
         },
       },
     });
@@ -405,11 +409,6 @@ export class TablesService {
     let totalBuyIn = new Prisma.Decimal(0);
     let totalCashOut = new Prisma.Decimal(0);
     const nets: ParticipantNet[] = table.participations.map((p) => {
-      if (!p.userId) {
-        throw new BadRequestException(
-          'Cálculo de settlement para convidado ainda não suportado',
-        );
-      }
       const buyInSum = p.buyIns.reduce(
         (acc, b) => acc.plus(b.amount),
         new Prisma.Decimal(0),
@@ -417,7 +416,7 @@ export class TablesService {
       const cashOutAmount = p.cashOut!.amount;
       totalBuyIn = totalBuyIn.plus(buyInSum);
       totalCashOut = totalCashOut.plus(cashOutAmount);
-      return { userId: p.userId, net: cashOutAmount.minus(buyInSum) };
+      return { participationId: p.id, net: cashOutAmount.minus(buyInSum) };
     });
 
     if (!totalBuyIn.equals(totalCashOut)) {
@@ -429,13 +428,21 @@ export class TablesService {
     const plans = computeSettlements(nets);
 
     if (plans.length > 0) {
+      const byId = new Map(table.participations.map((p) => [p.id, p]));
       await tx.settlement.createMany({
-        data: plans.map((p) => ({
-          tableId: table.id,
-          fromUserId: p.fromUserId,
-          toUserId: p.toUserId,
-          amount: p.amount,
-        })),
+        data: plans.map((p) => {
+          const from = byId.get(p.fromParticipationId)!;
+          const to = byId.get(p.toParticipationId)!;
+          return {
+            tableId: table.id,
+            fromUserId: from.userId,
+            fromGuestName: from.userId ? null : from.guestName,
+            toUserId: to.userId,
+            toGuestName: to.userId ? null : to.guestName,
+            toPixKey: to.userId ? to.user!.pixKey : to.guestPixKey,
+            amount: p.amount,
+          };
+        }),
       });
     }
 

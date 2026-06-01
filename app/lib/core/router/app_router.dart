@@ -110,6 +110,21 @@ class AppRouter {
             _slide(s, JoinByIdView(tableId: s.pathParameters['id']!)),
       ),
       GoRoute(
+        path: AppRoutes.addPlayerPattern,
+        pageBuilder: (_, s) =>
+            _slide(s, AddPlayerView(tableId: s.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: AppRoutes.editBuyInsPattern,
+        pageBuilder: (_, s) => _slide(
+          s,
+          EditBuyInsView(
+            tableId: s.pathParameters['id']!,
+            participationId: s.pathParameters['pid']!,
+          ),
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.tableDetailPattern,
         pageBuilder: (_, s) =>
             _slide(s, TableDetailView(tableId: s.pathParameters['id']!)),

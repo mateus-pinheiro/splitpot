@@ -1,5 +1,11 @@
 export 'add_buy_in.dart';
+export 'add_guest_player.dart';
+export 'add_registered_player.dart';
 export 'approve_action_request.dart';
+export 'leave_table.dart';
+export 'remove_buy_in.dart';
+export 'search_users.dart';
+export 'update_buy_in.dart';
 export 'calculate_settlements.dart';
 export 'close_table.dart';
 export 'reconcile_and_close.dart';

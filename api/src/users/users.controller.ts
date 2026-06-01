@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import { FirebaseUser } from '../auth/decorators/firebase-user.decorator.js';
@@ -35,6 +36,19 @@ export class UsersController {
   @Get('me/stats')
   async stats(@FirebaseUser() token: DecodedIdToken) {
     return this.users.getStats(token.uid);
+  }
+
+  /// Busca usuários cadastrados pra adicionar como participante. Retorna no
+  /// máximo 10 resultados, ordenados por nome. Não expõe PIX (host só precisa
+  /// do id pra `join`; backend resolve o resto). Query vazia retorna lista
+  /// vazia em vez de tudo — evita scan acidental.
+  @Get('search')
+  async search(
+    @FirebaseUser() token: DecodedIdToken,
+    @Query('q') q?: string,
+  ) {
+    await this.users.requireByFirebaseUid(token.uid);
+    return this.users.search(q ?? '');
   }
 
   @Patch('me')

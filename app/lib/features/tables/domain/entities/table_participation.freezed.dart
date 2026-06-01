@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TableParticipation {
 
- String get id; String get tableId; String get userId; String get userName; DateTime get joinedAt; DateTime? get leftAt; List<BuyIn> get buyIns; CashOut? get cashOut;
+ String get id; String get tableId; String? get userId; String get userName; String? get guestName; String? get guestPixKey; DateTime get joinedAt; DateTime? get leftAt; List<BuyIn> get buyIns; CashOut? get cashOut;
 /// Create a copy of TableParticipation
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $TableParticipationCopyWith<TableParticipation> get copyWith => _$TableParticipa
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TableParticipation&&(identical(other.id, id) || other.id == id)&&(identical(other.tableId, tableId) || other.tableId == tableId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.joinedAt, joinedAt) || other.joinedAt == joinedAt)&&(identical(other.leftAt, leftAt) || other.leftAt == leftAt)&&const DeepCollectionEquality().equals(other.buyIns, buyIns)&&(identical(other.cashOut, cashOut) || other.cashOut == cashOut));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TableParticipation&&(identical(other.id, id) || other.id == id)&&(identical(other.tableId, tableId) || other.tableId == tableId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.guestName, guestName) || other.guestName == guestName)&&(identical(other.guestPixKey, guestPixKey) || other.guestPixKey == guestPixKey)&&(identical(other.joinedAt, joinedAt) || other.joinedAt == joinedAt)&&(identical(other.leftAt, leftAt) || other.leftAt == leftAt)&&const DeepCollectionEquality().equals(other.buyIns, buyIns)&&(identical(other.cashOut, cashOut) || other.cashOut == cashOut));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,tableId,userId,userName,joinedAt,leftAt,const DeepCollectionEquality().hash(buyIns),cashOut);
+int get hashCode => Object.hash(runtimeType,id,tableId,userId,userName,guestName,guestPixKey,joinedAt,leftAt,const DeepCollectionEquality().hash(buyIns),cashOut);
 
 @override
 String toString() {
-  return 'TableParticipation(id: $id, tableId: $tableId, userId: $userId, userName: $userName, joinedAt: $joinedAt, leftAt: $leftAt, buyIns: $buyIns, cashOut: $cashOut)';
+  return 'TableParticipation(id: $id, tableId: $tableId, userId: $userId, userName: $userName, guestName: $guestName, guestPixKey: $guestPixKey, joinedAt: $joinedAt, leftAt: $leftAt, buyIns: $buyIns, cashOut: $cashOut)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $TableParticipationCopyWith<$Res>  {
   factory $TableParticipationCopyWith(TableParticipation value, $Res Function(TableParticipation) _then) = _$TableParticipationCopyWithImpl;
 @useResult
 $Res call({
- String id, String tableId, String userId, String userName, DateTime joinedAt, DateTime? leftAt, List<BuyIn> buyIns, CashOut? cashOut
+ String id, String tableId, String? userId, String userName, String? guestName, String? guestPixKey, DateTime joinedAt, DateTime? leftAt, List<BuyIn> buyIns, CashOut? cashOut
 });
 
 
@@ -62,13 +62,15 @@ class _$TableParticipationCopyWithImpl<$Res>
 
 /// Create a copy of TableParticipation
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? tableId = null,Object? userId = null,Object? userName = null,Object? joinedAt = null,Object? leftAt = freezed,Object? buyIns = null,Object? cashOut = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? tableId = null,Object? userId = freezed,Object? userName = null,Object? guestName = freezed,Object? guestPixKey = freezed,Object? joinedAt = null,Object? leftAt = freezed,Object? buyIns = null,Object? cashOut = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,tableId: null == tableId ? _self.tableId : tableId // ignore: cast_nullable_to_non_nullable
-as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
-as String,userName: null == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
-as String,joinedAt: null == joinedAt ? _self.joinedAt : joinedAt // ignore: cast_nullable_to_non_nullable
+as String,userId: freezed == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String?,userName: null == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
+as String,guestName: freezed == guestName ? _self.guestName : guestName // ignore: cast_nullable_to_non_nullable
+as String?,guestPixKey: freezed == guestPixKey ? _self.guestPixKey : guestPixKey // ignore: cast_nullable_to_non_nullable
+as String?,joinedAt: null == joinedAt ? _self.joinedAt : joinedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,leftAt: freezed == leftAt ? _self.leftAt : leftAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,buyIns: null == buyIns ? _self.buyIns : buyIns // ignore: cast_nullable_to_non_nullable
 as List<BuyIn>,cashOut: freezed == cashOut ? _self.cashOut : cashOut // ignore: cast_nullable_to_non_nullable
@@ -169,10 +171,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String tableId,  String userId,  String userName,  DateTime joinedAt,  DateTime? leftAt,  List<BuyIn> buyIns,  CashOut? cashOut)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String tableId,  String? userId,  String userName,  String? guestName,  String? guestPixKey,  DateTime joinedAt,  DateTime? leftAt,  List<BuyIn> buyIns,  CashOut? cashOut)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TableParticipation() when $default != null:
-return $default(_that.id,_that.tableId,_that.userId,_that.userName,_that.joinedAt,_that.leftAt,_that.buyIns,_that.cashOut);case _:
+return $default(_that.id,_that.tableId,_that.userId,_that.userName,_that.guestName,_that.guestPixKey,_that.joinedAt,_that.leftAt,_that.buyIns,_that.cashOut);case _:
   return orElse();
 
 }
@@ -190,10 +192,10 @@ return $default(_that.id,_that.tableId,_that.userId,_that.userName,_that.joinedA
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String tableId,  String userId,  String userName,  DateTime joinedAt,  DateTime? leftAt,  List<BuyIn> buyIns,  CashOut? cashOut)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String tableId,  String? userId,  String userName,  String? guestName,  String? guestPixKey,  DateTime joinedAt,  DateTime? leftAt,  List<BuyIn> buyIns,  CashOut? cashOut)  $default,) {final _that = this;
 switch (_that) {
 case _TableParticipation():
-return $default(_that.id,_that.tableId,_that.userId,_that.userName,_that.joinedAt,_that.leftAt,_that.buyIns,_that.cashOut);case _:
+return $default(_that.id,_that.tableId,_that.userId,_that.userName,_that.guestName,_that.guestPixKey,_that.joinedAt,_that.leftAt,_that.buyIns,_that.cashOut);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -210,10 +212,10 @@ return $default(_that.id,_that.tableId,_that.userId,_that.userName,_that.joinedA
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String tableId,  String userId,  String userName,  DateTime joinedAt,  DateTime? leftAt,  List<BuyIn> buyIns,  CashOut? cashOut)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String tableId,  String? userId,  String userName,  String? guestName,  String? guestPixKey,  DateTime joinedAt,  DateTime? leftAt,  List<BuyIn> buyIns,  CashOut? cashOut)?  $default,) {final _that = this;
 switch (_that) {
 case _TableParticipation() when $default != null:
-return $default(_that.id,_that.tableId,_that.userId,_that.userName,_that.joinedAt,_that.leftAt,_that.buyIns,_that.cashOut);case _:
+return $default(_that.id,_that.tableId,_that.userId,_that.userName,_that.guestName,_that.guestPixKey,_that.joinedAt,_that.leftAt,_that.buyIns,_that.cashOut);case _:
   return null;
 
 }
@@ -224,14 +226,16 @@ return $default(_that.id,_that.tableId,_that.userId,_that.userName,_that.joinedA
 /// @nodoc
 
 
-class _TableParticipation implements TableParticipation {
-  const _TableParticipation({required this.id, required this.tableId, required this.userId, required this.userName, required this.joinedAt, this.leftAt, final  List<BuyIn> buyIns = const <BuyIn>[], this.cashOut}): _buyIns = buyIns;
+class _TableParticipation extends TableParticipation {
+  const _TableParticipation({required this.id, required this.tableId, this.userId, required this.userName, this.guestName, this.guestPixKey, required this.joinedAt, this.leftAt, final  List<BuyIn> buyIns = const <BuyIn>[], this.cashOut}): _buyIns = buyIns,super._();
   
 
 @override final  String id;
 @override final  String tableId;
-@override final  String userId;
+@override final  String? userId;
 @override final  String userName;
+@override final  String? guestName;
+@override final  String? guestPixKey;
 @override final  DateTime joinedAt;
 @override final  DateTime? leftAt;
  final  List<BuyIn> _buyIns;
@@ -253,16 +257,16 @@ _$TableParticipationCopyWith<_TableParticipation> get copyWith => __$TablePartic
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TableParticipation&&(identical(other.id, id) || other.id == id)&&(identical(other.tableId, tableId) || other.tableId == tableId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.joinedAt, joinedAt) || other.joinedAt == joinedAt)&&(identical(other.leftAt, leftAt) || other.leftAt == leftAt)&&const DeepCollectionEquality().equals(other._buyIns, _buyIns)&&(identical(other.cashOut, cashOut) || other.cashOut == cashOut));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TableParticipation&&(identical(other.id, id) || other.id == id)&&(identical(other.tableId, tableId) || other.tableId == tableId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.guestName, guestName) || other.guestName == guestName)&&(identical(other.guestPixKey, guestPixKey) || other.guestPixKey == guestPixKey)&&(identical(other.joinedAt, joinedAt) || other.joinedAt == joinedAt)&&(identical(other.leftAt, leftAt) || other.leftAt == leftAt)&&const DeepCollectionEquality().equals(other._buyIns, _buyIns)&&(identical(other.cashOut, cashOut) || other.cashOut == cashOut));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,tableId,userId,userName,joinedAt,leftAt,const DeepCollectionEquality().hash(_buyIns),cashOut);
+int get hashCode => Object.hash(runtimeType,id,tableId,userId,userName,guestName,guestPixKey,joinedAt,leftAt,const DeepCollectionEquality().hash(_buyIns),cashOut);
 
 @override
 String toString() {
-  return 'TableParticipation(id: $id, tableId: $tableId, userId: $userId, userName: $userName, joinedAt: $joinedAt, leftAt: $leftAt, buyIns: $buyIns, cashOut: $cashOut)';
+  return 'TableParticipation(id: $id, tableId: $tableId, userId: $userId, userName: $userName, guestName: $guestName, guestPixKey: $guestPixKey, joinedAt: $joinedAt, leftAt: $leftAt, buyIns: $buyIns, cashOut: $cashOut)';
 }
 
 
@@ -273,7 +277,7 @@ abstract mixin class _$TableParticipationCopyWith<$Res> implements $TablePartici
   factory _$TableParticipationCopyWith(_TableParticipation value, $Res Function(_TableParticipation) _then) = __$TableParticipationCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String tableId, String userId, String userName, DateTime joinedAt, DateTime? leftAt, List<BuyIn> buyIns, CashOut? cashOut
+ String id, String tableId, String? userId, String userName, String? guestName, String? guestPixKey, DateTime joinedAt, DateTime? leftAt, List<BuyIn> buyIns, CashOut? cashOut
 });
 
 
@@ -290,13 +294,15 @@ class __$TableParticipationCopyWithImpl<$Res>
 
 /// Create a copy of TableParticipation
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? tableId = null,Object? userId = null,Object? userName = null,Object? joinedAt = null,Object? leftAt = freezed,Object? buyIns = null,Object? cashOut = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? tableId = null,Object? userId = freezed,Object? userName = null,Object? guestName = freezed,Object? guestPixKey = freezed,Object? joinedAt = null,Object? leftAt = freezed,Object? buyIns = null,Object? cashOut = freezed,}) {
   return _then(_TableParticipation(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,tableId: null == tableId ? _self.tableId : tableId // ignore: cast_nullable_to_non_nullable
-as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
-as String,userName: null == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
-as String,joinedAt: null == joinedAt ? _self.joinedAt : joinedAt // ignore: cast_nullable_to_non_nullable
+as String,userId: freezed == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String?,userName: null == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
+as String,guestName: freezed == guestName ? _self.guestName : guestName // ignore: cast_nullable_to_non_nullable
+as String?,guestPixKey: freezed == guestPixKey ? _self.guestPixKey : guestPixKey // ignore: cast_nullable_to_non_nullable
+as String?,joinedAt: null == joinedAt ? _self.joinedAt : joinedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,leftAt: freezed == leftAt ? _self.leftAt : leftAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,buyIns: null == buyIns ? _self._buyIns : buyIns // ignore: cast_nullable_to_non_nullable
 as List<BuyIn>,cashOut: freezed == cashOut ? _self.cashOut : cashOut // ignore: cast_nullable_to_non_nullable

@@ -72,6 +72,9 @@ void registerAppDependencies(DIContainer di) {
   di.registerLazySingleton<ActionRequestsRepository>(
     () => ActionRequestsRepositoryImpl(di.get<ApiClient>()),
   );
+  di.registerLazySingleton<UserSearchRepository>(
+    () => UserSearchRepositoryImpl(di.get<ApiClient>()),
+  );
 
   // Tables — usecases
   di.registerFactory(() => CreateTable(di.get<TablesRepository>()));
@@ -85,6 +88,14 @@ void registerAppDependencies(DIContainer di) {
   di.registerFactory(() => AddBuyIn(di.get<ParticipationsRepository>()));
   di.registerFactory(() => RejoinTable(di.get<ParticipationsRepository>()));
   di.registerFactory(() => SetCashOut(di.get<ParticipationsRepository>()));
+  di.registerFactory(
+      () => AddGuestPlayer(di.get<ParticipationsRepository>()));
+  di.registerFactory(
+      () => AddRegisteredPlayer(di.get<ParticipationsRepository>()));
+  di.registerFactory(() => UpdateBuyIn(di.get<ParticipationsRepository>()));
+  di.registerFactory(() => RemoveBuyIn(di.get<ParticipationsRepository>()));
+  di.registerFactory(() => LeaveTable(di.get<ParticipationsRepository>()));
+  di.registerFactory(() => SearchUsers(di.get<UserSearchRepository>()));
   di.registerFactory(() => ListSettlements(di.get<SettlementsRepository>()));
   di.registerFactory(() => ConfirmSettlement(di.get<SettlementsRepository>()));
   di.registerFactory(
@@ -139,6 +150,20 @@ void registerAppDependencies(DIContainer di) {
       setCashOut: di.get<SetCashOut>(),
       closeTable: di.get<CloseTable>(),
       reconcileAndClose: di.get<ReconcileAndClose>(),
+    ),
+  );
+  di.registerFactory(
+    () => AddPlayerCubit(
+      searchUsers: di.get<SearchUsers>(),
+      addGuest: di.get<AddGuestPlayer>(),
+      addRegistered: di.get<AddRegisteredPlayer>(),
+    ),
+  );
+  di.registerFactory(
+    () => EditBuyInsCubit(
+      getTable: di.get<GetTable>(),
+      updateBuyIn: di.get<UpdateBuyIn>(),
+      removeBuyIn: di.get<RemoveBuyIn>(),
     ),
   );
 }

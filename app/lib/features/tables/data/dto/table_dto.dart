@@ -37,11 +37,15 @@ class TableDto {
     final user = json['user'] as Map<String, dynamic>?;
     final buyInsJson = json['buyIns'] as List<dynamic>? ?? const [];
     final cashOutJson = json['cashOut'] as Map<String, dynamic>?;
+    final guestName = json['guestName'] as String?;
+    final guestPixKey = json['guestPixKey'] as String?;
     return TableParticipation(
       id: json['id'] as String,
       tableId: json['tableId'] as String,
-      userId: json['userId'] as String,
-      userName: user?['name'] as String? ?? '',
+      userId: json['userId'] as String?,
+      userName: user?['name'] as String? ?? guestName ?? 'Convidado',
+      guestName: guestName,
+      guestPixKey: guestPixKey,
       joinedAt: DateTime.parse(json['joinedAt'] as String),
       leftAt: json['leftAt'] == null
           ? null

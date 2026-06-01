@@ -32,5 +32,12 @@ class AppRoutes {
   static const pixPattern = '/table/:id/pix';
   static String pix(String id) => '/table/$id/pix';
 
+  static const addPlayerPattern = '/table/:id/add-player';
+  static String addPlayer(String id) => '/table/$id/add-player';
+
+  static const editBuyInsPattern = '/table/:id/participations/:pid/edit-buyins';
+  static String editBuyIns(String tableId, String participationId) =>
+      '/table/$tableId/participations/$participationId/edit-buyins';
+
   static const history = '/history';
 }

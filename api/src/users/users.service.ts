@@ -40,6 +40,23 @@ export class UsersService {
     }
   }
 
+  async search(q: string) {
+    const trimmed = q.trim();
+    if (trimmed.length < 2) return [];
+    const rows = await this.prisma.user.findMany({
+      where: {
+        OR: [
+          { name: { contains: trimmed, mode: 'insensitive' } },
+          { email: { contains: trimmed, mode: 'insensitive' } },
+        ],
+      },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: 'asc' },
+      take: 10,
+    });
+    return rows;
+  }
+
   async requireByFirebaseUid(firebaseUid: string): Promise<User> {
     const user = await this.prisma.user.findUnique({ where: { firebaseUid } });
     if (!user) {
@@ -147,9 +164,9 @@ export class UsersService {
     const debts = debtRows.map((s) => ({
       id: s.id,
       amount: s.amount.toFixed(2),
-      toUserId: s.toUser.id,
-      toName: s.toUser.name,
-      toPixKey: s.toUser.pixKey,
+      toUserId: s.toUser?.id ?? null,
+      toName: s.toUser?.name ?? s.toGuestName ?? 'Convidado',
+      toPixKey: s.toPixKey ?? s.toUser?.pixKey ?? null,
       tableId: s.table.id,
       tableName: s.table.name,
       pixCopiaECola: s.pixCopiaECola,
@@ -171,8 +188,8 @@ export class UsersService {
     const receivables = receivableRows.map((s) => ({
       id: s.id,
       amount: s.amount.toFixed(2),
-      fromUserId: s.fromUser.id,
-      fromName: s.fromUser.name,
+      fromUserId: s.fromUser?.id ?? null,
+      fromName: s.fromUser?.name ?? s.fromGuestName ?? 'Convidado',
       tableId: s.table.id,
       tableName: s.table.name,
     }));

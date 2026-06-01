@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Put,
 } from '@nestjs/common';
@@ -50,6 +51,16 @@ export class ParticipationsController {
     @Param('buyInId') buyInId: string,
   ) {
     await this.participations.removeBuyIn(token.uid, id, buyInId);
+  }
+
+  @Patch(':id/buy-ins/:buyInId')
+  updateBuyIn(
+    @FirebaseUser() token: DecodedIdToken,
+    @Param('id') id: string,
+    @Param('buyInId') buyInId: string,
+    @Body() dto: AddBuyInDto,
+  ) {
+    return this.participations.updateBuyIn(token.uid, id, buyInId, dto);
   }
 
   @Put(':id/cash-out')
