@@ -52,9 +52,15 @@ abstract class ParticipationsRepository {
 
   /// Registra/atualiza o cash-out de uma participação (PUT semântico —
   /// upsert no backend). O participante declara com quanto saiu da mesa.
+  ///
+  /// [skipAutoClose] desliga o auto-close best-effort do backend (que dispara
+  /// quando todos os ativos têm cash-out). Usado pelo fluxo de conferência,
+  /// onde o host empurra vários ajustes antes de fechar explicitamente —
+  /// sem isso, o penúltimo ajuste pode fechar a mesa antes do botão "Fechar".
   Future<void> setCashOut({
     required String participationId,
     required Decimal amount,
+    bool skipAutoClose = false,
   });
 
   /// Volta um participante que já tinha saído: limpa o cash-out e grava

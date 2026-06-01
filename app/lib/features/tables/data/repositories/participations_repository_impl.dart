@@ -92,8 +92,12 @@ class ParticipationsRepositoryImpl implements ParticipationsRepository {
   Future<void> setCashOut({
     required String participationId,
     required Decimal amount,
+    bool skipAutoClose = false,
   }) async {
-    await _api.put('/participations/$participationId/cash-out', body: {
+    final path = skipAutoClose
+        ? '/participations/$participationId/cash-out?skipAutoClose=true'
+        : '/participations/$participationId/cash-out';
+    await _api.put(path, body: {
       'amount': double.parse(amount.toString()),
     });
   }

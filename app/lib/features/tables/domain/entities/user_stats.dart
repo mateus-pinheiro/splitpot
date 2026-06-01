@@ -52,9 +52,9 @@ class DebtItem {
   const DebtItem({
     required this.id,
     required this.amount,
-    required this.toUserId,
+    this.toUserId,
     required this.toName,
-    required this.toPixKey,
+    this.toPixKey,
     required this.tableId,
     required this.tableName,
     this.pixCopiaECola,
@@ -62,12 +62,19 @@ class DebtItem {
 
   final String id;
   final Decimal amount;
-  final String toUserId;
+
+  /// Nulo quando o destinatário é convidado (sem conta).
+  final String? toUserId;
   final String toName;
-  final String toPixKey;
+
+  /// Pode ser nulo se o destinatário não tem PIX cadastrado (raro pra
+  /// settlements abertos depois da Fase 2; ainda assim defensivo).
+  final String? toPixKey;
   final String tableId;
   final String tableName;
   final String? pixCopiaECola;
+
+  bool get isToGuest => toUserId == null;
 }
 
 /// Settlement pendente em que o usuário é o recebedor.
@@ -75,7 +82,7 @@ class ReceivableItem {
   const ReceivableItem({
     required this.id,
     required this.amount,
-    required this.fromUserId,
+    this.fromUserId,
     required this.fromName,
     required this.tableId,
     required this.tableName,
@@ -83,8 +90,12 @@ class ReceivableItem {
 
   final String id;
   final Decimal amount;
-  final String fromUserId;
+
+  /// Nulo quando o pagador é convidado.
+  final String? fromUserId;
   final String fromName;
   final String tableId;
   final String tableName;
+
+  bool get isFromGuest => fromUserId == null;
 }

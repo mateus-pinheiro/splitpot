@@ -197,6 +197,7 @@ export class ParticipationsService {
     firebaseUid: string,
     participationId: string,
     dto: SetCashOutDto,
+    skipAutoClose = false,
   ) {
     const caller = await this.users.requireByFirebaseUid(firebaseUid);
     const participation = await this.requireEditable(
@@ -206,6 +207,7 @@ export class ParticipationsService {
     return this.executeCashOut(
       participation.id,
       new Prisma.Decimal(dto.amount),
+      skipAutoClose,
     );
   }
 
@@ -230,7 +232,11 @@ export class ParticipationsService {
     });
   }
 
-  async executeCashOut(participationId: string, amount: Prisma.Decimal) {
+  async executeCashOut(
+    participationId: string,
+    amount: Prisma.Decimal,
+    skipAutoClose = false,
+  ) {
     const participation = await this.prisma.tableParticipation.findUnique({
       where: { id: participationId },
       select: { tableId: true },
@@ -252,6 +258,7 @@ export class ParticipationsService {
       where: { participationId: { in: activeParticipations.map((p) => p.id) } },
     });
     if (
+      !skipAutoClose &&
       activeParticipations.length > 0 &&
       cashOutCount === activeParticipations.length
     ) {
@@ -259,6 +266,8 @@ export class ParticipationsService {
       // closeBySystem throws BadRequestException. The cash-out itself is
       // already committed and the table moves into a "needs reconciliation"
       // state (surfaced via GET /tables/:id) instead of failing the request.
+      // `skipAutoClose` é usado pelo fluxo de conferência (host empurra vários
+      // ajustes antes de fechar explicitamente) pra evitar fechar no meio.
       try {
         await this.tables.closeBySystem(participation.tableId);
       } catch (err) {

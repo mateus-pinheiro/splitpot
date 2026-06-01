@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import { FirebaseUser } from '../auth/decorators/firebase-user.decorator.js';
@@ -68,8 +69,14 @@ export class ParticipationsController {
     @FirebaseUser() token: DecodedIdToken,
     @Param('id') id: string,
     @Body() dto: SetCashOutDto,
+    @Query('skipAutoClose') skipAutoClose?: string,
   ) {
-    return this.participations.setCashOut(token.uid, id, dto);
+    return this.participations.setCashOut(
+      token.uid,
+      id,
+      dto,
+      skipAutoClose === 'true',
+    );
   }
 
   @Delete(':id/cash-out')

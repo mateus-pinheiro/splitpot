@@ -44,9 +44,13 @@ export class SettlementsService {
     const user = await this.users.requireByFirebaseUid(firebaseUid);
     const settlement = await this.prisma.settlement.findUnique({
       where: { id: settlementId },
+      include: { table: { select: { ownerId: true } } },
     });
     if (!settlement) throw new NotFoundException('Settlement não encontrado');
-    if (settlement.fromUserId !== user.id && settlement.toUserId !== user.id) {
+    const isParty =
+      settlement.fromUserId === user.id || settlement.toUserId === user.id;
+    const isHost = settlement.table.ownerId === user.id;
+    if (!isParty && !isHost) {
       throw new ForbiddenException(
         'Sem permissão para confirmar este settlement',
       );

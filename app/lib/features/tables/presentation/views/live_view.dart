@@ -9,6 +9,7 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/design/design_system.dart';
 import '../../../../core/di/di_container.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../auth/presentation/cubit/cubit.dart';
 import '../../domain/entities/entities.dart';
@@ -161,6 +162,7 @@ class _LoadedBody extends StatelessWidget {
 
     final participations = table.participations;
     final total = _sumAllBuyIns(participations);
+    final cashedOut = _sumAllCashOuts(participations);
     final rebuyCount = _rebuyCount(participations);
     final duration =
         _formatElapsed(DateTime.now().difference(table.createdAt));
@@ -212,6 +214,7 @@ class _LoadedBody extends StatelessWidget {
                 children: [
                   _PotCard(
                     total: total,
+                    cashedOut: cashedOut,
                     playerCount: participations.length,
                     rebuys: rebuyCount,
                   ),
@@ -305,6 +308,17 @@ class _LoadedBody extends StatelessWidget {
     return total;
   }
 
+  /// Soma os cash-outs já declarados. Serve como previsão de quanto do
+  /// pote já está saindo da mesa enquanto a partida ainda roda.
+  static Decimal _sumAllCashOuts(List<TableParticipation> ps) {
+    var total = Decimal.zero;
+    for (final p in ps) {
+      final c = p.cashOut;
+      if (c != null) total += c.amount;
+    }
+    return total;
+  }
+
   /// Rebuy = qualquer aporte além do primeiro de cada participação.
   static int _rebuyCount(List<TableParticipation> ps) {
     var count = 0;
@@ -380,10 +394,12 @@ class _EmptyParticipations extends StatelessWidget {
 class _PotCard extends StatelessWidget {
   const _PotCard({
     required this.total,
+    required this.cashedOut,
     required this.playerCount,
     required this.rebuys,
   });
   final Decimal total;
+  final Decimal cashedOut;
   final int playerCount;
   final int rebuys;
 
@@ -452,6 +468,19 @@ class _PotCard extends StatelessWidget {
                     color: SpColors.muted,
                   ),
                 ),
+                if (cashedOut > Decimal.zero) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Saindo ${brlFromDecimal(cashedOut)}',
+                    style: const TextStyle(
+                      fontFamily: SpTypography.uiFamily,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: SpColors.gold,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ],
               ],
             ),
           ],
@@ -568,7 +597,9 @@ class _PlayerRow extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                participation.cashOut == null ? 'EM JOGO' : 'SAIU',
+                participation.cashOut == null
+                    ? 'EM JOGO'
+                    : 'SAIU · ${brlFromDecimal(participation.cashOut!.amount)}',
                 style: TextStyle(
                   fontFamily: SpTypography.uiFamily,
                   fontSize: 10,
@@ -1328,7 +1359,10 @@ class _HostActionsMenu extends StatelessWidget {
           onTransferred();
         } catch (e) {
           messenger.showSnackBar(
-            SnackBar(content: Text('Erro ao transferir host: $e')),
+            SnackBar(
+              backgroundColor: SpColors.danger,
+              content: Text(_hostActionMessage(e)),
+            ),
           );
         }
       },
@@ -1448,6 +1482,23 @@ class _TransferHostDialog extends StatelessWidget {
   }
 }
 
+String _hostActionMessage(Object error) {
+  if (error is ApiException) {
+    return switch (error.failure) {
+      ValidationFailure(:final message) => message,
+      UnauthorizedFailure(:final message) =>
+        message ?? 'Sem permissão pra essa ação.',
+      NotFoundFailure(:final message) =>
+        message ?? 'Não encontrado.',
+      NetworkFailure() => 'Sem conexão com o servidor.',
+      UnexpectedFailure(:final message) =>
+        message ?? 'Não foi possível concluir a ação.',
+      SignInCancelledFailure() => 'Ação cancelada.',
+    };
+  }
+  return 'Não foi possível concluir a ação.';
+}
+
 class _AddPlayerButton extends StatelessWidget {
   const _AddPlayerButton({required this.tableId});
 
@@ -1524,7 +1575,7 @@ class _PlayerHostMenu extends StatelessWidget {
       builder: (_) => _AmountPromptDialog(
         title: 'Cash-out de ${participation.userName}',
         hint: 'Valor com que saiu',
-        confirmLabel: 'Registrar cash-out',
+        confirmLabel: 'Confirmar',
         initial: participation.cashOut?.amount,
       ),
     );
@@ -1540,7 +1591,12 @@ class _PlayerHostMenu extends StatelessWidget {
       );
       await liveCubit.refresh();
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Erro: $e')));
+      messenger.showSnackBar(
+        SnackBar(
+          backgroundColor: SpColors.danger,
+          content: Text(_hostActionMessage(e)),
+        ),
+      );
     }
   }
 
@@ -1564,7 +1620,12 @@ class _PlayerHostMenu extends StatelessWidget {
       );
       await liveCubit.refresh();
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Erro: $e')));
+      messenger.showSnackBar(
+        SnackBar(
+          backgroundColor: SpColors.danger,
+          content: Text(_hostActionMessage(e)),
+        ),
+      );
     }
   }
 
@@ -1673,7 +1734,8 @@ class _AmountPromptDialogState extends State<_AmountPromptDialog> {
   void _confirm() {
     final raw = _ctrl.text.replaceAll(',', '.').trim();
     final amount = Decimal.tryParse(raw);
-    if (amount == null || amount <= Decimal.zero) {
+    // Permite 0 (jogador saiu sem nada). Bloqueia só nulo e negativo.
+    if (amount == null || amount < Decimal.zero) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           backgroundColor: SpColors.danger,

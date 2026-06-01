@@ -99,6 +99,8 @@ void registerAppDependencies(DIContainer di) {
   di.registerFactory(() => ListSettlements(di.get<SettlementsRepository>()));
   di.registerFactory(() => ConfirmSettlement(di.get<SettlementsRepository>()));
   di.registerFactory(
+      () => ConfirmSettlementOnBehalf(di.get<SettlementsRepository>()));
+  di.registerFactory(
       () => RequestAction(di.get<ActionRequestsRepository>()));
   di.registerFactory(
       () => ApproveActionRequest(di.get<ActionRequestsRepository>()));
@@ -142,6 +144,7 @@ void registerAppDependencies(DIContainer di) {
     () => PixCubit(
       listSettlements: di.get<ListSettlements>(),
       confirmSettlement: di.get<ConfirmSettlement>(),
+      confirmOnBehalf: di.get<ConfirmSettlementOnBehalf>(),
     ),
   );
   di.registerFactory(

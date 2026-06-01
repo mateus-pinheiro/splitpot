@@ -9,12 +9,15 @@ class PixCubit extends Cubit<PixState> {
   PixCubit({
     required ListSettlements listSettlements,
     required ConfirmSettlement confirmSettlement,
+    required ConfirmSettlementOnBehalf confirmOnBehalf,
   })  : _list = listSettlements,
         _confirm = confirmSettlement,
+        _confirmOnBehalf = confirmOnBehalf,
         super(const PixState.loading());
 
   final ListSettlements _list;
   final ConfirmSettlement _confirm;
+  final ConfirmSettlementOnBehalf _confirmOnBehalf;
 
   String? _tableId;
 
@@ -38,7 +41,25 @@ class PixCubit extends Cubit<PixState> {
     ));
     try {
       await _confirm(settlementId);
-      // Recarrega a lista pra refletir status atualizado.
+      if (_tableId != null) await load(_tableId!);
+    } on ApiException catch (e) {
+      emit(PixState.loaded(
+        settlements: cur.settlements,
+        errorFor: settlementId,
+        errorFailure: e.failure,
+      ));
+    }
+  }
+
+  Future<void> confirmOnBehalf(String settlementId) async {
+    final cur = state;
+    if (cur is! PixLoaded) return;
+    emit(PixState.loaded(
+      settlements: cur.settlements,
+      submittingId: settlementId,
+    ));
+    try {
+      await _confirmOnBehalf(settlementId);
       if (_tableId != null) await load(_tableId!);
     } on ApiException catch (e) {
       emit(PixState.loaded(

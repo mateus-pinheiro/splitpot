@@ -186,7 +186,14 @@ class CheckTableCubit extends Cubit<CheckTableState> {
       if (newAmount == null) continue;
       final current = p.cashOut?.amount;
       if (current == null || current != newAmount) {
-        await _setCashOut(participationId: p.id, amount: newAmount);
+        // skipAutoClose: o `closeNow` chama close/reconcile-and-close logo
+        // depois. Sem isso, o último ajuste pode disparar auto-close e o
+        // `_closeTable` cai em "Mesa já está fechada".
+        await _setCashOut(
+          participationId: p.id,
+          amount: newAmount,
+          skipAutoClose: true,
+        );
       }
     }
   }

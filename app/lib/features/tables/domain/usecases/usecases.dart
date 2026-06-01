@@ -10,6 +10,7 @@ export 'calculate_settlements.dart';
 export 'close_table.dart';
 export 'reconcile_and_close.dart';
 export 'confirm_settlement.dart';
+export 'confirm_settlement_on_behalf.dart';
 export 'create_table.dart';
 export 'get_table.dart';
 export 'get_table_preview.dart';

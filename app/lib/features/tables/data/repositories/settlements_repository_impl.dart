@@ -23,4 +23,9 @@ class SettlementsRepositoryImpl implements SettlementsRepository {
   Future<void> confirm(String settlementId) async {
     await _api.post('/settlements/$settlementId/confirm');
   }
+
+  @override
+  Future<void> confirmOnBehalf(String settlementId) async {
+    await _api.post('/settlements/$settlementId/confirm-on-behalf');
+  }
 }
