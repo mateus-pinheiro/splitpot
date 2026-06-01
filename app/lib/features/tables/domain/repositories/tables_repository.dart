@@ -36,6 +36,14 @@ abstract class TablesRepository {
     ReconcileStrategy strategy,
   );
 
+  /// Transfere o papel de host para outro participante ativo da mesa.
+  /// O `newOwnerId` é o `User.id` do novo host. Backend valida que o caller
+  /// é o host atual e que o alvo é participante ativo (sem cash-out).
+  Future<PokerTable> transferHost({
+    required String tableId,
+    required String newOwnerId,
+  });
+
   /// Stats agregadas pra home (P&L total, mesas, vitórias, recentes).
   Future<UserStats> getUserStats();
 }

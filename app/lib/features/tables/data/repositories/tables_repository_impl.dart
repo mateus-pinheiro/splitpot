@@ -80,6 +80,18 @@ class TablesRepositoryImpl implements TablesRepository {
   }
 
   @override
+  Future<PokerTable> transferHost({
+    required String tableId,
+    required String newOwnerId,
+  }) async {
+    final json = await _api.post(
+      '/tables/$tableId/transfer-host',
+      body: {'newOwnerId': newOwnerId},
+    );
+    return TableDto.fromJson(json);
+  }
+
+  @override
   Future<UserStats> getUserStats() async {
     final json = await _api.get('/users/me/stats');
     return UserStatsDto.fromJson(json);

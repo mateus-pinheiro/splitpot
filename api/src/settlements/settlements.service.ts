@@ -47,7 +47,9 @@ export class SettlementsService {
     });
     if (!settlement) throw new NotFoundException('Settlement não encontrado');
     if (settlement.fromUserId !== user.id && settlement.toUserId !== user.id) {
-      throw new ForbiddenException('Sem permissão para confirmar este settlement');
+      throw new ForbiddenException(
+        'Sem permissão para confirmar este settlement',
+      );
     }
     if (settlement.status === SettlementStatus.CONFIRMED) {
       throw new BadRequestException('Settlement já confirmado');
@@ -59,7 +61,11 @@ export class SettlementsService {
     });
   }
 
-  async setPix(firebaseUid: string, settlementId: string, dto: UpdateSettlementPixDto) {
+  async setPix(
+    firebaseUid: string,
+    settlementId: string,
+    dto: UpdateSettlementPixDto,
+  ) {
     const user = await this.users.requireByFirebaseUid(firebaseUid);
     const settlement = await this.prisma.settlement.findUnique({
       where: { id: settlementId },

@@ -5,12 +5,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/design/design_system.dart';
 import '../../../../core/di/di_container.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../auth/presentation/cubit/cubit.dart';
 import '../../domain/entities/entities.dart';
+import '../../domain/usecases/usecases.dart';
 import '../cubit/cubit.dart';
 import '../utils/join_link.dart';
 import '../widgets/rebuy_dialog.dart';
@@ -190,12 +192,19 @@ class _LoadedBody extends StatelessWidget {
               ),
               title: table.name,
               subtitle: SpLiveLabel(text: 'ao vivo · $duration'),
-              right: IconButton(
-                onPressed: () => _showTableInfoDialog(context, table),
-                color: SpColors.goldBright,
-                icon: const Icon(Icons.info_outline),
-                tooltip: 'Informações da mesa',
-              ),
+              right: isHost
+                  ? _HostActionsMenu(
+                      table: table,
+                      onShowInfo: () => _showTableInfoDialog(context, table),
+                      onTransferred: () =>
+                          context.read<LiveCubit>().refresh(),
+                    )
+                  : IconButton(
+                      onPressed: () => _showTableInfoDialog(context, table),
+                      color: SpColors.goldBright,
+                      icon: const Icon(Icons.info_outline),
+                      tooltip: 'Informações da mesa',
+                    ),
             ),
             Expanded(
               child: ListView(
@@ -1014,7 +1023,7 @@ class _TableInfoDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final code = shortTableCode(table.id);
-    final url = buildJoinUrl(table.id);
+    final url = buildJoinUrl(table.id, appDI.get<AppConfig>().webBaseUrl);
 
     return Dialog(
       backgroundColor: SpColors.feltDeep,
@@ -1234,6 +1243,177 @@ class _InlineCopyLink extends StatelessWidget {
               ),
               const Icon(Icons.content_copy,
                   color: SpColors.goldBright, size: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HostActionsMenu extends StatelessWidget {
+  const _HostActionsMenu({
+    required this.table,
+    required this.onShowInfo,
+    required this.onTransferred,
+  });
+
+  final PokerTable table;
+  final VoidCallback onShowInfo;
+  final VoidCallback onTransferred;
+
+  bool _isEligible(TableParticipation p) {
+    return p.userId != table.ownerId &&
+        p.cashOut == null &&
+        p.leftAt == null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final eligible = table.participations.where(_isEligible).toList();
+    return PopupMenuButton<String>(
+      tooltip: 'Ações do host',
+      color: SpColors.feltDeep,
+      icon: const Icon(Icons.more_vert, color: SpColors.goldBright),
+      onSelected: (value) async {
+        if (value == 'info') {
+          onShowInfo();
+          return;
+        }
+        if (value != 'transfer_host') return;
+        final selected = await showDialog<TableParticipation>(
+          context: context,
+          builder: (_) => _TransferHostDialog(eligible: eligible),
+        );
+        if (selected == null || !context.mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        try {
+          await appDI.get<TransferHost>().call(
+                tableId: table.id,
+                newOwnerId: selected.userId,
+              );
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                'Host transferido para ${selected.userName}',
+              ),
+            ),
+          );
+          onTransferred();
+        } catch (e) {
+          messenger.showSnackBar(
+            SnackBar(content: Text('Erro ao transferir host: $e')),
+          );
+        }
+      },
+      itemBuilder: (_) => [
+        const PopupMenuItem<String>(
+          value: 'info',
+          child: Text(
+            'Informações da mesa',
+            style: TextStyle(
+              fontFamily: SpTypography.uiFamily,
+              color: SpColors.cream,
+            ),
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'transfer_host',
+          enabled: eligible.isNotEmpty,
+          child: Text(
+            'Transferir host',
+            style: TextStyle(
+              fontFamily: SpTypography.uiFamily,
+              color: eligible.isEmpty ? SpColors.muted : SpColors.cream,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TransferHostDialog extends StatelessWidget {
+  const _TransferHostDialog({required this.eligible});
+
+  final List<TableParticipation> eligible;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: SpColors.feltDeep,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: SpColors.gold.withValues(alpha: 0.3)),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Transferir host',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: SpTypography.displayFamily,
+                  fontSize: 20,
+                  color: SpColors.goldBright,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Escolha o novo host. Só participantes ativos (sem cash-out) aparecem aqui.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: SpTypography.uiFamily,
+                  fontSize: 12,
+                  color: SpColors.muted,
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (eligible.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'Ninguém elegível no momento.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: SpTypography.uiFamily,
+                      fontSize: 13,
+                      color: SpColors.cream,
+                    ),
+                  ),
+                )
+              else
+                for (final p in eligible)
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      p.userName,
+                      style: const TextStyle(
+                        fontFamily: SpTypography.uiFamily,
+                        color: SpColors.cream,
+                      ),
+                    ),
+                    trailing: const Icon(Icons.chevron_right,
+                        color: SpColors.goldBright),
+                    onTap: () => Navigator.of(context).pop(p),
+                  ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(
+                    fontFamily: SpTypography.uiFamily,
+                    color: SpColors.muted,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

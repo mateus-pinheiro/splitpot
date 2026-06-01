@@ -4,12 +4,13 @@
 /// Hosting tem rewrite catch-all para index.html) quanto no app nativo via
 /// universal links / deep links.
 ///
-/// No iOS/Android, `Uri.base` é `file:///` e `.origin` lança StateError —
-/// por isso verificamos o scheme antes de acessar `.origin`.
-String buildJoinUrl(String tableId) {
+/// No web, prefere `Uri.base.origin` para refletir o domínio atual da página
+/// (ex.: preview do Vercel). No mobile (`file:///`), `.origin` lança
+/// StateError, então caímos no [webBaseUrl] vindo do `AppConfig`.
+String buildJoinUrl(String tableId, String webBaseUrl) {
   final base = Uri.base;
   final isWeb = base.scheme == 'http' || base.scheme == 'https';
-  final origin = isWeb ? base.origin : 'https://splitpot.app';
+  final origin = isWeb ? base.origin : webBaseUrl;
   return '$origin/table/$tableId/join';
 }
 

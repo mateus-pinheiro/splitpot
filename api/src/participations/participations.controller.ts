@@ -20,7 +20,10 @@ export class ParticipationsController {
   constructor(private readonly participations: ParticipationsService) {}
 
   @Post()
-  join(@FirebaseUser() token: DecodedIdToken, @Body() dto: CreateParticipationDto) {
+  join(
+    @FirebaseUser() token: DecodedIdToken,
+    @Body() dto: CreateParticipationDto,
+  ) {
     return this.participations.join(token.uid, dto);
   }
 

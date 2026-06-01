@@ -5,7 +5,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ActionRequestStatus, ActionType, Prisma, TableStatus } from '@prisma/client';
+import {
+  ActionRequestStatus,
+  ActionType,
+  Prisma,
+  TableStatus,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import { ParticipationsService } from '../participations/participations.service.js';
@@ -26,7 +31,8 @@ export class ActionRequestsService {
       where: { id: dto.participationId },
       include: { table: true },
     });
-    if (!participation) throw new NotFoundException('Participação não encontrada');
+    if (!participation)
+      throw new NotFoundException('Participação não encontrada');
     if (participation.table.status !== TableStatus.OPEN) {
       throw new BadRequestException('Mesa fechada não aceita solicitações');
     }
@@ -41,7 +47,9 @@ export class ActionRequestsService {
 
     const needsAmount = dto.type !== ActionType.LEAVE;
     if (needsAmount && dto.amount === undefined) {
-      throw new BadRequestException('O campo amount é obrigatório para este tipo de ação');
+      throw new BadRequestException(
+        'O campo amount é obrigatório para este tipo de ação',
+      );
     }
 
     const existing = await this.prisma.actionRequest.findFirst({
@@ -52,7 +60,9 @@ export class ActionRequestsService {
       },
     });
     if (existing) {
-      throw new ConflictException('Já existe uma solicitação pendente deste tipo');
+      throw new ConflictException(
+        'Já existe uma solicitação pendente deste tipo',
+      );
     }
 
     return this.prisma.actionRequest.create({
@@ -88,13 +98,22 @@ export class ActionRequestsService {
     switch (request.type) {
       case ActionType.BUYIN:
       case ActionType.REBUY:
-        await this.participations.executeBuyIn(request.participationId, amount!);
+        await this.participations.executeBuyIn(
+          request.participationId,
+          amount!,
+        );
         break;
       case ActionType.LEAVE:
-        await this.participations.executeCashOut(request.participationId, amount!);
+        await this.participations.executeCashOut(
+          request.participationId,
+          amount!,
+        );
         break;
       case ActionType.REJOIN:
-        await this.participations.executeRejoin(request.participationId, amount!);
+        await this.participations.executeRejoin(
+          request.participationId,
+          amount!,
+        );
         break;
     }
 

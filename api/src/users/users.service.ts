@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { User } from '@prisma/client';
 import { Prisma, SettlementStatus, TableStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -26,7 +30,10 @@ export class UsersService {
         update: { email, name: dto.name, pixKey: dto.pixKey },
       });
     } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
         throw new ConflictException('Email já utilizado por outro usuário');
       }
       throw err;
@@ -36,7 +43,9 @@ export class UsersService {
   async requireByFirebaseUid(firebaseUid: string): Promise<User> {
     const user = await this.prisma.user.findUnique({ where: { firebaseUid } });
     if (!user) {
-      throw new NotFoundException('Usuário ainda não provisionado: chame POST /users/me');
+      throw new NotFoundException(
+        'Usuário ainda não provisionado: chame POST /users/me',
+      );
     }
     return user;
   }
@@ -45,7 +54,10 @@ export class UsersService {
     const current = await this.requireByFirebaseUid(firebaseUid);
     return this.prisma.user.update({
       where: { id: current.id },
-      data: { name: dto.name ?? current.name, pixKey: dto.pixKey ?? current.pixKey },
+      data: {
+        name: dto.name ?? current.name,
+        pixKey: dto.pixKey ?? current.pixKey,
+      },
     });
   }
 

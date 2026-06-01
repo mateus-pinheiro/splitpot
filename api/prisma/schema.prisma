@@ -70,12 +70,12 @@ model Table {
 model TableParticipation {
   id       String    @id @default(cuid())
   tableId  String
-  userId   String
+  userId   String?
   joinedAt DateTime  @default(now())
   leftAt   DateTime?
 
   table          Table          @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  user           User           @relation(fields: [userId], references: [id])
+  user           User?          @relation(fields: [userId], references: [id])
   buyIns         BuyIn[]
   cashOut        CashOut?
   actionRequests ActionRequest[]

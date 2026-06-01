@@ -79,6 +79,7 @@ void registerAppDependencies(DIContainer di) {
   di.registerFactory(() => GetTablePreview(di.get<TablesRepository>()));
   di.registerFactory(() => CloseTable(di.get<TablesRepository>()));
   di.registerFactory(() => ReconcileAndClose(di.get<TablesRepository>()));
+  di.registerFactory(() => TransferHost(di.get<TablesRepository>()));
   di.registerFactory(() => GetUserStats(di.get<TablesRepository>()));
   di.registerFactory(() => JoinTable(di.get<ParticipationsRepository>()));
   di.registerFactory(() => AddBuyIn(di.get<ParticipationsRepository>()));

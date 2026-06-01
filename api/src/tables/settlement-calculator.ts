@@ -30,8 +30,8 @@ export function computeSettlements(nets: ParticipantNet[]): SettlementPlan[] {
   let j = 0;
 
   while (i < debtors.length && j < creditors.length) {
-    const debtor = debtors[i]!;
-    const creditor = creditors[j]!;
+    const debtor = debtors[i];
+    const creditor = creditors[j];
     const amount = Prisma.Decimal.min(debtor.remaining, creditor.remaining);
 
     if (amount.greaterThan(ZERO)) {

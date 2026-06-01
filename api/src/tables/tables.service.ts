@@ -10,7 +10,10 @@ import { UsersService } from '../users/users.service.js';
 import type { CreateTableDto } from './dto/create-table.dto.js';
 import { ReconcileStrategy } from './dto/reconcile-and-close.dto.js';
 import type { UpdateTableDto } from './dto/update-table.dto.js';
-import { computeSettlements, type ParticipantNet } from './settlement-calculator.js';
+import {
+  computeSettlements,
+  type ParticipantNet,
+} from './settlement-calculator.js';
 
 @Injectable()
 export class TablesService {
@@ -23,7 +26,9 @@ export class TablesService {
     const owner = await this.users.requireByFirebaseUid(firebaseUid);
     const minBuyIn = new Prisma.Decimal(dto.minBuyIn);
     const initialBuyIn =
-      dto.initialBuyIn !== undefined ? new Prisma.Decimal(dto.initialBuyIn) : null;
+      dto.initialBuyIn !== undefined
+        ? new Prisma.Decimal(dto.initialBuyIn)
+        : null;
     if (initialBuyIn !== null && dto.joinAsPlayer !== true) {
       throw new BadRequestException(
         'initialBuyIn só é permitido quando joinAsPlayer é true',
@@ -57,7 +62,10 @@ export class TablesService {
     const user = await this.users.requireByFirebaseUid(firebaseUid);
     return this.prisma.table.findMany({
       where: {
-        OR: [{ ownerId: user.id }, { participations: { some: { userId: user.id } } }],
+        OR: [
+          { ownerId: user.id },
+          { participations: { some: { userId: user.id } } },
+        ],
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -103,7 +111,9 @@ export class TablesService {
         owner: { select: { id: true, name: true, email: true } },
         participations: {
           include: {
-            user: { select: { id: true, name: true, email: true, pixKey: true } },
+            user: {
+              select: { id: true, name: true, email: true, pixKey: true },
+            },
             buyIns: true,
             cashOut: true,
           },
@@ -126,7 +136,9 @@ export class TablesService {
     if (!table) throw new NotFoundException('Mesa não encontrada');
 
     const isOwner = table.ownerId === user.id;
-    const isParticipant = table.participations.some((p) => p.userId === user.id);
+    const isParticipant = table.participations.some(
+      (p) => p.userId === user.id,
+    );
     if (!isOwner && !isParticipant) {
       throw new ForbiddenException('Sem acesso a essa mesa');
     }
@@ -163,15 +175,24 @@ export class TablesService {
     }
     const allCashedOut = activeCount > 0 && cashedOutCount === activeCount;
     const needsReconciliation =
-      table.status === TableStatus.OPEN && allCashedOut && !totalBuyIn.equals(totalCashOut);
+      table.status === TableStatus.OPEN &&
+      allCashedOut &&
+      !totalBuyIn.equals(totalCashOut);
     return { totalBuyIn, totalCashOut, needsReconciliation };
   }
 
-  async update(firebaseUid: string, tableId: string, dto: UpdateTableDto): Promise<Table> {
+  async update(
+    firebaseUid: string,
+    tableId: string,
+    dto: UpdateTableDto,
+  ): Promise<Table> {
     const user = await this.users.requireByFirebaseUid(firebaseUid);
-    const table = await this.prisma.table.findUnique({ where: { id: tableId } });
+    const table = await this.prisma.table.findUnique({
+      where: { id: tableId },
+    });
     if (!table) throw new NotFoundException('Mesa não encontrada');
-    if (table.ownerId !== user.id) throw new ForbiddenException('Apenas o dono pode editar');
+    if (table.ownerId !== user.id)
+      throw new ForbiddenException('Apenas o dono pode editar');
     if (table.status !== TableStatus.OPEN) {
       throw new BadRequestException('Mesa fechada não pode ser editada');
     }
@@ -181,7 +202,10 @@ export class TablesService {
         where: { id: tableId },
         data: {
           name: dto.name ?? table.name,
-          minBuyIn: dto.minBuyIn !== undefined ? new Prisma.Decimal(dto.minBuyIn) : table.minBuyIn,
+          minBuyIn:
+            dto.minBuyIn !== undefined
+              ? new Prisma.Decimal(dto.minBuyIn)
+              : table.minBuyIn,
         },
       });
 
@@ -209,16 +233,60 @@ export class TablesService {
     });
   }
 
+  async transferHost(
+    firebaseUid: string,
+    tableId: string,
+    newOwnerId: string,
+  ): Promise<Table> {
+    const caller = await this.users.requireByFirebaseUid(firebaseUid);
+    const table = await this.prisma.table.findUnique({
+      where: { id: tableId },
+    });
+    if (!table) throw new NotFoundException('Mesa não encontrada');
+    if (table.ownerId !== caller.id) {
+      throw new ForbiddenException('Apenas o host atual pode transferir');
+    }
+    if (table.status !== TableStatus.OPEN) {
+      throw new BadRequestException('Mesa fechada não pode trocar de host');
+    }
+    if (newOwnerId === caller.id) {
+      throw new BadRequestException('Você já é o host');
+    }
+
+    const target = await this.prisma.tableParticipation.findFirst({
+      where: { tableId, userId: newOwnerId, leftAt: null },
+      include: { cashOut: true },
+    });
+    if (!target) {
+      throw new BadRequestException(
+        'O novo host precisa ser um participante ativo da mesa',
+      );
+    }
+    if (target.cashOut) {
+      throw new BadRequestException('O novo host não pode ter feito cash-out');
+    }
+
+    return this.prisma.table.update({
+      where: { id: tableId },
+      data: { ownerId: newOwnerId },
+    });
+  }
+
   async close(firebaseUid: string, tableId: string) {
     const user = await this.users.requireByFirebaseUid(firebaseUid);
-    const table = await this.prisma.table.findUnique({ where: { id: tableId } });
+    const table = await this.prisma.table.findUnique({
+      where: { id: tableId },
+    });
     if (!table) throw new NotFoundException('Mesa não encontrada');
-    if (table.ownerId !== user.id) throw new ForbiddenException('Apenas o dono pode fechar');
+    if (table.ownerId !== user.id)
+      throw new ForbiddenException('Apenas o dono pode fechar');
     return this.closeBySystem(tableId);
   }
 
   async closeBySystem(tableId: string) {
-    return this.prisma.$transaction((tx) => this.closeInTransaction(tx, tableId));
+    return this.prisma.$transaction((tx) =>
+      this.closeInTransaction(tx, tableId),
+    );
   }
 
   /**
@@ -234,7 +302,9 @@ export class TablesService {
     strategy: ReconcileStrategy,
   ) {
     const user = await this.users.requireByFirebaseUid(firebaseUid);
-    const table = await this.prisma.table.findUnique({ where: { id: tableId } });
+    const table = await this.prisma.table.findUnique({
+      where: { id: tableId },
+    });
     if (!table) throw new NotFoundException('Mesa não encontrada');
     if (table.ownerId !== user.id) {
       throw new ForbiddenException('Apenas o dono pode reconciliar');
@@ -245,7 +315,8 @@ export class TablesService {
         where: { tableId, leftAt: null },
         include: { buyIns: true, cashOut: true },
       });
-      if (active.length === 0) throw new BadRequestException('Mesa sem participantes');
+      if (active.length === 0)
+        throw new BadRequestException('Mesa sem participantes');
       const missing = active.filter((p) => !p.cashOut);
       if (missing.length > 0) {
         throw new BadRequestException(
@@ -285,10 +356,11 @@ export class TablesService {
           const perHead = diff.dividedBy(n).toDecimalPlaces(2);
           const residue = diff.minus(perHead.times(n));
           const residueTarget =
-            active.find((p) => p.userId === user.id) ?? active[0]!;
+            active.find((p) => p.userId === user.id) ?? active[0];
 
           for (const p of active) {
-            const extra = p.id === residueTarget.id ? residue : new Prisma.Decimal(0);
+            const extra =
+              p.id === residueTarget.id ? residue : new Prisma.Decimal(0);
             const newAmount = p.cashOut!.amount.minus(perHead).minus(extra);
             await tx.cashOut.update({
               where: { participationId: p.id },
@@ -333,6 +405,11 @@ export class TablesService {
     let totalBuyIn = new Prisma.Decimal(0);
     let totalCashOut = new Prisma.Decimal(0);
     const nets: ParticipantNet[] = table.participations.map((p) => {
+      if (!p.userId) {
+        throw new BadRequestException(
+          'Cálculo de settlement para convidado ainda não suportado',
+        );
+      }
       const buyInSum = p.buyIns.reduce(
         (acc, b) => acc.plus(b.amount),
         new Prisma.Decimal(0),
