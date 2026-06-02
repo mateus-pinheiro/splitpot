@@ -47,4 +47,36 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Token inválido');
     }
   }
+
+  /**
+   * Descobre quais providers (password/google.com/apple.com) estão
+   * vinculados a um email. Usa o Admin SDK (`getUserByEmail`), que — ao
+   * contrário do `accounts:createAuthUri` do client — **não** é afetado
+   * pela Email Enumeration Protection do Firebase e devolve os providers
+   * reais. É a fonte de verdade para o roteamento de login no app.
+   *
+   * Retorna `registered: false` quando o email não existe.
+   */
+  async lookupProviders(
+    email: string,
+  ): Promise<{ registered: boolean; providers: string[] }> {
+    if (!this.app) {
+      throw new UnauthorizedException('Firebase Admin não configurado');
+    }
+    try {
+      const user = await getAuth(this.app).getUserByEmail(email);
+      const providers = user.providerData
+        .map((p) => p.providerId)
+        .filter((id): id is string => Boolean(id));
+      return { registered: true, providers };
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        (err as { code?: string }).code === 'auth/user-not-found'
+      ) {
+        return { registered: false, providers: [] };
+      }
+      throw err;
+    }
+  }
 }

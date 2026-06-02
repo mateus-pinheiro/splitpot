@@ -1,7 +1,7 @@
 import 'auth_provider.dart';
 
-/// Resultado do lookup `accounts:createAuthUri` do Firebase: informa se o
-/// email já está cadastrado e quais providers estão vinculados.
+/// Resultado do lookup de providers (`GET /auth/providers` no backend):
+/// informa se o email já está cadastrado e quais providers estão vinculados.
 class EmailProvidersLookup {
   const EmailProvidersLookup({
     required this.registered,

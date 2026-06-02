@@ -47,9 +47,23 @@ class AuthRepositoryImpl implements AuthRepository {
     return _firebase.signInWithPassword(email: email, password: password);
   }
 
+  /// Lookup de providers via backend (`GET /auth/providers`), que usa o
+  /// Firebase Admin SDK como fonte de verdade. Evitamos o
+  /// `accounts:createAuthUri` do client porque ele responde
+  /// `registered: false` para todo email quando a Email Enumeration
+  /// Protection está ligada — o que jogava logins legítimos pro fluxo de
+  /// cadastro.
   @override
-  Future<EmailProvidersLookup> lookupEmailProviders(String email) {
-    return _firebase.fetchProvidersForEmail(email);
+  Future<EmailProvidersLookup> lookupEmailProviders(String email) async {
+    final json = await _api.get('/auth/providers', query: {'email': email});
+    final registered = json['registered'] == true;
+    final all =
+        (json['providers'] as List?)?.cast<String>() ?? const <String>[];
+    final providers = all
+        .map(AuthProvider.fromFirebaseId)
+        .whereType<AuthProvider>()
+        .toList(growable: false);
+    return EmailProvidersLookup(registered: registered, providers: providers);
   }
 
   @override

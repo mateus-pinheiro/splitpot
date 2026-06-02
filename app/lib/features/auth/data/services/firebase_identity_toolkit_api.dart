@@ -6,7 +6,6 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/auth_provider.dart';
-import '../../domain/entities/email_providers_lookup.dart';
 
 /// Cliente HTTP puro pra Firebase Identity Toolkit. Centraliza o
 /// `firebaseWebApiKey`, parsing das respostas e mapeamento de erros
@@ -65,24 +64,6 @@ class FirebaseIdentityToolkitApi {
       'returnSecureToken': true,
     });
     return IdentityToolkitSession.fromJson(decoded);
-  }
-
-  /// Descobre se o email já está cadastrado e quais providers usa.
-  /// Resposta inclui `registered: bool` e `allProviders: string[]`.
-  Future<EmailProvidersLookup> createAuthUri(String email) async {
-    final decoded = await _post('accounts:createAuthUri', {
-      'identifier': email,
-      // continueUri é obrigatório no contrato mas não tem efeito real
-      // pra um lookup — qualquer URL bem-formada serve.
-      'continueUri': 'http://localhost',
-    });
-    final registered = decoded['registered'] == true;
-    final all = (decoded['allProviders'] as List?)?.cast<String>() ?? const <String>[];
-    final providers = all
-        .map(AuthProvider.fromFirebaseId)
-        .whereType<AuthProvider>()
-        .toList(growable: false);
-    return EmailProvidersLookup(registered: registered, providers: providers);
   }
 
   Future<Map<String, dynamic>> _post(

@@ -7,7 +7,6 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/auth_provider.dart';
-import '../../domain/entities/email_providers_lookup.dart';
 import 'apple_sign_in_service.dart';
 import 'firebase_identity_toolkit_api.dart';
 
@@ -170,10 +169,6 @@ class FirebaseRestAuthService {
       refreshToken: session.refreshToken,
       provider: AuthProvider.password,
     );
-  }
-
-  Future<EmailProvidersLookup> fetchProvidersForEmail(String email) {
-    return _identityToolkit.createAuthUri(email);
   }
 
   Future<void> signOut() async {

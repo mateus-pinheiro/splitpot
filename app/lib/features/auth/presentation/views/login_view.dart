@@ -16,32 +16,54 @@ bool get _showAppleButton {
   return defaultTargetPlatform == TargetPlatform.iOS;
 }
 
-class LoginView extends StatelessWidget {
+class LoginView extends StatefulWidget {
   const LoginView({super.key});
 
   @override
+  State<LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<LoginView> {
+  // Sinaliza a fase de verificação do email (lookup no backend) para o loader
+  // de tela cheia. Vive aqui — acima do `SpLoadingScreen` — porque o flag é
+  // setado lá dentro, em `_LoginBody`. Depois do lookup, o estado
+  // `AuthAuthenticating` do cubit assume e mantém o loader até o redirect.
+  final _busy = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _busy.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AuthCubit, AuthState>(
-      buildWhen: (p, c) =>
-          (p is AuthAuthenticating) != (c is AuthAuthenticating),
-      builder: (context, state) {
-        return SpLoadingScreen(
-          loading: state is AuthAuthenticating,
-          child: Scaffold(
-            // Controlamos o espaço do teclado manualmente em `_LoginBody`
-            // (reservando padding e rolando), em vez de deixar o Scaffold
-            // encolher o body — o FeltBackground/Stack não propagava bem o resize.
-            resizeToAvoidBottomInset: false,
-            body: FeltBackground(
-              child: SafeArea(
-                child: BlocListener<AuthCubit, AuthState>(
-                  listener: _handleErrorToast,
-                  listenWhen: (p, c) => c is AuthError,
-                  child: const _LoginBody(),
+    return ValueListenableBuilder<bool>(
+      valueListenable: _busy,
+      builder: (context, busy, _) {
+        return BlocBuilder<AuthCubit, AuthState>(
+          buildWhen: (p, c) =>
+              (p is AuthAuthenticating) != (c is AuthAuthenticating),
+          builder: (context, state) {
+            return SpLoadingScreen(
+              loading: busy || state is AuthAuthenticating,
+              child: Scaffold(
+                // Controlamos o espaço do teclado manualmente em `_LoginBody`
+                // (reservando padding e rolando), em vez de deixar o Scaffold
+                // encolher o body — o FeltBackground/Stack não propagava bem o resize.
+                resizeToAvoidBottomInset: false,
+                body: FeltBackground(
+                  child: SafeArea(
+                    child: BlocListener<AuthCubit, AuthState>(
+                      listener: _handleErrorToast,
+                      listenWhen: (p, c) => c is AuthError,
+                      child: _LoginBody(busy: _busy),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -75,7 +97,11 @@ class LoginView extends StatelessWidget {
 /// - email não existe → vai pra CompleteProfile (modo signup) com email
 ///   e senha carregados em `AuthNeedsProfile.draftEmail/draftPassword`
 class _LoginBody extends StatefulWidget {
-  const _LoginBody();
+  const _LoginBody({required this.busy});
+
+  /// Compartilhado com `_LoginViewState` para acionar o loader de tela cheia
+  /// durante a verificação do email.
+  final ValueNotifier<bool> busy;
 
   @override
   State<_LoginBody> createState() => _LoginBodyState();
@@ -87,6 +113,10 @@ class _LoginBodyState extends State<_LoginBody> with WidgetsBindingObserver {
   final _scrollController = ScrollController();
   bool _submitting = false;
   bool _obscure = true;
+  // Realça o botão "Continue with Google" por alguns segundos quando o email
+  // digitado pertence a uma conta Google e estamos na web (onde não dá pra
+  // abrir o Google programaticamente — só pelo botão renderizado pela GIS).
+  bool _highlightGoogle = false;
 
   // Regex prática (não exaustiva) — Firebase faz a validação final.
   static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
@@ -135,7 +165,7 @@ class _LoginBodyState extends State<_LoginBody> with WidgetsBindingObserver {
     final cubit = context.read<AuthCubit>();
     final lookupUsecase = appDI.get<LookupEmailProviders>();
 
-    setState(() => _submitting = true);
+    _setBusy(true);
     try {
       final lookup = await lookupUsecase(email);
 
@@ -144,6 +174,14 @@ class _LoginBodyState extends State<_LoginBody> with WidgetsBindingObserver {
         // Senha digitada é ignorada nesses casos — o OAuth do provider
         // assume o lugar dela.
         if (lookup.hasGoogle) {
+          // Na web não dá pra abrir o popup do Google programaticamente — ele
+          // só dispara no clique do botão renderizado pela GIS. Em vez de
+          // travar num loader, guiamos o usuário até o botão (com destaque).
+          if (kIsWeb) {
+            _toast('Essa conta usa Google. Toque em "Continue with Google".');
+            _flashGoogleHighlight();
+            return;
+          }
           _toast('Detectamos conta Google — abrindo login...');
           await cubit.signInWithGoogle();
           return;
@@ -172,8 +210,34 @@ class _LoginBodyState extends State<_LoginBody> with WidgetsBindingObserver {
     } on Object catch (e) {
       _toast(_messageFor(e));
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      _setBusy(false);
     }
+  }
+
+  // Liga/desliga o loader de tela cheia (via `widget.busy`) e o estado de
+  // desabilitar campos/botão (via `_submitting`) num só ponto.
+  void _setBusy(bool value) {
+    if (!mounted) return;
+    widget.busy.value = value;
+    setState(() => _submitting = value);
+  }
+
+  // Rola até o topo e acende o destaque do botão Google por alguns segundos.
+  void _flashGoogleHighlight() {
+    if (!mounted) return;
+    // Fecha o teclado pra revelar o botão Google (fica no topo da tela).
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+    setState(() => _highlightGoogle = true);
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _highlightGoogle = false);
+    });
   }
 
   void _toast(String message) {
@@ -218,7 +282,7 @@ class _LoginBodyState extends State<_LoginBody> with WidgetsBindingObserver {
                 children: [
                   const Expanded(child: _LoginHero()),
                   const SizedBox(height: 24),
-                  const _SocialButtons(),
+                  _SocialButtons(highlightGoogle: _highlightGoogle),
                   const SizedBox(height: 20),
                   const _OrDivider(),
                   const SizedBox(height: 20),
@@ -391,7 +455,11 @@ class _ChipTower extends StatelessWidget {
 }
 
 class _SocialButtons extends StatelessWidget {
-  const _SocialButtons();
+  const _SocialButtons({this.highlightGoogle = false});
+
+  /// Acende um contorno dourado no botão Google (web) quando o login detecta
+  /// que o email digitado pertence a uma conta Google.
+  final bool highlightGoogle;
 
   @override
   Widget build(BuildContext context) {
@@ -409,7 +477,7 @@ class _SocialButtons extends StatelessWidget {
           const SizedBox(height: 12),
         ],
         if (kIsWeb)
-          const _LoginWebGoogle()
+          _LoginWebGoogle(highlight: highlightGoogle)
         else
           _AuthButton(
             onPressed: () => context.read<AuthCubit>().signInWithGoogle(),
@@ -425,17 +493,32 @@ class _SocialButtons extends StatelessWidget {
 }
 
 class _LoginWebGoogle extends StatelessWidget {
-  const _LoginWebGoogle();
+  const _LoginWebGoogle({this.highlight = false});
+
+  final bool highlight;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
       height: 52,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: SpColors.cream,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: highlight ? SpColors.gold : Colors.white.withValues(alpha: 0.3),
+          width: highlight ? 2 : 1,
+        ),
+        boxShadow: highlight
+            ? [
+                BoxShadow(
+                  color: SpColors.gold.withValues(alpha: 0.45),
+                  blurRadius: 16,
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: buildGoogleSignInWebButton(),
