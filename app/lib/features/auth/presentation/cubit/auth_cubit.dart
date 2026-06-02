@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/auth_provider.dart';
+import '../../../../core/network/session_expired_notifier.dart';
 import '../../domain/entities/sign_in_outcome.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/usecases/usecases.dart';
@@ -21,6 +22,7 @@ class AuthCubit extends Cubit<AuthState> {
     required GetCurrentUser getCurrentUser,
     required UpdateProfile updateProfile,
     required SignOut signOut,
+    required SessionExpiredNotifier sessionExpiredNotifier,
   })  : _signInWithGoogle = signInWithGoogle,
         _signInWithApple = signInWithApple,
         _signInWithPassword = signInWithPassword,
@@ -36,6 +38,9 @@ class AuthCubit extends Cubit<AuthState> {
     _attemptsSub = observeSignInAttempts().listen(
       (_) => emit(const AuthState.authenticating()),
     );
+    _sessionExpiredSub = sessionExpiredNotifier.stream.listen(
+      (_) => _onSessionExpired(),
+    );
   }
 
   final SignInWithGoogle _signInWithGoogle;
@@ -47,6 +52,7 @@ class AuthCubit extends Cubit<AuthState> {
   final SignOut _signOut;
   late final StreamSubscription<SignInOutcome> _outcomesSub;
   late final StreamSubscription<void> _attemptsSub;
+  late final StreamSubscription<void> _sessionExpiredSub;
 
   Future<void> bootstrap() async {
     emit(const AuthState.authenticating());
@@ -205,7 +211,21 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> close() async {
     await _outcomesSub.cancel();
     await _attemptsSub.cancel();
+    await _sessionExpiredSub.cancel();
     return super.close();
+  }
+
+  /// Dispara quando o backend responde 401. Só encerra a sessão se estávamos
+  /// efetivamente logados — em `authenticating`/`unauthenticated`/`error` o
+  /// próprio fluxo de bootstrap ou sign-in já cuida do estado.
+  void _onSessionExpired() {
+    final current = state;
+    if (current is AuthUnauthenticated ||
+        current is AuthAuthenticating ||
+        current is AuthError) {
+      return;
+    }
+    unawaited(signOut());
   }
 
   void _onOutcome(SignInOutcome outcome) {

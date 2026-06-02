@@ -20,10 +20,12 @@ void registerAppDependencies(DIContainer di) {
   di.registerSingleton<AppConfig>(AppConfig.fromEnvironment());
   di.registerSingleton<FirebaseTokenStore>(FirebaseTokenStore());
   di.registerSingleton<TokenProvider>(di.get<FirebaseTokenStore>());
+  di.registerSingleton<SessionExpiredNotifier>(SessionExpiredNotifier());
   di.registerLazySingleton<ApiClient>(
     () => ApiClient(
       config: di.get<AppConfig>(),
       tokenProvider: di.get<TokenProvider>(),
+      sessionExpiredNotifier: di.get<SessionExpiredNotifier>(),
     ),
   );
   di.registerLazySingleton<FirebaseIdentityToolkitApi>(
@@ -73,6 +75,7 @@ void registerAppDependencies(DIContainer di) {
       getCurrentUser: di.get<GetCurrentUser>(),
       updateProfile: di.get<UpdateProfile>(),
       signOut: di.get<SignOut>(),
+      sessionExpiredNotifier: di.get<SessionExpiredNotifier>(),
     ),
   );
 

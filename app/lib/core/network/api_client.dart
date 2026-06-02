@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../errors/failure.dart';
 import 'api_exception.dart';
+import 'session_expired_notifier.dart';
 import 'token_provider.dart';
 
 /// Cliente HTTP mínimo para a API do SplitPot.
@@ -17,13 +18,16 @@ class ApiClient {
   ApiClient({
     required AppConfig config,
     required TokenProvider tokenProvider,
+    SessionExpiredNotifier? sessionExpiredNotifier,
     http.Client? httpClient,
   })  : _config = config,
         _tokenProvider = tokenProvider,
+        _sessionExpired = sessionExpiredNotifier,
         _http = httpClient ?? http.Client();
 
   final AppConfig _config;
   final TokenProvider _tokenProvider;
+  final SessionExpiredNotifier? _sessionExpired;
   final http.Client _http;
 
   Future<Map<String, dynamic>> get(
@@ -114,6 +118,9 @@ class ApiClient {
     final response = await http.Response.fromStream(streamed);
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return response;
+    }
+    if (response.statusCode == 401) {
+      _sessionExpired?.notify();
     }
     throw _mapError(response);
   }
