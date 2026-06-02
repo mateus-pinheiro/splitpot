@@ -6,6 +6,7 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/session_expired_notifier.dart';
 import '../../domain/entities/sign_in_outcome.dart';
+import '../../domain/entities/user.dart';
 import '../../domain/usecases/usecases.dart';
 import 'auth_state.dart';
 
@@ -82,6 +83,16 @@ class AuthCubit extends Cubit<AuthState> {
     } on Object catch (e) {
       emit(AuthState.error(_asFailure(e)));
     }
+  }
+
+  /// Atualiza nome/PIX de um usuário já autenticado (fluxo de edição de
+  /// perfil). Diferente de [completeProfile], não passa por
+  /// `AuthUpdatingProfile` para não acionar o redirect para
+  /// `/complete-profile`. Relança erros para que a view exiba feedback local.
+  Future<User> editProfile({required String name, required String pixKey}) async {
+    final user = await _updateProfile(name: name, pixKey: pixKey);
+    emit(AuthState.authenticated(user));
+    return user;
   }
 
   Future<void> signOut() async {

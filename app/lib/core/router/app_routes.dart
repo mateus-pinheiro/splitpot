@@ -4,6 +4,7 @@ class AppRoutes {
   static const login = '/login';
   static const home = '/';
   static const completeProfile = '/complete-profile';
+  static const editProfile = '/profile/edit';
 
   static const createTable = '/table/new';
   static const joinTable = '/table/join';

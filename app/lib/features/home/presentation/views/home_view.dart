@@ -56,6 +56,7 @@ class _HomeScaffold extends StatelessWidget {
       children: [
         SpAppHeader(
           left: GestureDetector(
+            onTap: () => context.push(AppRoutes.editProfile),
             onLongPress: () => context.read<AuthCubit>().signOut(),
             child: SpAvatar(name: displayName, size: 32),
           ),

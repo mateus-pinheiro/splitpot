@@ -53,6 +53,10 @@ class AppRouter {
         pageBuilder: (_, s) => _slide(s, const CompleteProfileView()),
       ),
       GoRoute(
+        path: AppRoutes.editProfile,
+        pageBuilder: (_, s) => _slide(s, const EditProfileView()),
+      ),
+      GoRoute(
         path: AppRoutes.home,
         pageBuilder: (_, s) => _slide(s, const HomeView()),
       ),
