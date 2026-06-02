@@ -131,14 +131,14 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  unauthenticated,TResult Function()?  authenticating,TResult Function( User user)?  authenticated,TResult Function( String suggestedName)?  needsProfile,TResult Function( String suggestedName)?  updatingProfile,TResult Function( Failure failure)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  unauthenticated,TResult Function()?  authenticating,TResult Function( User user)?  authenticated,TResult Function( String suggestedName,  AuthProvider provider,  String? draftEmail,  String? draftPassword)?  needsProfile,TResult Function( String suggestedName,  AuthProvider provider)?  updatingProfile,TResult Function( Failure failure)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case AuthUnauthenticated() when unauthenticated != null:
 return unauthenticated();case AuthAuthenticating() when authenticating != null:
 return authenticating();case AuthAuthenticated() when authenticated != null:
 return authenticated(_that.user);case AuthNeedsProfile() when needsProfile != null:
-return needsProfile(_that.suggestedName);case AuthUpdatingProfile() when updatingProfile != null:
-return updatingProfile(_that.suggestedName);case AuthError() when error != null:
+return needsProfile(_that.suggestedName,_that.provider,_that.draftEmail,_that.draftPassword);case AuthUpdatingProfile() when updatingProfile != null:
+return updatingProfile(_that.suggestedName,_that.provider);case AuthError() when error != null:
 return error(_that.failure);case _:
   return orElse();
 
@@ -157,14 +157,14 @@ return error(_that.failure);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  unauthenticated,required TResult Function()  authenticating,required TResult Function( User user)  authenticated,required TResult Function( String suggestedName)  needsProfile,required TResult Function( String suggestedName)  updatingProfile,required TResult Function( Failure failure)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  unauthenticated,required TResult Function()  authenticating,required TResult Function( User user)  authenticated,required TResult Function( String suggestedName,  AuthProvider provider,  String? draftEmail,  String? draftPassword)  needsProfile,required TResult Function( String suggestedName,  AuthProvider provider)  updatingProfile,required TResult Function( Failure failure)  error,}) {final _that = this;
 switch (_that) {
 case AuthUnauthenticated():
 return unauthenticated();case AuthAuthenticating():
 return authenticating();case AuthAuthenticated():
 return authenticated(_that.user);case AuthNeedsProfile():
-return needsProfile(_that.suggestedName);case AuthUpdatingProfile():
-return updatingProfile(_that.suggestedName);case AuthError():
+return needsProfile(_that.suggestedName,_that.provider,_that.draftEmail,_that.draftPassword);case AuthUpdatingProfile():
+return updatingProfile(_that.suggestedName,_that.provider);case AuthError():
 return error(_that.failure);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -179,14 +179,14 @@ return error(_that.failure);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  unauthenticated,TResult? Function()?  authenticating,TResult? Function( User user)?  authenticated,TResult? Function( String suggestedName)?  needsProfile,TResult? Function( String suggestedName)?  updatingProfile,TResult? Function( Failure failure)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  unauthenticated,TResult? Function()?  authenticating,TResult? Function( User user)?  authenticated,TResult? Function( String suggestedName,  AuthProvider provider,  String? draftEmail,  String? draftPassword)?  needsProfile,TResult? Function( String suggestedName,  AuthProvider provider)?  updatingProfile,TResult? Function( Failure failure)?  error,}) {final _that = this;
 switch (_that) {
 case AuthUnauthenticated() when unauthenticated != null:
 return unauthenticated();case AuthAuthenticating() when authenticating != null:
 return authenticating();case AuthAuthenticated() when authenticated != null:
 return authenticated(_that.user);case AuthNeedsProfile() when needsProfile != null:
-return needsProfile(_that.suggestedName);case AuthUpdatingProfile() when updatingProfile != null:
-return updatingProfile(_that.suggestedName);case AuthError() when error != null:
+return needsProfile(_that.suggestedName,_that.provider,_that.draftEmail,_that.draftPassword);case AuthUpdatingProfile() when updatingProfile != null:
+return updatingProfile(_that.suggestedName,_that.provider);case AuthError() when error != null:
 return error(_that.failure);case _:
   return null;
 
@@ -338,10 +338,13 @@ $UserCopyWith<$Res> get user {
 
 
 class AuthNeedsProfile implements AuthState {
-  const AuthNeedsProfile({required this.suggestedName});
+  const AuthNeedsProfile({required this.suggestedName, required this.provider, this.draftEmail, this.draftPassword});
   
 
  final  String suggestedName;
+ final  AuthProvider provider;
+ final  String? draftEmail;
+ final  String? draftPassword;
 
 /// Create a copy of AuthState
 /// with the given fields replaced by the non-null parameter values.
@@ -353,16 +356,16 @@ $AuthNeedsProfileCopyWith<AuthNeedsProfile> get copyWith => _$AuthNeedsProfileCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthNeedsProfile&&(identical(other.suggestedName, suggestedName) || other.suggestedName == suggestedName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthNeedsProfile&&(identical(other.suggestedName, suggestedName) || other.suggestedName == suggestedName)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.draftEmail, draftEmail) || other.draftEmail == draftEmail)&&(identical(other.draftPassword, draftPassword) || other.draftPassword == draftPassword));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,suggestedName);
+int get hashCode => Object.hash(runtimeType,suggestedName,provider,draftEmail,draftPassword);
 
 @override
 String toString() {
-  return 'AuthState.needsProfile(suggestedName: $suggestedName)';
+  return 'AuthState.needsProfile(suggestedName: $suggestedName, provider: $provider, draftEmail: $draftEmail, draftPassword: $draftPassword)';
 }
 
 
@@ -373,7 +376,7 @@ abstract mixin class $AuthNeedsProfileCopyWith<$Res> implements $AuthStateCopyWi
   factory $AuthNeedsProfileCopyWith(AuthNeedsProfile value, $Res Function(AuthNeedsProfile) _then) = _$AuthNeedsProfileCopyWithImpl;
 @useResult
 $Res call({
- String suggestedName
+ String suggestedName, AuthProvider provider, String? draftEmail, String? draftPassword
 });
 
 
@@ -390,10 +393,13 @@ class _$AuthNeedsProfileCopyWithImpl<$Res>
 
 /// Create a copy of AuthState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? suggestedName = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? suggestedName = null,Object? provider = null,Object? draftEmail = freezed,Object? draftPassword = freezed,}) {
   return _then(AuthNeedsProfile(
 suggestedName: null == suggestedName ? _self.suggestedName : suggestedName // ignore: cast_nullable_to_non_nullable
-as String,
+as String,provider: null == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
+as AuthProvider,draftEmail: freezed == draftEmail ? _self.draftEmail : draftEmail // ignore: cast_nullable_to_non_nullable
+as String?,draftPassword: freezed == draftPassword ? _self.draftPassword : draftPassword // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -404,10 +410,11 @@ as String,
 
 
 class AuthUpdatingProfile implements AuthState {
-  const AuthUpdatingProfile({required this.suggestedName});
+  const AuthUpdatingProfile({required this.suggestedName, required this.provider});
   
 
  final  String suggestedName;
+ final  AuthProvider provider;
 
 /// Create a copy of AuthState
 /// with the given fields replaced by the non-null parameter values.
@@ -419,16 +426,16 @@ $AuthUpdatingProfileCopyWith<AuthUpdatingProfile> get copyWith => _$AuthUpdating
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthUpdatingProfile&&(identical(other.suggestedName, suggestedName) || other.suggestedName == suggestedName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthUpdatingProfile&&(identical(other.suggestedName, suggestedName) || other.suggestedName == suggestedName)&&(identical(other.provider, provider) || other.provider == provider));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,suggestedName);
+int get hashCode => Object.hash(runtimeType,suggestedName,provider);
 
 @override
 String toString() {
-  return 'AuthState.updatingProfile(suggestedName: $suggestedName)';
+  return 'AuthState.updatingProfile(suggestedName: $suggestedName, provider: $provider)';
 }
 
 
@@ -439,7 +446,7 @@ abstract mixin class $AuthUpdatingProfileCopyWith<$Res> implements $AuthStateCop
   factory $AuthUpdatingProfileCopyWith(AuthUpdatingProfile value, $Res Function(AuthUpdatingProfile) _then) = _$AuthUpdatingProfileCopyWithImpl;
 @useResult
 $Res call({
- String suggestedName
+ String suggestedName, AuthProvider provider
 });
 
 
@@ -456,10 +463,11 @@ class _$AuthUpdatingProfileCopyWithImpl<$Res>
 
 /// Create a copy of AuthState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? suggestedName = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? suggestedName = null,Object? provider = null,}) {
   return _then(AuthUpdatingProfile(
 suggestedName: null == suggestedName ? _self.suggestedName : suggestedName // ignore: cast_nullable_to_non_nullable
-as String,
+as String,provider: null == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
+as AuthProvider,
   ));
 }
 

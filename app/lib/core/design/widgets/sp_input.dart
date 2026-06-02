@@ -17,8 +17,11 @@ class SpInput extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.prefix,
+    this.suffix,
     this.contentPadding,
     this.inputFormatters,
+    this.obscureText = false,
+    this.autofillHints,
     super.key,
   });
 
@@ -32,8 +35,11 @@ class SpInput extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final Widget? prefix;
+  final Widget? suffix;
   final EdgeInsets? contentPadding;
   final List<TextInputFormatter>? inputFormatters;
+  final bool obscureText;
+  final Iterable<String>? autofillHints;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +52,8 @@ class SpInput extends StatelessWidget {
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
         textAlign: textAlign ?? TextAlign.start,
+        obscureText: obscureText,
+        autofillHints: autofillHints,
         onChanged: onChanged,
         onFieldSubmitted: onSubmitted,
         style: style ??
@@ -64,6 +72,7 @@ class SpInput extends StatelessWidget {
             color: SpColors.cream.withValues(alpha: 0.35),
           ),
           prefixIcon: prefix,
+          suffixIcon: suffix,
           contentPadding: contentPadding ??
               const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           border: OutlineInputBorder(

@@ -1,3 +1,4 @@
+import 'auth_provider.dart';
 import 'user.dart';
 
 /// Resultado de um login: ou o perfil já existe no backend, ou ainda
@@ -12,6 +13,10 @@ class SignInAuthenticated extends SignInOutcome {
 }
 
 class SignInNeedsProfile extends SignInOutcome {
-  const SignInNeedsProfile({required this.suggestedName});
+  const SignInNeedsProfile({
+    required this.suggestedName,
+    required this.provider,
+  });
   final String suggestedName;
+  final AuthProvider provider;
 }

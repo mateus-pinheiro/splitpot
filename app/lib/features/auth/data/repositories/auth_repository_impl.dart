@@ -4,11 +4,12 @@ import '../../domain/repositories/auth_repository.dart';
 import '../dto/user_dto.dart';
 import '../services/services.dart';
 
-/// Implementação de [AuthRepository] sobre Google Sign-In + backend Nest.
+/// Implementação de [AuthRepository] sobre Firebase Identity Toolkit
+/// (Google/Apple/email-senha) + backend Nest.
 ///
-/// Transforma credenciais do Firebase em `SignInOutcome` consultando
+/// Transforma credenciais Firebase em [SignInOutcome] consultando
 /// `GET /users/me`: se o perfil existe → [SignInAuthenticated]; se 404 →
-/// [SignInNeedsProfile].
+/// [SignInNeedsProfile] com o provider detectado.
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required ApiClient apiClient,
@@ -33,7 +34,42 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> startSignIn() => _firebase.triggerSignIn();
+  Future<void> startGoogleSignIn() => _firebase.triggerGoogleSignIn();
+
+  @override
+  Future<void> startAppleSignIn() => _firebase.triggerAppleSignIn();
+
+  @override
+  Future<void> signInWithPassword({
+    required String email,
+    required String password,
+  }) {
+    return _firebase.signInWithPassword(email: email, password: password);
+  }
+
+  @override
+  Future<EmailProvidersLookup> lookupEmailProviders(String email) {
+    return _firebase.fetchProvidersForEmail(email);
+  }
+
+  @override
+  Future<User> signUpAndCompleteProfile({
+    required String email,
+    required String password,
+    required String name,
+    required String pixKey,
+  }) async {
+    final creds = await _firebase.signUpWithPassword(
+      email: email,
+      password: password,
+    );
+    _tokenStore.set(creds.idToken);
+    _pendingEmail = creds.email;
+    // Reutiliza o caminho de POST /users/me — o backend faz upsert por
+    // firebaseUid, então o registro recém-criado no Firebase já vira
+    // um User completo no nosso banco.
+    return updateProfile(name: name, pixKey: pixKey);
+  }
 
   @override
   Stream<void> get signInAttempted => _firebase.credentials.map((_) {});
@@ -51,6 +87,7 @@ class AuthRepositoryImpl implements AuthRepository {
       return SignInNeedsProfile(
         suggestedName:
             credentials.name ?? _deriveNameFromEmail(credentials.email),
+        provider: credentials.provider,
       );
     });
   }
@@ -74,7 +111,7 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await _firebase.signOut();
     } on ApiException {
-      // Queremos limpar sessão local mesmo se a chamada ao Google falhar.
+      // Queremos limpar sessão local mesmo se a chamada ao provider falhar.
     }
     _tokenStore.clear();
     _pendingEmail = null;

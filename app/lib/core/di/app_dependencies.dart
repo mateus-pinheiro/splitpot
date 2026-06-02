@@ -26,8 +26,16 @@ void registerAppDependencies(DIContainer di) {
       tokenProvider: di.get<TokenProvider>(),
     ),
   );
+  di.registerLazySingleton<FirebaseIdentityToolkitApi>(
+    () => FirebaseIdentityToolkitApi(config: di.get<AppConfig>()),
+  );
+  di.registerLazySingleton<AppleSignInService>(() => AppleSignInService());
   di.registerLazySingleton<FirebaseRestAuthService>(
-    () => FirebaseRestAuthService(config: di.get<AppConfig>()),
+    () => FirebaseRestAuthService(
+      config: di.get<AppConfig>(),
+      identityToolkit: di.get<FirebaseIdentityToolkitApi>(),
+      appleSignIn: di.get<AppleSignInService>(),
+    ),
   );
 
   // Auth — data
@@ -41,6 +49,12 @@ void registerAppDependencies(DIContainer di) {
 
   // Auth — usecases
   di.registerFactory(() => SignInWithGoogle(di.get<AuthRepository>()));
+  di.registerFactory(() => SignInWithApple(di.get<AuthRepository>()));
+  di.registerFactory(() => SignInWithPassword(di.get<AuthRepository>()));
+  di.registerFactory(
+    () => SignUpAndCompleteProfile(di.get<AuthRepository>()),
+  );
+  di.registerFactory(() => LookupEmailProviders(di.get<AuthRepository>()));
   di.registerFactory(() => ObserveSignInOutcomes(di.get<AuthRepository>()));
   di.registerFactory(() => ObserveSignInAttempts(di.get<AuthRepository>()));
   di.registerFactory(() => GetCurrentUser(di.get<AuthRepository>()));
@@ -51,6 +65,9 @@ void registerAppDependencies(DIContainer di) {
   di.registerLazySingleton(
     () => AuthCubit(
       signInWithGoogle: di.get<SignInWithGoogle>(),
+      signInWithApple: di.get<SignInWithApple>(),
+      signInWithPassword: di.get<SignInWithPassword>(),
+      signUpAndCompleteProfile: di.get<SignUpAndCompleteProfile>(),
       observeSignInOutcomes: di.get<ObserveSignInOutcomes>(),
       observeSignInAttempts: di.get<ObserveSignInAttempts>(),
       getCurrentUser: di.get<GetCurrentUser>(),

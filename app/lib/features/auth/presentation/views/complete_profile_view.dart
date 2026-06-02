@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:splitpot/core/router/app_routes.dart';
 
 import '../../../../core/design/design_system.dart';
+import '../../domain/entities/auth_provider.dart';
 import '../cubit/cubit.dart';
 
 class CompleteProfileView extends StatefulWidget {
@@ -17,6 +18,8 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _pixController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscure = true;
 
   @override
   void initState() {
@@ -27,30 +30,64 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
       AuthUpdatingProfile(:final suggestedName) => suggestedName,
       _ => '',
     };
+    // No fluxo password, a senha digitada no login vem aqui pré-preenchida
+    // (campo continua editável — usuário confirma/ajusta antes de cadastrar).
+    if (state is AuthNeedsProfile && state.draftPassword != null) {
+      _passwordController.text = state.draftPassword!;
+    }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _pixController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
+  AuthProvider _providerFromState(AuthState state) => switch (state) {
+        AuthNeedsProfile(:final provider) => provider,
+        AuthUpdatingProfile(:final provider) => provider,
+        _ => AuthProvider.google,
+      };
+
+  String? _draftEmail(AuthState state) =>
+      state is AuthNeedsProfile ? state.draftEmail : null;
+
   void _submit() {
-    if (_nameController.text.trim().isEmpty ||
-        _pixController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: SpColors.danger,
-          content: Text('Preencha nome e chave PIX.'),
-        ),
-      );
+    final cubit = context.read<AuthCubit>();
+    final provider = _providerFromState(cubit.state);
+
+    final name = _nameController.text.trim();
+    final pixKey = _pixController.text.trim();
+    if (name.isEmpty || pixKey.isEmpty) {
+      _toast('Preencha nome e chave PIX.');
       return;
     }
-    context.read<AuthCubit>().completeProfile(
-          name: _nameController.text.trim(),
-          pixKey: _pixController.text.trim(),
-        );
+    if (provider == AuthProvider.password) {
+      final password = _passwordController.text;
+      if (password.length < 6) {
+        _toast('A senha precisa ter pelo menos 6 caracteres.');
+        return;
+      }
+      cubit.signUpAndCompleteProfile(name: name, pixKey: pixKey);
+    } else {
+      cubit.completeProfile(name: name, pixKey: pixKey);
+    }
+  }
+
+  void _toast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: SpColors.danger,
+        content: Text(message),
+      ),
+    );
+  }
+
+  void _back() {
+    context.read<AuthCubit>().cancelPendingSignup();
+    context.go(AppRoutes.login);
   }
 
   @override
@@ -63,17 +100,28 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
             child: Column(
               children: [
                 SpAppHeader(
-                  left: SpBackButton(
-                    onPressed: () => context.go(AppRoutes.login),
-                  ),
+                  left: SpBackButton(onPressed: _back),
                 ),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _OnboardingBody(
-                      nameController: _nameController,
-                      pixController: _pixController,
-                      onSubmit: _submit,
+                    child: BlocBuilder<AuthCubit, AuthState>(
+                      buildWhen: (p, c) =>
+                          _providerFromState(p) != _providerFromState(c) ||
+                          _draftEmail(p) != _draftEmail(c),
+                      builder: (context, state) {
+                        return _OnboardingBody(
+                          provider: _providerFromState(state),
+                          email: _draftEmail(state),
+                          nameController: _nameController,
+                          pixController: _pixController,
+                          passwordController: _passwordController,
+                          obscure: _obscure,
+                          onToggleObscure: () =>
+                              setState(() => _obscure = !_obscure),
+                          onSubmit: _submit,
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -101,17 +149,34 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
 
 class _OnboardingBody extends StatelessWidget {
   const _OnboardingBody({
+    required this.provider,
+    required this.email,
     required this.nameController,
     required this.pixController,
+    required this.passwordController,
+    required this.obscure,
+    required this.onToggleObscure,
     required this.onSubmit,
   });
 
+  final AuthProvider provider;
+  final String? email;
   final TextEditingController nameController;
   final TextEditingController pixController;
+  final TextEditingController passwordController;
+  final bool obscure;
+  final VoidCallback onToggleObscure;
   final VoidCallback onSubmit;
+
+  String get _emailHint => switch (provider) {
+        AuthProvider.google => 'conectado pelo Google',
+        AuthProvider.apple => 'conectado pelo Apple',
+        AuthProvider.password => email ?? '',
+      };
 
   @override
   Widget build(BuildContext context) {
+    final isPasswordFlow = provider == AuthProvider.password;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -143,7 +208,42 @@ class _OnboardingBody extends StatelessWidget {
         const SizedBox(height: 18),
         const SpFieldLabel('Email'),
         const SizedBox(height: 8),
-        const SpInput(enabled: false, hintText: 'conectado pelo Google'),
+        SpInput(
+          enabled: false,
+          initialValue: isPasswordFlow ? email : null,
+          hintText: _emailHint,
+        ),
+        if (isPasswordFlow) ...[
+          const SizedBox(height: 18),
+          const SpFieldLabel('Senha'),
+          const SizedBox(height: 8),
+          SpInput(
+            controller: passwordController,
+            obscureText: obscure,
+            hintText: 'mínimo 6 caracteres',
+            autofillHints: const [AutofillHints.newPassword],
+            suffix: IconButton(
+              onPressed: onToggleObscure,
+              icon: Icon(
+                obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                color: SpColors.muted,
+                size: 20,
+              ),
+              splashRadius: 18,
+              tooltip: obscure ? 'Mostrar senha' : 'Ocultar senha',
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Você vai usar essa senha pra entrar no SplitPot da próxima vez.',
+            style: TextStyle(
+              fontFamily: SpTypography.uiFamily,
+              fontSize: 12,
+              color: SpColors.muted,
+              height: 1.4,
+            ),
+          ),
+        ],
         const SizedBox(height: 18),
         const SpFieldLabel('Chave PIX'),
         const SizedBox(height: 8),

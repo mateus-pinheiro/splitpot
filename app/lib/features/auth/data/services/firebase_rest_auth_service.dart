@@ -1,45 +1,51 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:http/http.dart' as http;
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../domain/entities/auth_provider.dart';
+import '../../domain/entities/email_providers_lookup.dart';
+import 'apple_sign_in_service.dart';
+import 'firebase_identity_toolkit_api.dart';
 
-/// Autentica via Google Sign-In e troca o idToken do Google por credenciais
-/// Firebase via Identity Toolkit (`accounts:signInWithIdp`).
+/// Orquestra a obtenção de credenciais Firebase a partir dos 4 fluxos:
+/// Google, Apple, email/senha (login) e email/senha (cadastro).
 ///
-/// Fluxo event-driven unificado: em web o plugin só aceita o botão
-/// renderizado pelo próprio Google (`renderButton()`), e a UI não tem
-/// controle pra chamar `authenticate()` — a gente descobre o login
-/// quando um `GoogleSignInAuthenticationEventSignIn` aparece no stream.
-/// Em mobile o `authenticate()` também emite no mesmo stream, então a
-/// pipeline é idêntica.
+/// O contrato com o resto do app é o stream [credentials]: qualquer
+/// caminho de sucesso (Google/Apple/password sign-in) emite uma
+/// [FirebaseRestCredentials] aqui. O cadastro por senha é a única
+/// exceção — devolve as credenciais direto via [signUpWithPassword]
+/// porque o repositório precisa orquestrar `POST /users/me` antes do
+/// stream resolver `signInOutcomes` (senão cairia em `needsProfile`
+/// transitório).
 class FirebaseRestAuthService {
   FirebaseRestAuthService({
     required AppConfig config,
+    required FirebaseIdentityToolkitApi identityToolkit,
+    required AppleSignInService appleSignIn,
     GoogleSignIn? googleSignIn,
-    http.Client? httpClient,
-  }) : _config = config,
-       _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
-       _http = httpClient ?? http.Client();
+  })  : _config = config,
+        _identityToolkit = identityToolkit,
+        _appleSignIn = appleSignIn,
+        _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
 
   final AppConfig _config;
+  final FirebaseIdentityToolkitApi _identityToolkit;
+  final AppleSignInService _appleSignIn;
   final GoogleSignIn _googleSignIn;
-  final http.Client _http;
   final StreamController<FirebaseRestCredentials> _credentialsController =
       StreamController<FirebaseRestCredentials>.broadcast();
-  bool _initialized = false;
-  StreamSubscription<GoogleSignInAuthenticationEvent>? _subscription;
+  bool _googleInitialized = false;
+  StreamSubscription<GoogleSignInAuthenticationEvent>? _googleSubscription;
 
   Stream<FirebaseRestCredentials> get credentials =>
       _credentialsController.stream;
 
   Future<void> initialize() async {
-    if (_initialized) return;
+    if (_googleInitialized) return;
     await _googleSignIn.initialize(
       // Em Android/iOS o plugin lê o clientId do google-services.json /
       // GoogleService-Info.plist. Em web é obrigatório passar explicitamente.
@@ -47,23 +53,23 @@ class FirebaseRestAuthService {
       clientId: kIsWeb ? _config.googleClientId : null,
       serverClientId: kIsWeb ? null : _config.googleClientId,
     );
-    _subscription = _googleSignIn.authenticationEvents.listen(
-      _onAuthenticationEvent,
+    _googleSubscription = _googleSignIn.authenticationEvents.listen(
+      _onGoogleAuthenticationEvent,
       onError: (Object error, StackTrace _) {
         _credentialsController.addError(
           ApiException(failure: Failure.unexpected(message: error.toString())),
         );
       },
     );
-    _initialized = true;
+    _googleInitialized = true;
 
     // Em web restaura a sessão se já havia um login ativo (no-op em mobile).
     unawaited(_googleSignIn.attemptLightweightAuthentication());
   }
 
-  /// Dispara o fluxo de sign-in. Em mobile abre o picker nativo; em web
+  /// Dispara o fluxo de sign-in Google. Em mobile abre o picker; em web
   /// é no-op (o clique no botão renderizado pelo Google é quem inicia).
-  Future<void> triggerSignIn() async {
+  Future<void> triggerGoogleSignIn() async {
     await initialize();
     if (kIsWeb) return;
     try {
@@ -85,6 +91,91 @@ class FirebaseRestAuthService {
     }
   }
 
+  /// Dispara o diálogo nativo de Sign in with Apple, troca o identityToken
+  /// pelo Firebase ID token via Identity Toolkit e empurra no stream.
+  Future<void> triggerAppleSignIn() async {
+    try {
+      final apple = await _appleSignIn.signIn();
+      final session = await _identityToolkit.signInWithIdp(
+        idToken: apple.identityToken,
+        provider: AuthProvider.apple,
+        rawNonce: apple.rawNonce,
+      );
+      _credentialsController.add(
+        FirebaseRestCredentials(
+          uid: session.uid,
+          email: session.email.isNotEmpty ? session.email : (apple.email ?? ''),
+          name: session.displayName ?? apple.fullName,
+          idToken: session.idToken,
+          refreshToken: session.refreshToken,
+          provider: AuthProvider.apple,
+        ),
+      );
+    } on ApiException catch (e) {
+      _credentialsController.addError(e);
+    } on Object catch (e) {
+      _credentialsController.addError(
+        ApiException(failure: Failure.unexpected(message: e.toString())),
+      );
+    }
+  }
+
+  /// Login email/senha. Empurra a credencial no stream igual aos outros.
+  Future<void> signInWithPassword({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final session = await _identityToolkit.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      _credentialsController.add(
+        FirebaseRestCredentials(
+          uid: session.uid,
+          email: session.email,
+          name: session.displayName,
+          idToken: session.idToken,
+          refreshToken: session.refreshToken,
+          provider: AuthProvider.password,
+        ),
+      );
+    } on ApiException catch (e) {
+      _credentialsController.addError(e);
+    } on Object catch (e) {
+      _credentialsController.addError(
+        ApiException(failure: Failure.unexpected(message: e.toString())),
+      );
+    }
+  }
+
+  /// Cadastro email/senha. **Retorna direto** — não passa pelo stream
+  /// porque o repositório precisa chamar `POST /users/me` na sequência
+  /// e só então emitir `AuthAuthenticated`. Se empurrássemos no stream,
+  /// `signInOutcomes` faria `GET /users/me` (404) e cairia em
+  /// `SignInNeedsProfile` transitório.
+  Future<FirebaseRestCredentials> signUpWithPassword({
+    required String email,
+    required String password,
+  }) async {
+    final session = await _identityToolkit.signUp(
+      email: email,
+      password: password,
+    );
+    return FirebaseRestCredentials(
+      uid: session.uid,
+      email: session.email.isNotEmpty ? session.email : email,
+      name: session.displayName,
+      idToken: session.idToken,
+      refreshToken: session.refreshToken,
+      provider: AuthProvider.password,
+    );
+  }
+
+  Future<EmailProvidersLookup> fetchProvidersForEmail(String email) {
+    return _identityToolkit.createAuthUri(email);
+  }
+
   Future<void> signOut() async {
     try {
       await _googleSignIn.signOut();
@@ -94,20 +185,20 @@ class FirebaseRestAuthService {
   }
 
   Future<void> dispose() async {
-    await _subscription?.cancel();
+    await _googleSubscription?.cancel();
     await _credentialsController.close();
   }
 
-  Future<void> _onAuthenticationEvent(
+  Future<void> _onGoogleAuthenticationEvent(
     GoogleSignInAuthenticationEvent event,
   ) async {
     if (event is GoogleSignInAuthenticationEventSignIn) {
-      await _handleSignIn(event.user);
+      await _handleGoogleSignIn(event.user);
     }
     // SignOut events são tratados pelo repo/cubit — nada a fazer aqui.
   }
 
-  Future<void> _handleSignIn(GoogleSignInAccount account) async {
+  Future<void> _handleGoogleSignIn(GoogleSignInAccount account) async {
     final idToken = account.authentication.idToken;
     if (idToken == null) {
       _credentialsController.addError(
@@ -120,71 +211,23 @@ class FirebaseRestAuthService {
       return;
     }
     try {
-      final creds = await _exchangeGoogleIdToken(
-        idToken,
-        fallbackEmail: account.email,
-        fallbackName: account.displayName,
+      final session = await _identityToolkit.signInWithIdp(
+        idToken: idToken,
+        provider: AuthProvider.google,
       );
-      _credentialsController.add(creds);
+      _credentialsController.add(
+        FirebaseRestCredentials(
+          uid: session.uid,
+          email: session.email.isNotEmpty ? session.email : account.email,
+          name: session.displayName ?? account.displayName,
+          idToken: session.idToken,
+          refreshToken: session.refreshToken,
+          provider: AuthProvider.google,
+        ),
+      );
     } on ApiException catch (e) {
       _credentialsController.addError(e);
     }
-  }
-
-  Future<FirebaseRestCredentials> _exchangeGoogleIdToken(
-    String googleIdToken, {
-    required String fallbackEmail,
-    String? fallbackName,
-  }) async {
-    final uri = Uri.parse(
-      'https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${_config.firebaseWebApiKey}',
-    );
-    http.Response response;
-    try {
-      response = await _http.post(
-        uri,
-        headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'postBody': 'id_token=$googleIdToken&providerId=google.com',
-          'requestUri': 'http://localhost',
-          'returnIdpCredential': true,
-          'returnSecureToken': true,
-        }),
-      );
-    } on Object catch (e) {
-      throw ApiException(failure: Failure.network(message: e.toString()));
-    }
-
-    final decoded = jsonDecode(response.body);
-    if (response.statusCode == 200 && decoded is Map<String, dynamic>) {
-      return FirebaseRestCredentials(
-        uid: decoded['localId'] as String,
-        email: decoded['email'] as String? ?? fallbackEmail,
-        name: decoded['displayName'] as String? ?? fallbackName,
-        idToken: decoded['idToken'] as String,
-        refreshToken: decoded['refreshToken'] as String?,
-      );
-    }
-    throw ApiException(
-      failure: _mapFirebaseError(decoded),
-      statusCode: response.statusCode,
-      body: response.body,
-    );
-  }
-
-  Failure _mapFirebaseError(Object? decoded) {
-    final message = decoded is Map<String, dynamic>
-        ? ((decoded['error'] as Map<String, dynamic>?)?['message'] as String?)
-        : null;
-    return switch (message) {
-      'USER_DISABLED' => const Failure.unauthorized(
-        message: 'Usuário desabilitado',
-      ),
-      'INVALID_IDP_RESPONSE' => const Failure.unauthorized(
-        message: 'Resposta do Google inválida',
-      ),
-      _ => Failure.unexpected(message: message ?? 'Erro de autenticação'),
-    };
   }
 }
 
@@ -193,6 +236,7 @@ class FirebaseRestCredentials {
     required this.uid,
     required this.email,
     required this.idToken,
+    required this.provider,
     this.name,
     this.refreshToken,
   });
@@ -202,4 +246,5 @@ class FirebaseRestCredentials {
   final String? name;
   final String idToken;
   final String? refreshToken;
+  final AuthProvider provider;
 }
