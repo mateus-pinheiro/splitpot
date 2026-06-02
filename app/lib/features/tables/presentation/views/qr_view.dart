@@ -213,30 +213,7 @@ class _CopyLinkButton extends StatelessWidget {
         onTap: () async {
           await Clipboard.setData(ClipboardData(text: url));
           if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              backgroundColor: SpColors.feltRail,
-              behavior: SnackBarBehavior.floating,
-              content: Row(
-                children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    color: SpColors.goldBright,
-                    size: 18,
-                  ),
-                  SizedBox(width: 10),
-                  Text(
-                    'Link copiado',
-                    style: TextStyle(
-                      fontFamily: SpTypography.uiFamily,
-                      color: SpColors.cream,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
+          showSpToast(context, 'Link copiado', type: SpToastType.success);
         },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),

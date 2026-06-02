@@ -8,5 +8,5 @@ class SignInWithGoogle {
 
   final AuthRepository _repository;
 
-  Future<void> call() => _repository.startSignIn();
+  Future<void> call() => _repository.startGoogleSignIn();
 }

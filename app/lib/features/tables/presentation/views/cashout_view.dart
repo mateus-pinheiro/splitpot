@@ -44,12 +44,8 @@ class _CashoutScaffold extends StatelessWidget {
               } else if (state is CashoutAwaitingApproval) {
                 context.go(AppRoutes.live(tableId));
               } else if (state is CashoutSubmitError) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: SpColors.danger,
-                    content: Text(_messageFor(state.failure)),
-                  ),
-                );
+                showSpToast(context, _messageFor(state.failure),
+                    type: SpToastType.error);
               }
             },
             builder: (context, state) {
@@ -199,12 +195,8 @@ class _FormState extends State<_Form> {
   void _submit() {
     final stack = _stack;
     if (stack == null || stack < Decimal.zero) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: SpColors.danger,
-          content: Text('Informe um valor válido (zero ou mais).'),
-        ),
-      );
+      showSpToast(context, 'Informe um valor válido (zero ou mais).',
+          type: SpToastType.error);
       return;
     }
     context.read<CashoutCubit>().submit(stack);

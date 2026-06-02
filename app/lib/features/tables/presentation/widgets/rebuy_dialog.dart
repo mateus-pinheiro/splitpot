@@ -81,12 +81,8 @@ class _RebuyDialogState extends State<_RebuyDialog> {
   void _submit() {
     final amount = _amount;
     if (amount == null || amount <= Decimal.zero) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: SpColors.danger,
-          content: Text('Informe um valor maior que zero.'),
-        ),
-      );
+      showSpToast(context, 'Informe um valor maior que zero.',
+          type: SpToastType.error);
       return;
     }
     context.read<RebuyCubit>().submit(
@@ -107,12 +103,8 @@ class _RebuyDialogState extends State<_RebuyDialog> {
         } else if (state is RebuyAwaitingApproval) {
           Navigator.of(context).pop(true);
         } else if (state is RebuyError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              backgroundColor: SpColors.danger,
-              content: Text(_messageFor(state.failure, copy)),
-            ),
-          );
+          showSpToast(context, _messageFor(state.failure, copy),
+              type: SpToastType.error);
           context.read<RebuyCubit>().reset();
         }
       },

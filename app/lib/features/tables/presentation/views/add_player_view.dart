@@ -93,12 +93,7 @@ class _AddPlayerScaffoldState extends State<_AddPlayerScaffold> {
   }
 
   void _toast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: SpColors.danger,
-        content: Text(message),
-      ),
-    );
+    showSpToast(context, message, type: SpToastType.error);
   }
 
   String _messageFor(Failure failure) => switch (failure) {
@@ -120,9 +115,8 @@ class _AddPlayerScaffoldState extends State<_AddPlayerScaffold> {
           child: BlocConsumer<AddPlayerCubit, AddPlayerState>(
             listener: (context, state) {
               if (state is AddPlayerAdded) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Jogador adicionado!')),
-                );
+                showSpToast(context, 'Jogador adicionado!',
+                    type: SpToastType.success);
                 context.go(AppRoutes.live(widget.tableId));
               } else if (state is AddPlayerError) {
                 _toast(_messageFor(state.failure));

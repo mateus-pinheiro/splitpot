@@ -1,6 +1,10 @@
 export 'get_current_user.dart';
+export 'lookup_email_providers.dart';
 export 'observe_sign_in_attempts.dart';
 export 'observe_sign_in_outcomes.dart';
+export 'sign_in_with_apple.dart';
 export 'sign_in_with_google.dart';
+export 'sign_in_with_password.dart';
 export 'sign_out.dart';
+export 'sign_up_and_complete_profile.dart';
 export 'update_profile.dart';
