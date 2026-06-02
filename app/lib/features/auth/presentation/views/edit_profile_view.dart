@@ -41,12 +41,8 @@ class _EditProfileViewState extends State<EditProfileView> {
     final name = _nameController.text.trim();
     final pixKey = _pixController.text.trim();
     if (name.isEmpty || pixKey.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: SpColors.danger,
-          content: Text('Preencha nome e chave PIX.'),
-        ),
-      );
+      showSpToast(context, 'Preencha nome e chave PIX.',
+          type: SpToastType.error);
       return;
     }
 
@@ -54,22 +50,13 @@ class _EditProfileViewState extends State<EditProfileView> {
     try {
       await context.read<AuthCubit>().editProfile(name: name, pixKey: pixKey);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: SpColors.success,
-          content: Text('Perfil atualizado.'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+      showSpToast(context, 'Perfil atualizado.',
+          type: SpToastType.success, duration: const Duration(seconds: 1));
       context.go(AppRoutes.home);
     } on Object catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: SpColors.danger,
-          content: Text('Não foi possível salvar. Tente novamente.'),
-        ),
-      );
+      showSpToast(context, 'Não foi possível salvar. Tente novamente.',
+          type: SpToastType.error);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

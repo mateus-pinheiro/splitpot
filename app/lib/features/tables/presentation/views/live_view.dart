@@ -772,12 +772,8 @@ class _PendingApprovalsSection extends StatelessWidget {
           onRefresh();
           context.read<PendingApprovalsCubit>().reset();
         } else if (state is PendingApprovalsError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              backgroundColor: SpColors.danger,
-              content: Text(_messageFor(state.failure)),
-            ),
-          );
+          showSpToast(context, _messageFor(state.failure),
+              type: SpToastType.error);
           context.read<PendingApprovalsCubit>().reset();
         }
       },
@@ -1236,27 +1232,7 @@ class _InlineCopyLink extends StatelessWidget {
         onTap: () async {
           await Clipboard.setData(ClipboardData(text: url));
           if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              backgroundColor: SpColors.feltRail,
-              behavior: SnackBarBehavior.floating,
-              content: Row(
-                children: [
-                  Icon(Icons.check_circle_outline,
-                      color: SpColors.goldBright, size: 18),
-                  SizedBox(width: 10),
-                  Text(
-                    'Link copiado',
-                    style: TextStyle(
-                      fontFamily: SpTypography.uiFamily,
-                      color: SpColors.cream,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
+          showSpToast(context, 'Link copiado', type: SpToastType.success);
         },
         child: Container(
           padding:
@@ -1343,27 +1319,24 @@ class _HostActionsMenu extends StatelessWidget {
           builder: (_) => _TransferHostDialog(eligible: eligible),
         );
         if (selected == null || !context.mounted) return;
-        final messenger = ScaffoldMessenger.of(context);
         try {
           await appDI.get<TransferHost>().call(
                 tableId: table.id,
                 newOwnerId: selected.userId!,
               );
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(
-                'Host transferido para ${selected.userName}',
-              ),
-            ),
-          );
+          if (context.mounted) {
+            showSpToast(
+              context,
+              'Host transferido para ${selected.userName}',
+              type: SpToastType.success,
+            );
+          }
           onTransferred();
         } catch (e) {
-          messenger.showSnackBar(
-            SnackBar(
-              backgroundColor: SpColors.danger,
-              content: Text(_hostActionMessage(e)),
-            ),
-          );
+          if (context.mounted) {
+            showSpToast(context, _hostActionMessage(e),
+                type: SpToastType.error);
+          }
         }
       },
       itemBuilder: (_) => [
@@ -1580,23 +1553,23 @@ class _PlayerHostMenu extends StatelessWidget {
       ),
     );
     if (amount == null || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await appDI.get<SetCashOut>().call(
             participationId: participation.id,
             amount: amount,
           );
-      messenger.showSnackBar(
-        SnackBar(content: Text('Cash-out registrado para ${participation.userName}')),
-      );
+      if (context.mounted) {
+        showSpToast(
+          context,
+          'Cash-out registrado para ${participation.userName}',
+          type: SpToastType.success,
+        );
+      }
       await liveCubit.refresh();
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(
-          backgroundColor: SpColors.danger,
-          content: Text(_hostActionMessage(e)),
-        ),
-      );
+      if (context.mounted) {
+        showSpToast(context, _hostActionMessage(e), type: SpToastType.error);
+      }
     }
   }
 
@@ -1612,20 +1585,17 @@ class _PlayerHostMenu extends StatelessWidget {
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await appDI.get<LeaveTable>().call(participationId: participation.id);
-      messenger.showSnackBar(
-        SnackBar(content: Text('${participation.userName} saiu da mesa')),
-      );
+      if (context.mounted) {
+        showSpToast(context, '${participation.userName} saiu da mesa',
+            type: SpToastType.success);
+      }
       await liveCubit.refresh();
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(
-          backgroundColor: SpColors.danger,
-          content: Text(_hostActionMessage(e)),
-        ),
-      );
+      if (context.mounted) {
+        showSpToast(context, _hostActionMessage(e), type: SpToastType.error);
+      }
     }
   }
 
@@ -1736,12 +1706,7 @@ class _AmountPromptDialogState extends State<_AmountPromptDialog> {
     final amount = Decimal.tryParse(raw);
     // Permite 0 (jogador saiu sem nada). Bloqueia só nulo e negativo.
     if (amount == null || amount < Decimal.zero) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: SpColors.danger,
-          content: Text('Valor inválido'),
-        ),
-      );
+      showSpToast(context, 'Valor inválido', type: SpToastType.error);
       return;
     }
     Navigator.of(context).pop(amount);

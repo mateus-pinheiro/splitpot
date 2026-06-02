@@ -41,12 +41,8 @@ class _JoinByIdScaffold extends StatelessWidget {
               if (state is JoinByIdStateJoined) {
                 context.go(AppRoutes.live(tableId));
               } else if (state is JoinByIdStateJoinError) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: SpColors.danger,
-                    content: Text(_messageFor(state.failure)),
-                  ),
-                );
+                showSpToast(context, _messageFor(state.failure),
+                    type: SpToastType.error);
               }
             },
             child: Column(
@@ -199,12 +195,7 @@ class _ReadyBodyState extends State<_ReadyBody> {
   void _submit() {
     final error = _validate();
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: SpColors.danger,
-          content: Text(error),
-        ),
-      );
+      showSpToast(context, error, type: SpToastType.error);
       return;
     }
     final authState = context.read<AuthCubit>().state;

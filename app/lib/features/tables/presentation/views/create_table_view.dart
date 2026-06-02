@@ -81,12 +81,7 @@ class _CreateTableScaffold extends StatelessWidget {
         // so we always land on the QR sharing screen next.
         context.go(AppRoutes.qr(tableId));
       case CreateTableError(:final failure):
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: SpColors.danger,
-            content: Text(_messageFor(failure)),
-          ),
-        );
+        showSpToast(context, _messageFor(failure), type: SpToastType.error);
         context.read<CreateTableCubit>().reset();
       case CreateTableIdle():
       case CreateTableCreating():

@@ -1021,20 +1021,18 @@ class _ReceivableRowState extends State<_ReceivableRow> {
     try {
       await context.read<HomeStatsCubit>().confirmDebt(widget.receivable.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: SpColors.success,
-          content: Text('Recebimento confirmado.'),
-          duration: Duration(seconds: 1),
-        ),
+      showSpToast(
+        context,
+        'Recebimento confirmado.',
+        type: SpToastType.success,
+        duration: const Duration(seconds: 1),
       );
     } on Object catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: SpColors.danger,
-          content: Text('Não foi possível confirmar o recebimento.'),
-        ),
+      showSpToast(
+        context,
+        'Não foi possível confirmar o recebimento.',
+        type: SpToastType.error,
       );
     } finally {
       if (mounted) {
@@ -1129,13 +1127,7 @@ class _DebtPixDialog extends StatelessWidget {
 
   void _copy(BuildContext context, String text) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: SpColors.feltRail,
-        content: Text('Copiado!'),
-        duration: Duration(seconds: 1),
-      ),
-    );
+    showSpToast(context, 'Copiado!', duration: const Duration(seconds: 1));
   }
 
   @override

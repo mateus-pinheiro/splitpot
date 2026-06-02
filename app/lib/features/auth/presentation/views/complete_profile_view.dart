@@ -77,12 +77,7 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
   }
 
   void _toast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: SpColors.danger,
-        content: Text(message),
-      ),
-    );
+    showSpToast(context, message, type: SpToastType.error);
   }
 
   void _back() {

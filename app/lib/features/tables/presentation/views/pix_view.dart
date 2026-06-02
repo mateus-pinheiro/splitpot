@@ -454,13 +454,8 @@ class _CopyPixButton extends StatelessWidget {
   void _copy(BuildContext context) {
     final text = settlement.pixCopiaECola ?? settlement.toPixKey;
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: SpColors.feltRail,
-        content: Text('PIX copiado!', style: TextStyle(fontSize: 12, color: Colors.white),),
-        duration: Duration(seconds: 1),
-      ),
-    );
+    showSpToast(context, 'PIX copiado!',
+        type: SpToastType.success, duration: const Duration(seconds: 1));
   }
 
   @override

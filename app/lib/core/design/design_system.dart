@@ -11,4 +11,5 @@ export 'widgets/sp_buttons.dart';
 export 'widgets/sp_input.dart';
 export 'widgets/sp_loader.dart';
 export 'widgets/sp_logo.dart';
+export 'widgets/sp_toast.dart';
 export 'widgets/suit_glyph.dart';

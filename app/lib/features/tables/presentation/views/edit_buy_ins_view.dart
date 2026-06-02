@@ -57,12 +57,8 @@ class _EditBuyInsScaffold extends StatelessWidget {
           child: BlocConsumer<EditBuyInsCubit, EditBuyInsState>(
             listener: (context, state) {
               if (state is EditBuyInsError) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: SpColors.danger,
-                    content: Text(_messageFor(state.failure)),
-                  ),
-                );
+                showSpToast(context, _messageFor(state.failure),
+                    type: SpToastType.error);
               }
             },
             builder: (context, state) {
@@ -299,12 +295,7 @@ class _AmountDialogState extends State<_AmountDialog> {
     final raw = _ctrl.text.replaceAll(',', '.').trim();
     final amount = Decimal.tryParse(raw);
     if (amount == null || amount <= Decimal.zero) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: SpColors.danger,
-          content: Text('Valor inválido'),
-        ),
-      );
+      showSpToast(context, 'Valor inválido', type: SpToastType.error);
       return;
     }
     Navigator.of(context).pop(amount);

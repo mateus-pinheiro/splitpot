@@ -35,7 +35,7 @@ class LoginView extends StatelessWidget {
             body: FeltBackground(
               child: SafeArea(
                 child: BlocListener<AuthCubit, AuthState>(
-                  listener: _handleErrorSnackBar,
+                  listener: _handleErrorToast,
                   listenWhen: (p, c) => c is AuthError,
                   child: const _LoginBody(),
                 ),
@@ -47,7 +47,7 @@ class LoginView extends StatelessWidget {
     );
   }
 
-  void _handleErrorSnackBar(BuildContext context, AuthState state) {
+  void _handleErrorToast(BuildContext context, AuthState state) {
     if (state is! AuthError) return;
     final message = switch (state.failure) {
       UnauthorizedFailure(:final message) =>
@@ -57,12 +57,7 @@ class LoginView extends StatelessWidget {
       SignInCancelledFailure() => 'Login cancelado.',
       _ => 'Não foi possível entrar. Tente novamente.',
     };
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: SpColors.danger,
-        content: Text(message),
-      ),
-    );
+    showSpToast(context, message, type: SpToastType.error);
   }
 }
 
@@ -183,13 +178,7 @@ class _LoginBodyState extends State<_LoginBody> with WidgetsBindingObserver {
 
   void _toast(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: SpColors.feltRail,
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    showSpToast(context, message, duration: const Duration(seconds: 2));
   }
 
   String _messageFor(Object error) {
