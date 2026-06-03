@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>986946226655-60ju7bpmq93ska6n4c8ela8e9scrvpuq.apps.googleusercontent.com</string>
+	<string>986946226655-voo2jcsihepgdif91bhbk4o46km8e5hb.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.986946226655-60ju7bpmq93ska6n4c8ela8e9scrvpuq</string>
+	<string>com.googleusercontent.apps.986946226655-voo2jcsihepgdif91bhbk4o46km8e5hb</string>
 	<key>API_KEY</key>
 	<string>AIzaSyA9_NI-tY013HdnPYTKYVccHqfwLBRvK7k</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>app.splitpot.splitpot</string>
+	<string>app.splitpot</string>
 	<key>PROJECT_ID</key>
 	<string>splitpot-4338d</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:986946226655:ios:269df12d830d69891b9c6a</string>
+	<string>1:986946226655:ios:91a37d0cdce8056e1b9c6a</string>
 </dict>
 </plist>
