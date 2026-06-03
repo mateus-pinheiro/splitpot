@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SplitPot — O caixa do poker entre amigos</title>
+<meta name="description" content="O SplitPot cuida do caixa do seu home game de poker: registra buy-ins e rebuys, calcula as saídas e gera os acertos via PIX. As contas sempre fecham.">
+<meta property="og:title" content="SplitPot — O caixa do poker entre amigos">
+<meta property="og:description" content="Registre buy-ins, feche a mesa e divida via PIX. Sem papel, sem briga no fim da noite.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://splitpot.com.br">
+<meta property="og:image" content="https://splitpot.com.br/assets/04-conferir-saidas.jpg">
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<!-- reusable brand mark -->
+<template id="chip">
+<img class="chip" src="assets/icon.png" alt="" aria-hidden="true">
+</template>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="chip-slot"></span><span class="wordmark">SplitPot</span></a>
+    <div class="nav-links">
+      <a href="#recursos">Recursos</a>
+      <a href="#como">Como funciona</a>
+      <a href="#telas">Telas</a>
+      <a href="support.html">Suporte</a>
+      <a href="#baixar" class="btn btn-gold">Baixar grátis</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-copy">
+      <span class="hero-kicker">Cash game · home poker</span>
+      <h1>O caixa do poker,<br><span class="accent">resolvido</span>.</h1>
+      <p class="lead">Registre buy-ins e rebuys, feche a mesa com as contas certas e divida tudo via PIX. Sem papel, sem planilha, sem briga no fim da noite.</p>
+      <div class="hero-cta">
+        <a href="#baixar" class="appstore">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.04c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.82-.81-3-.79-1.54.02-2.96.9-3.75 2.28-1.6 2.78-.41 6.89 1.15 9.14.76 1.1 1.67 2.34 2.86 2.29 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.98.72 1.23-.02 2.01-1.12 2.76-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.77 5.1c.64-.77 1.07-1.85.95-2.92-.92.04-2.03.61-2.69 1.38-.59.68-1.11 1.78-.97 2.83 1.03.08 2.07-.52 2.71-1.29z"/></svg>
+          <span><span class="l1">Baixe na</span><span class="l2">App Store</span></span>
+        </a>
+        <a href="#como" class="btn btn-light">Ver como funciona</a>
+      </div>
+      <div class="hero-note">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9fb5aa" stroke-width="2"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Grátis para jogar · acertos PIX diretos entre os jogadores
+      </div>
+    </div>
+    <div class="phones">
+      <div class="phone phone-b"><div class="notch"></div><img src="assets/05-acertos-pix.jpg" alt="Acertos via PIX otimizados" loading="eager"></div>
+      <div class="phone phone-a"><div class="notch"></div><img src="assets/01-mesa-ao-vivo.jpg" alt="Mesa ao vivo no SplitPot" loading="eager"></div>
+    </div>
+  </div>
+</header>
+
+<!-- TRUST STRIP -->
+<div class="trust">
+  <div class="wrap">
+    <div class="stat"><span class="n">0</span><span class="l">papel no fim da noite</span></div>
+    <div class="sep"></div>
+    <div class="stat"><span class="n mono">R$</span><span class="l">acertos via PIX</span></div>
+    <div class="sep"></div>
+    <div class="stat"><span class="n">1 toque</span><span class="l">para fechar a mesa</span></div>
+    <div class="sep"></div>
+    <div class="stat"><span class="n">100%</span><span class="l">contas que fecham</span></div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="recursos">
+  <div class="wrap center">
+    <div class="eyebrow">Tudo em um app</div>
+    <h2 class="s-head">Do primeiro buy-in ao último PIX</h2>
+    <p class="s-sub">O SplitPot acompanha a noite inteira e faz a conta chata por você.</p>
+  </div>
+  <div class="wrap">
+    <div class="fgrid">
+      <div class="fcard">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h4a1.5 1.5 0 010 3h-3a1.5 1.5 0 000 3h4" stroke-linecap="round"/></svg></div>
+        <h3>Caixa ao vivo</h3>
+        <p>Veja em tempo real quanto cada jogador colocou, rebuys e o total em jogo na mesa.</p>
+      </div>
+      <div class="fcard">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3M21 21v.01M17 21h.01M21 17h.01" stroke-linecap="round"/></svg></div>
+        <h3>Convite por QR</h3>
+        <p>Mostre o QR Code ou mande o link. Cada jogador entra e registra o próprio aporte.</p>
+      </div>
+      <div class="fcard">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 7l1.5 12.5a1.5 1.5 0 001.5 1.3h10a1.5 1.5 0 001.5-1.3L20 7M9 7V5a3 3 0 016 0v2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Cash out sem briga</h3>
+        <p>Conte as fichas, informe o valor final e o app calcula seu lucro ou prejuízo na hora.</p>
+      </div>
+      <div class="fcard new">
+        <span class="tag">Novo · v1.2</span>
+        <h3>Conferir saídas</h3>
+        <p>Saídas não bateram com o pote? O anfitrião edita, divide ou assume a diferença antes de fechar.</p>
+      </div>
+      <div class="fcard">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 16.5 7.1 18.2l.9-5.5-4-3.9L9.5 8 12 3z" stroke-linejoin="round"/></svg></div>
+        <h3>Acertos via PIX</h3>
+        <p>O app reduz dezenas de dívidas ao menor número de transferências e gera o QR de cada PIX.</p>
+      </div>
+      <div class="fcard">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5M4 19h16M8 16l3-4 3 2 4-6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Histórico e P&amp;L</h3>
+        <p>Toda mesa fica salva com resultado, duração e a sua evolução de lucro ao longo do tempo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="como">
+  <div class="wrap center">
+    <div class="eyebrow">Como funciona</div>
+    <h2 class="s-head">Quatro passos, noite resolvida</h2>
+    <p class="s-sub">Do convite ao acerto final, sem calculadora e sem discussão.</p>
+  </div>
+  <div class="wrap">
+    <div class="steps">
+      <div class="step"><div class="num">1</div><h4>Crie a mesa</h4><p>Defina buy-in mínimo e máximo, blinds e pronto — leva segundos.</p></div>
+      <div class="step"><div class="num">2</div><h4>Convide a galera</h4><p>Compartilhe o QR ou link. Cada um entra e registra o próprio buy-in.</p></div>
+      <div class="step"><div class="num">3</div><h4>Jogue e registre</h4><p>Rebuys e o caixa atualizam ao vivo. Na saída, cada um informa as fichas.</p></div>
+      <div class="step"><div class="num">4</div><h4>Feche e acerte</h4><p>O app confere as contas e gera os PIX otimizados. Todo mundo paga e tá feito.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- SPOTLIGHT: reconcile -->
+<section class="spot" id="conferir">
+  <div class="wrap">
+    <div class="spot-copy">
+      <div class="eyebrow">Novidade da versão 1.2</div>
+      <h2 class="s-head">As contas sempre fecham</h2>
+      <p class="s-sub">Quando o último jogador fecha a mesa e as saídas não batem com o pote, o SplitPot não deixa passar. O anfitrião resolve em um toque:</p>
+      <ul class="checks">
+        <li><span class="ck"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><b>Editar a saída</b> de quem digitou o valor errado.</span></li>
+        <li><span class="ck"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><b>Dividir a diferença</b> igualmente entre todos os jogadores.</span></li>
+        <li><span class="ck"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><b>Assumir como anfitrião</b>, com o PIX da diferença gerado.</span></li>
+      </ul>
+      <p class="s-sub" style="margin-top:22px;">A mesa só fecha quando tudo bate. Chega de mesa pendente.</p>
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section class="gallery" id="telas">
+  <div class="wrap center">
+    <div class="eyebrow">Por dentro</div>
+    <h2 class="s-head">Bonito de usar a noite toda</h2>
+    <p class="s-sub">Feito para a mesa: escuro, legível e rápido no calor do jogo.</p>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta" id="baixar">
+  <div class="wrap">
+    <h2>Sua próxima mesa<br>fecha certinho.</h2>
+    <p>Baixe o SplitPot e transforme a bagunça do fim da noite em um acerto justo e rápido.</p>
+    <div class="row">
+      <a href="#" class="appstore">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.04c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.82-.81-3-.79-1.54.02-2.96.9-3.75 2.28-1.6 2.78-.41 6.89 1.15 9.14.76 1.1 1.67 2.34 2.86 2.29 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.98.72 1.23-.02 2.01-1.12 2.76-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.77 5.1c.64-.77 1.07-1.85.95-2.92-.92.04-2.03.61-2.69 1.38-.59.68-1.11 1.78-.97 2.83 1.03.08 2.07-.52 2.71-1.29z"/></svg>
+        <span><span class="l1">Baixe na</span><span class="l2">App Store</span></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="foot">
+  <div class="wrap">
+    <div class="top">
+      <div style="max-width:300px;">
+        <div class="brand"><span class="chip-slot"></span><span class="wordmark">SplitPot</span></div>
+        <p style="margin:16px 0 0; font-size:14px;">O caixa do poker entre amigos. Registre, feche e divida via PIX — sem papel e sem briga.</p>
+      </div>
+      <div class="cols">
+        <div class="col">
+          <h5>Produto</h5>
+          <a href="#recursos">Recursos</a>
+          <a href="#como">Como funciona</a>
+          <a href="#telas">Telas</a>
+          <a href="#baixar">Baixar</a>
+        </div>
+        <div class="col">
+          <h5>Suporte</h5>
+          <a href="support.html">Central de ajuda</a>
+          <a href="mailto:suporte@splitpot.com.br">Fale com a gente</a>
+        </div>
+        <div class="col">
+          <h5>Legal</h5>
+          <a href="privacy.html">Privacidade</a>
+          <a href="terms.html">Termos de uso</a>
+        </div>
+      </div>
+    </div>
+    <div class="bottom">
+      <div class="disc">© 2026 SplitPot. O SplitPot é uma ferramenta de registro e divisão de valores entre amigos. O app não processa apostas, não movimenta dinheiro e não oferece jogos de azar a dinheiro real.</div>
+      <div>splitpot.com.br</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // inject the chip mark into every .chip-slot
+  const chip = document.getElementById('chip').innerHTML;
+  document.querySelectorAll('.chip-slot').forEach(s => { s.outerHTML = chip; });
+</script>
+</body>
+</html>

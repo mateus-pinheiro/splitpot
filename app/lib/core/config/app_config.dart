@@ -18,7 +18,7 @@ class AppConfig {
       ),
       webBaseUrl: String.fromEnvironment(
         'WEB_BASE_URL',
-        defaultValue: 'https://splitpot.com.br',
+        defaultValue: 'https://splitpot.com.br/app',
       ),
       firebaseWebApiKey: String.fromEnvironment(
         'FIREBASE_WEB_API_KEY',

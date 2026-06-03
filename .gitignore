@@ -8,6 +8,10 @@ dist/
 build/
 *.tsbuildinfo
 
+# Firebase Hosting assembled output (marketing site + flutter app under /app)
+/public/
+.firebase/
+
 # Environment
 .env
 .env.local

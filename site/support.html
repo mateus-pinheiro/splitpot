@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SplitPot — Suporte</title>
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<template id="chip">
+<img class="chip" src="assets/icon.png" alt="" aria-hidden="true">
+</template>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="chip-slot"></span><span class="wordmark">SplitPot</span></a>
+    <div class="nav-links">
+      <a href="index.html#recursos">Recursos</a>
+      <a href="index.html#como">Como funciona</a>
+      <a href="support.html">Suporte</a>
+      <a href="index.html#baixar" class="btn btn-gold">Baixar grátis</a>
+    </div>
+  </div>
+</nav>
+
+<div class="legal-top">
+  <div class="brand"><span class="chip-slot"></span><span class="wordmark">SplitPot</span></div>
+  <h1>Central de Suporte</h1>
+  <div class="sub">Estamos aqui para ajudar</div>
+</div>
+
+<div class="legal">
+  <p class="lead">Precisa de ajuda com o SplitPot? Veja as perguntas frequentes abaixo. Se não encontrar o que procura, fale com a gente — respondemos em até 2 dias úteis.</p>
+
+  <h2>Perguntas frequentes</h2>
+
+  <div class="faq"><h3>O SplitPot movimenta meu dinheiro?</h3>
+    <p>Não. O app apenas registra os valores e calcula os acertos. Os PIX são feitos por você, diretamente no app do seu banco, entre os jogadores.</p></div>
+
+  <div class="faq"><h3>As saídas não bateram com o pote. E agora?</h3>
+    <p>Quando o último jogador fecha a mesa e as contas não fecham, o anfitrião vê a tela "Conferir saídas". Lá dá para editar o valor de quem digitou errado, dividir a diferença entre todos ou assumir a diferença como anfitrião. A mesa só fecha quando tudo bate.</p></div>
+
+  <div class="faq"><h3>Como convido jogadores para a mesa?</h3>
+    <p>Ao criar a mesa, mostre o QR Code na tela ou compartilhe o link/código pelo WhatsApp. Cada jogador entra e registra o próprio buy-in.</p></div>
+
+  <div class="faq"><h3>Posso fazer rebuy?</h3>
+    <p>Sim. Durante a mesa ao vivo, toque em "+ Rebuy" e informe o valor. O total em jogo é atualizado na hora.</p></div>
+
+  <div class="faq"><h3>Para que serve minha chave PIX?</h3>
+    <p>Ela é exibida apenas aos jogadores que precisam te pagar ou receber de você no acerto final. Você pode alterá-la no seu perfil.</p></div>
+
+  <div class="faq"><h3>Como excluo minha conta e meus dados?</h3>
+    <p>Envie um e-mail para <a href="mailto:suporte@splitpot.com.br">suporte@splitpot.com.br</a> pedindo a exclusão. Removemos sua conta e seus dados conforme a LGPD.</p></div>
+
+  <div class="contact-card">
+    <div style="font-size:19px;font-weight:700;">Ainda precisa de ajuda?</div>
+    <div style="font-size:14px;opacity:.85;margin-top:6px;">Fale com nossa equipe por e-mail.</div>
+    <a class="mail" href="mailto:suporte@splitpot.com.br">suporte@splitpot.com.br</a>
+  </div>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="top">
+      <div style="max-width:300px;">
+        <div class="brand"><span class="chip-slot"></span><span class="wordmark">SplitPot</span></div>
+        <p style="margin:16px 0 0; font-size:14px;">O caixa do poker entre amigos. Registre, feche e divida via PIX — sem papel e sem briga.</p>
+      </div>
+      <div class="cols">
+        <div class="col"><h5>Produto</h5><a href="index.html#recursos">Recursos</a><a href="index.html#como">Como funciona</a><a href="index.html#telas">Telas</a><a href="index.html#baixar">Baixar</a></div>
+        <div class="col"><h5>Suporte</h5><a href="support.html">Central de ajuda</a><a href="mailto:suporte@splitpot.com.br">Fale com a gente</a></div>
+        <div class="col"><h5>Legal</h5><a href="privacy.html">Privacidade</a><a href="terms.html">Termos de uso</a></div>
+      </div>
+    </div>
+    <div class="bottom">
+      <div class="disc">© 2026 SplitPot. O SplitPot é uma ferramenta de registro e divisão de valores entre amigos. O app não processa apostas, não movimenta dinheiro e não oferece jogos de azar a dinheiro real.</div>
+      <div>splitpot.com.br</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const chip = document.getElementById('chip').innerHTML;
+  document.querySelectorAll('.chip-slot').forEach(s => { s.outerHTML = chip; });
+</script>
+</body>
+</html>
