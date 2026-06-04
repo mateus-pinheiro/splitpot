@@ -3,6 +3,9 @@ node_modules/
 .pnp
 .pnp.js
 
+# Local DB dumps (may contain production PII — never commit)
+.tmp/
+
 # Build outputs
 dist/
 build/

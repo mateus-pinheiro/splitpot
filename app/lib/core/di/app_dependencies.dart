@@ -165,6 +165,7 @@ void registerAppDependencies(DIContainer di) {
       listSettlements: di.get<ListSettlements>(),
       confirmSettlement: di.get<ConfirmSettlement>(),
       confirmOnBehalf: di.get<ConfirmSettlementOnBehalf>(),
+      getTable: di.get<GetTable>(),
     ),
   );
   di.registerFactory(

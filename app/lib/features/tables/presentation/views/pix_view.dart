@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/design/design_system.dart';
 import '../../../../core/di/di_container.dart';
@@ -131,6 +132,8 @@ class _Content extends StatelessWidget {
     final confirmedAmount = all
         .where((s) => s.status == SettlementStatus.confirmed)
         .fold<Decimal>(Decimal.zero, (acc, s) => acc + s.amount);
+    final hasPending =
+        all.any((s) => s.status == SettlementStatus.pending);
 
     return Column(
       children: [
@@ -143,6 +146,13 @@ class _Content extends StatelessWidget {
                 total: all.length,
                 confirmedAmount: confirmedAmount,
               ),
+              if (hasPending) ...[
+                const SizedBox(height: 12),
+                _ShareSummaryButton(
+                  tableName: state.tableName,
+                  settlements: all,
+                ),
+              ],
               const SizedBox(height: 18),
               if (all.isEmpty)
                 const _EmptyState()
@@ -169,6 +179,75 @@ class _Content extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ShareSummaryButton extends StatelessWidget {
+  const _ShareSummaryButton({
+    required this.tableName,
+    required this.settlements,
+  });
+  final String? tableName;
+  final List<Settlement> settlements;
+
+  /// Monta o texto compartilhável com os pagamentos ainda pendentes.
+  String _buildSummary() {
+    final name = (tableName == null || tableName!.trim().isEmpty)
+        ? 'mesa'
+        : tableName!.trim();
+    final pending =
+        settlements.where((s) => s.status == SettlementStatus.pending);
+    final buf = StringBuffer()..writeln(name);
+    for (final s in pending) {
+      // Chave PIX cadastrada do recebedor (denormalizada no fechamento).
+      buf.writeln(
+        '${s.fromName} -> ${s.toName}: ${brlFromDecimal(s.amount)}, pix: ${s.toPixKey};',
+      );
+    }
+    return buf.toString().trimRight();
+  }
+
+  Future<void> _share(BuildContext context) async {
+    final text = _buildSummary();
+    try {
+      await SharePlus.instance.share(ShareParams(text: text));
+    } catch (_) {
+      // Fallback (ex.: desktop sem Web Share API): copia o resumo.
+      await Clipboard.setData(ClipboardData(text: text));
+      if (context.mounted) {
+        showSpToast(
+          context,
+          'Resumo copiado!',
+          type: SpToastType.success,
+          duration: const Duration(seconds: 2),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 44,
+      child: OutlinedButton.icon(
+        onPressed: () => _share(context),
+        icon: const Icon(Icons.ios_share, size: 16),
+        label: const Text('Compartilhar resumo'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: SpColors.goldBright,
+          side: BorderSide(color: SpColors.gold.withValues(alpha: 0.5)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          textStyle: const TextStyle(
+            fontFamily: SpTypography.uiFamily,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 }

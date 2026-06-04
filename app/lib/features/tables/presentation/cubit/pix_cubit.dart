@@ -10,14 +10,17 @@ class PixCubit extends Cubit<PixState> {
     required ListSettlements listSettlements,
     required ConfirmSettlement confirmSettlement,
     required ConfirmSettlementOnBehalf confirmOnBehalf,
+    required GetTable getTable,
   })  : _list = listSettlements,
         _confirm = confirmSettlement,
         _confirmOnBehalf = confirmOnBehalf,
+        _getTable = getTable,
         super(const PixState.loading());
 
   final ListSettlements _list;
   final ConfirmSettlement _confirm;
   final ConfirmSettlementOnBehalf _confirmOnBehalf;
+  final GetTable _getTable;
 
   String? _tableId;
 
@@ -26,7 +29,12 @@ class PixCubit extends Cubit<PixState> {
     emit(const PixState.loading());
     try {
       final settlements = await _list(tableId);
-      emit(PixState.loaded(settlements: settlements));
+      // Nome da mesa é best-effort: usado só no texto do compartilhamento.
+      String? tableName;
+      try {
+        tableName = (await _getTable(tableId)).name;
+      } catch (_) {}
+      emit(PixState.loaded(settlements: settlements, tableName: tableName));
     } on ApiException catch (e) {
       emit(PixState.error(e.failure));
     }
@@ -37,6 +45,7 @@ class PixCubit extends Cubit<PixState> {
     if (cur is! PixLoaded) return;
     emit(PixState.loaded(
       settlements: cur.settlements,
+      tableName: cur.tableName,
       submittingId: settlementId,
     ));
     try {
@@ -45,6 +54,7 @@ class PixCubit extends Cubit<PixState> {
     } on ApiException catch (e) {
       emit(PixState.loaded(
         settlements: cur.settlements,
+        tableName: cur.tableName,
         errorFor: settlementId,
         errorFailure: e.failure,
       ));
@@ -56,6 +66,7 @@ class PixCubit extends Cubit<PixState> {
     if (cur is! PixLoaded) return;
     emit(PixState.loaded(
       settlements: cur.settlements,
+      tableName: cur.tableName,
       submittingId: settlementId,
     ));
     try {
@@ -64,6 +75,7 @@ class PixCubit extends Cubit<PixState> {
     } on ApiException catch (e) {
       emit(PixState.loaded(
         settlements: cur.settlements,
+        tableName: cur.tableName,
         errorFor: settlementId,
         errorFailure: e.failure,
       ));
@@ -76,6 +88,7 @@ sealed class PixState {
   const factory PixState.loading() = PixLoading;
   const factory PixState.loaded({
     required List<Settlement> settlements,
+    String? tableName,
     String? submittingId,
     String? errorFor,
     Failure? errorFailure,
@@ -90,11 +103,13 @@ class PixLoading extends PixState {
 class PixLoaded extends PixState {
   const PixLoaded({
     required this.settlements,
+    this.tableName,
     this.submittingId,
     this.errorFor,
     this.errorFailure,
   });
   final List<Settlement> settlements;
+  final String? tableName;
   final String? submittingId;
   final String? errorFor;
   final Failure? errorFailure;
