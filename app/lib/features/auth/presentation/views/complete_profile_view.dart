@@ -54,9 +54,11 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
   String? _draftEmail(AuthState state) =>
       state is AuthNeedsProfile ? state.draftEmail : null;
 
+  // Esta tela atende apenas o cadastro por email/senha. O login social
+  // (Apple/Google) não passa mais por aqui — ele provisiona direto do dialog
+  // de PIX na LoginView, sem pedir nome/email (exigência da Apple, Guideline 4).
   void _submit() {
     final cubit = context.read<AuthCubit>();
-    final provider = _providerFromState(cubit.state);
 
     final name = _nameController.text.trim();
     final pixKey = _pixController.text.trim();
@@ -64,16 +66,12 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
       _toast('Preencha nome e chave PIX.');
       return;
     }
-    if (provider == AuthProvider.password) {
-      final password = _passwordController.text;
-      if (password.length < 6) {
-        _toast('A senha precisa ter pelo menos 6 caracteres.');
-        return;
-      }
-      cubit.signUpAndCompleteProfile(name: name, pixKey: pixKey);
-    } else {
-      cubit.completeProfile(name: name, pixKey: pixKey);
+    final password = _passwordController.text;
+    if (password.length < 6) {
+      _toast('A senha precisa ter pelo menos 6 caracteres.');
+      return;
     }
+    cubit.signUpAndCompleteProfile(name: name, pixKey: pixKey);
   }
 
   void _toast(String message) {

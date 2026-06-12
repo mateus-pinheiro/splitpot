@@ -6,9 +6,11 @@ import '../../../../core/design/design_system.dart';
 import '../../../../core/di/di_container.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../domain/entities/auth_provider.dart';
 import '../../domain/usecases/usecases.dart';
 import '../cubit/cubit.dart';
 import '../widgets/google_sign_in_web_button.dart';
+import 'pix_setup_dialog.dart';
 
 /// Mostra Apple Sign-In apenas em iOS native (web/Android escondem).
 bool get _showAppleButton {
@@ -29,6 +31,9 @@ class _LoginViewState extends State<LoginView> {
   // setado lá dentro, em `_LoginBody`. Depois do lookup, o estado
   // `AuthAuthenticating` do cubit assume e mantém o loader até o redirect.
   final _busy = ValueNotifier<bool>(false);
+
+  // Evita empilhar o dialog de PIX em reemissões de `AuthNeedsProfile`.
+  bool _pixDialogOpen = false;
 
   @override
   void dispose() {
@@ -55,8 +60,11 @@ class _LoginViewState extends State<LoginView> {
                 body: FeltBackground(
                   child: SafeArea(
                     child: BlocListener<AuthCubit, AuthState>(
-                      listener: _handleErrorToast,
-                      listenWhen: (p, c) => c is AuthError,
+                      listener: _onAuthState,
+                      listenWhen: (p, c) =>
+                          c is AuthError ||
+                          (c is AuthNeedsProfile &&
+                              c.provider != AuthProvider.password),
                       child: _LoginBody(busy: _busy),
                     ),
                   ),
@@ -67,6 +75,25 @@ class _LoginViewState extends State<LoginView> {
         );
       },
     );
+  }
+
+  void _onAuthState(BuildContext context, AuthState state) {
+    // Login social sem perfil → abre o dialog bloqueante de PIX (nome/email já
+    // vieram do provedor). Cadastro por senha continua indo pra
+    // /complete-profile via redirect do router.
+    if (state is AuthNeedsProfile &&
+        state.provider != AuthProvider.password) {
+      if (_pixDialogOpen) return;
+      _pixDialogOpen = true;
+      showPixSetupDialog(context, suggestedName: state.suggestedName)
+          .whenComplete(() => _pixDialogOpen = false);
+      return;
+    }
+    if (state is AuthError) {
+      // Com o dialog aberto, o erro é mostrado lá dentro — evita toast duplo.
+      if (_pixDialogOpen) return;
+      _handleErrorToast(context, state);
+    }
   }
 
   void _handleErrorToast(BuildContext context, AuthState state) {

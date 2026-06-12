@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/domain/entities/auth_provider.dart';
 import '../../features/auth/presentation/cubit/cubit.dart';
 import '../../features/auth/presentation/views/views.dart';
 import '../../features/home/presentation/views/home_view.dart';
@@ -146,9 +147,15 @@ class AppRouter {
 
     return switch (auth) {
       AuthUnauthenticated() || AuthError() => _toLogin(location, uri),
-      AuthNeedsProfile() ||
-      AuthUpdatingProfile() =>
-        _toCompleteProfile(location, uri),
+      // Login social (Apple/Google) já entrega nome+email — não pedimos perfil
+      // numa tela à parte (exigência da Apple, Guideline 4). O usuário fica em
+      // /login e a LoginView abre um dialog pedindo só a chave PIX. Apenas o
+      // cadastro por email/senha ainda passa pela tela /complete-profile.
+      AuthNeedsProfile(:final provider) ||
+      AuthUpdatingProfile(:final provider) =>
+        provider == AuthProvider.password
+            ? _toCompleteProfile(location, uri)
+            : _toLogin(location, uri),
       AuthAuthenticated() => _afterAuth(location, uri),
       AuthAuthenticating() => null,
     };
