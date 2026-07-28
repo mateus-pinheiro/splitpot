@@ -226,7 +226,7 @@ class _FormState extends State<_Form> {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Conte suas fichas e informe o valor final. Se estiver zerado, informe R\$ 0.',
+                'Confira quanto você está levando e informe o valor final. Se estiver zerado, informe R\$ 0.',
                 style: TextStyle(
                   fontFamily: SpTypography.uiFamily,
                   fontSize: 13,
@@ -237,7 +237,7 @@ class _FormState extends State<_Form> {
               const SizedBox(height: 20),
               _InvestedSummary(summary: summary),
               const SizedBox(height: 20),
-              const SpFieldLabel('Valor em fichas ao sair'),
+              const SpFieldLabel('Valor final ao sair'),
               const SizedBox(height: 10),
               _StackInput(controller: _controller),
               const SizedBox(height: 10),

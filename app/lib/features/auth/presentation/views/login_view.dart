@@ -422,7 +422,7 @@ class _LoginHero extends StatelessWidget {
           Opacity(
             opacity: 0.8,
             child: Text(
-              'Caixa transparente\npara seu home game',
+              'Caixa transparente\npara a noite entre amigos',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: SpTypography.uiFamily,

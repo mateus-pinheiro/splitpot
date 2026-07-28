@@ -524,7 +524,7 @@ class _BalanceHero extends StatelessWidget {
                   child: _MoneyColumn(
                     eyebrow: 'SAÍDAS DECLARADAS',
                     value: brlFromDecimal(declared),
-                    caption: 'soma das fichas',
+                    caption: 'soma dos valores',
                     valueColor: declaredColor,
                   ),
                 ),

@@ -184,7 +184,7 @@ class _HeroCreateCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Nova mesa\nde cash game',
+                  'Nova mesa\nentre amigos',
                   style: TextStyle(
                     fontFamily: SpTypography.displayFamily,
                     fontSize: 22,

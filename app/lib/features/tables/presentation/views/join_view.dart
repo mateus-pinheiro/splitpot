@@ -154,7 +154,7 @@ class _TableInfoCard extends StatelessWidget {
                   children: [
                     _MetaColumn(label: 'Buy-in', value: 'R\$ 50 – 200'),
                     SizedBox(width: 18),
-                    _MetaColumn(label: 'Blinds', value: '0,25 / 0,50'),
+                    _MetaColumn(label: 'Rebuy', value: 'Livre'),
                     SizedBox(width: 18),
                     _MetaColumn(label: 'Na mesa', value: '4 jogadores'),
                   ],

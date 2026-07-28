@@ -302,26 +302,6 @@ class _CreateTableFormState extends State<_CreateTableForm> {
                       // ),
                     ],
                   ),
-                  // const SizedBox(height: 8),
-                  // _BuyInHelper(
-                  //   min: _minController.text,
-                  //   max: _maxController.text,
-                  // ),
-                  // const SizedBox(height: 22),
-                  // const SpFieldLabel('Valor da ficha (small blind)'),
-                  // const SizedBox(height: 10),
-                  // Wrap(
-                  //   spacing: 8,
-                  //   runSpacing: 8,
-                  //   children: [
-                  //     for (var i = 0; i < _blinds.length; i++)
-                  //       _BlindPill(
-                  //         label: 'R\$ ${_blinds[i]}',
-                  //         selected: i == _blindIndex,
-                  //         onTap: () => setState(() => _blindIndex = i),
-                  //       ),
-                  //   ],
-                  // ),
                   const SizedBox(height: 22),
                   _WillPlayToggle(
                     value: _willPlay,
