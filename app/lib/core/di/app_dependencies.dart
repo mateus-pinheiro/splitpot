@@ -18,7 +18,16 @@ import 'di_container.dart';
 void registerAppDependencies(DIContainer di) {
   // Core
   di.registerSingleton<AppConfig>(AppConfig.fromEnvironment());
-  di.registerSingleton<FirebaseTokenStore>(FirebaseTokenStore());
+  di.registerSingleton<SessionStorage>(SharedPrefsSessionStorage());
+  di.registerSingleton<FirebaseIdentityToolkitApi>(
+    FirebaseIdentityToolkitApi(config: di.get<AppConfig>()),
+  );
+  di.registerSingleton<FirebaseTokenStore>(
+    FirebaseTokenStore(
+      storage: di.get<SessionStorage>(),
+      identityToolkit: di.get<FirebaseIdentityToolkitApi>(),
+    ),
+  );
   di.registerSingleton<TokenProvider>(di.get<FirebaseTokenStore>());
   di.registerSingleton<SessionExpiredNotifier>(SessionExpiredNotifier());
   di.registerLazySingleton<ApiClient>(
@@ -27,9 +36,6 @@ void registerAppDependencies(DIContainer di) {
       tokenProvider: di.get<TokenProvider>(),
       sessionExpiredNotifier: di.get<SessionExpiredNotifier>(),
     ),
-  );
-  di.registerLazySingleton<FirebaseIdentityToolkitApi>(
-    () => FirebaseIdentityToolkitApi(config: di.get<AppConfig>()),
   );
   di.registerLazySingleton<AppleSignInService>(() => AppleSignInService());
   di.registerLazySingleton<FirebaseRestAuthService>(

@@ -10,6 +10,7 @@ import 'core/di/di.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/data/services/firebase_rest_auth_service.dart';
+import 'features/auth/data/services/firebase_token_store.dart';
 import 'features/auth/presentation/cubit/cubit.dart';
 import 'features/auth/presentation/views/splash_view.dart';
 
@@ -24,6 +25,10 @@ Future<void> main() async {
   // attemptLightweightAuthentication — agora roda unawaited no service.
   final firebase = appDI.get<FirebaseRestAuthService>();
   await firebase.initialize();
+
+  // Recupera a sessão persistida antes do primeiro request — sem isso o
+  // bootstrap sai sem Authorization e o usuário cai no login a cada reload.
+  await appDI.get<FirebaseTokenStore>().restore();
 
   final authCubit = appDI.get<AuthCubit>();
   unawaited(authCubit.bootstrap());

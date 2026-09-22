@@ -34,6 +34,9 @@ dependencies:
   # Native share sheet (WhatsApp etc.)
   share_plus: ^11.0.0
 
+  # Persistência da sessão (refresh token) entre aberturas do app
+  shared_preferences: ^2.5.3
+
   # Google Sign-In
   google_sign_in: ^7.2.0
   google_sign_in_web: ^1.1.3

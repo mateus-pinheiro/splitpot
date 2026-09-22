@@ -66,13 +66,35 @@ class FirebaseIdentityToolkitApi {
     return IdentityToolkitSession.fromJson(decoded);
   }
 
+  /// Troca o refresh token por um ID token novo. Roda em outro host
+  /// (`securetoken`) e é o único jeito de manter a sessão viva além da hora
+  /// de validade fixa do ID token.
+  Future<RefreshedTokens> refreshIdToken(String refreshToken) async {
+    final decoded = await _postTo(
+      Uri.parse(
+        'https://securetoken.googleapis.com/v1/token?key=${_config.firebaseWebApiKey}',
+      ),
+      {'grant_type': 'refresh_token', 'refresh_token': refreshToken},
+    );
+    return RefreshedTokens.fromJson(decoded);
+  }
+
   Future<Map<String, dynamic>> _post(
     String endpoint,
     Map<String, dynamic> payload,
-  ) async {
-    final uri = Uri.parse(
-      'https://identitytoolkit.googleapis.com/v1/$endpoint?key=${_config.firebaseWebApiKey}',
+  ) {
+    return _postTo(
+      Uri.parse(
+        'https://identitytoolkit.googleapis.com/v1/$endpoint?key=${_config.firebaseWebApiKey}',
+      ),
+      payload,
     );
+  }
+
+  Future<Map<String, dynamic>> _postTo(
+    Uri uri,
+    Map<String, dynamic> payload,
+  ) async {
     http.Response response;
     try {
       response = await _http.post(
@@ -129,6 +151,11 @@ class FirebaseIdentityToolkitApi {
       'INVALID_IDP_RESPONSE' => const Failure.unauthorized(
         message: 'Resposta do provedor inválida. Tente novamente.',
       ),
+      // Refresh token revogado/expirado — sessão morreu, precisa logar de novo.
+      'TOKEN_EXPIRED' ||
+      'INVALID_REFRESH_TOKEN' ||
+      'USER_NOT_FOUND' =>
+        const Failure.unauthorized(message: 'Sessão expirada. Entre de novo.'),
       _ => Failure.unexpected(message: raw ?? 'Erro de autenticação.'),
     };
   }
@@ -141,6 +168,7 @@ class IdentityToolkitSession {
     required this.uid,
     required this.email,
     required this.idToken,
+    required this.expiresIn,
     this.displayName,
     this.refreshToken,
   });
@@ -152,6 +180,7 @@ class IdentityToolkitSession {
       displayName: json['displayName'] as String?,
       idToken: json['idToken'] as String,
       refreshToken: json['refreshToken'] as String?,
+      expiresIn: parseExpiresIn(json['expiresIn']),
     );
   }
 
@@ -160,4 +189,40 @@ class IdentityToolkitSession {
   final String? displayName;
   final String idToken;
   final String? refreshToken;
+
+  /// Validade do ID token. O Firebase sempre devolve 3600s e o valor não é
+  /// configurável — por isso a sessão longa depende do refresh token, não
+  /// de esticar esse prazo.
+  final Duration expiresIn;
+}
+
+/// Firebase manda `expiresIn`/`expires_in` como string de segundos.
+Duration parseExpiresIn(Object? raw) {
+  final seconds = switch (raw) {
+    final int v => v,
+    final String v => int.tryParse(v) ?? 3600,
+    _ => 3600,
+  };
+  return Duration(seconds: seconds);
+}
+
+/// Par de tokens devolvido pelo endpoint de refresh (securetoken).
+class RefreshedTokens {
+  const RefreshedTokens({
+    required this.idToken,
+    required this.refreshToken,
+    required this.expiresIn,
+  });
+
+  factory RefreshedTokens.fromJson(Map<String, dynamic> json) {
+    return RefreshedTokens(
+      idToken: json['id_token'] as String,
+      refreshToken: json['refresh_token'] as String,
+      expiresIn: parseExpiresIn(json['expires_in']),
+    );
+  }
+
+  final String idToken;
+  final String refreshToken;
+  final Duration expiresIn;
 }

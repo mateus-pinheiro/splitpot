@@ -107,6 +107,7 @@ class FirebaseRestAuthService {
           name: session.displayName ?? apple.fullName,
           idToken: session.idToken,
           refreshToken: session.refreshToken,
+          expiresIn: session.expiresIn,
           provider: AuthProvider.apple,
         ),
       );
@@ -136,6 +137,7 @@ class FirebaseRestAuthService {
           name: session.displayName,
           idToken: session.idToken,
           refreshToken: session.refreshToken,
+          expiresIn: session.expiresIn,
           provider: AuthProvider.password,
         ),
       );
@@ -167,6 +169,7 @@ class FirebaseRestAuthService {
       name: session.displayName,
       idToken: session.idToken,
       refreshToken: session.refreshToken,
+      expiresIn: session.expiresIn,
       provider: AuthProvider.password,
     );
   }
@@ -217,6 +220,7 @@ class FirebaseRestAuthService {
           name: session.displayName ?? account.displayName,
           idToken: session.idToken,
           refreshToken: session.refreshToken,
+          expiresIn: session.expiresIn,
           provider: AuthProvider.google,
         ),
       );
@@ -232,6 +236,7 @@ class FirebaseRestCredentials {
     required this.email,
     required this.idToken,
     required this.provider,
+    required this.expiresIn,
     this.name,
     this.refreshToken,
   });
@@ -240,6 +245,10 @@ class FirebaseRestCredentials {
   final String email;
   final String? name;
   final String idToken;
+
+  /// Necessário pra manter a sessão viva: o ID token vale 1h e só o
+  /// refresh token consegue renovar.
   final String? refreshToken;
+  final Duration expiresIn;
   final AuthProvider provider;
 }

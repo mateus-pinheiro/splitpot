@@ -77,7 +77,7 @@ class AuthRepositoryImpl implements AuthRepository {
       email: email,
       password: password,
     );
-    _tokenStore.set(creds.idToken);
+    await _saveSession(creds);
     _pendingEmail = creds.email;
     // Reutiliza o caminho de POST /users/me — o backend faz upsert por
     // firebaseUid, então o registro recém-criado no Firebase já vira
@@ -91,7 +91,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Stream<SignInOutcome> get signInOutcomes {
     return _firebase.credentials.asyncMap((credentials) async {
-      _tokenStore.set(credentials.idToken);
+      await _saveSession(credentials);
       _pendingEmail = credentials.email;
 
       final profile = await _api.getOrNull('/users/me');
@@ -127,8 +127,16 @@ class AuthRepositoryImpl implements AuthRepository {
     } on ApiException {
       // Queremos limpar sessão local mesmo se a chamada ao provider falhar.
     }
-    _tokenStore.clear();
+    await _tokenStore.clear();
     _pendingEmail = null;
+  }
+
+  Future<void> _saveSession(FirebaseRestCredentials credentials) {
+    return _tokenStore.save(
+      idToken: credentials.idToken,
+      refreshToken: credentials.refreshToken,
+      expiresIn: credentials.expiresIn,
+    );
   }
 
   String _deriveNameFromEmail(String email) {
