@@ -50,7 +50,8 @@ class CheckReady extends CheckTableState {
   final PokerTable table;
 
   /// `participationId → cash-out editado`. Inicializado com o valor do
-  /// servidor; o usuário pode editar localmente sem persistir.
+  /// servidor; o usuário pode editar localmente sem persistir. Cobre todas as
+  /// participações que contam pro caixa, inclusive as removidas.
   final Map<String, Decimal> outs;
   final ReconcileMethod method;
   final bool submitting;
@@ -140,7 +141,7 @@ class CheckTableCubit extends Cubit<CheckTableState> {
     if (s is! CheckReady) return;
     final last = _lastCashOutParticipation(s.table);
     if (last == null) return;
-    final pot = _activePot(s.table);
+    final pot = countedPot(s.table);
     final othersDeclared = s.outs.entries
         .where((e) => e.key != last.id)
         .fold<Decimal>(Decimal.zero, (acc, e) => acc + e.value);
@@ -181,7 +182,7 @@ class CheckTableCubit extends Cubit<CheckTableState> {
   }
 
   Future<void> _pushPendingEdits(CheckReady s) async {
-    for (final p in s.table.participations.where((p) => p.leftAt == null)) {
+    for (final p in counted(s.table)) {
       final newAmount = s.outs[p.id];
       if (newAmount == null) continue;
       final current = p.cashOut?.amount;
@@ -198,10 +199,23 @@ class CheckTableCubit extends Cubit<CheckTableState> {
     }
   }
 
+  /// Participações que entram na conta — inclui removidos com lançamento,
+  /// exatamente o mesmo conjunto que a API usa pra fechar a mesa.
+  static List<TableParticipation> counted(PokerTable table) =>
+      table.participations.where((p) => p.countsForBalance).toList();
+
+  /// Subconjunto de `counted` que ainda está na mesa: só esses podem absorver
+  /// a diferença no "dividir entre todos" / "assumir como host".
+  static List<TableParticipation> adjustable(PokerTable table) =>
+      counted(table).where((p) => !p.wasRemoved).toList();
+
+  static Decimal countedPot(PokerTable table) =>
+      counted(table).fold(Decimal.zero, (sum, p) => sum + p.invested);
+
   static Map<String, Decimal> _initialOuts(PokerTable table) {
     final out = <String, Decimal>{};
-    for (final p in table.participations.where((p) => p.leftAt == null)) {
-      out[p.id] = p.cashOut?.amount ?? Decimal.zero;
+    for (final p in counted(table)) {
+      out[p.id] = p.cashOutAmount;
     }
     return out;
   }
@@ -209,7 +223,7 @@ class CheckTableCubit extends Cubit<CheckTableState> {
   static TableParticipation? _lastCashOutParticipation(PokerTable table) {
     TableParticipation? last;
     DateTime? lastAt;
-    for (final p in table.participations.where((p) => p.leftAt == null)) {
+    for (final p in adjustable(table)) {
       final co = p.cashOut;
       if (co == null) continue;
       if (lastAt == null || co.createdAt.isAfter(lastAt)) {
@@ -218,15 +232,5 @@ class CheckTableCubit extends Cubit<CheckTableState> {
       }
     }
     return last;
-  }
-
-  static Decimal _activePot(PokerTable table) {
-    var sum = Decimal.zero;
-    for (final p in table.participations.where((p) => p.leftAt == null)) {
-      for (final b in p.buyIns) {
-        sum += b.amount;
-      }
-    }
-    return sum;
   }
 }

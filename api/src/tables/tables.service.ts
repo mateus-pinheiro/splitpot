@@ -15,6 +15,35 @@ import {
   type ParticipantNet,
 } from './settlement-calculator.js';
 
+type BalanceParticipation = {
+  leftAt: Date | null;
+  buyIns: { amount: Prisma.Decimal }[];
+  cashOut: { amount: Prisma.Decimal } | null;
+};
+
+/**
+ * Participações que entram na contabilidade da mesa. Um jogador removido
+ * (`leftAt`) continua contando se já movimentou dinheiro: os buy-ins dele são
+ * fichas reais que entraram no pote e o cash-out é dinheiro que saiu. Filtrar
+ * por `leftAt: null` fazia esse dinheiro sumir só de um lado da conta e
+ * travava o fechamento com uma diferença que o host não conseguia atribuir a
+ * ninguém — ela vinha de alguém que nem aparecia na tela de conferência.
+ * Ficam de fora apenas as participações sem nenhum lançamento.
+ */
+const countsForBalance = (p: BalanceParticipation): boolean =>
+  p.leftAt === null || p.buyIns.length > 0 || p.cashOut !== null;
+
+/**
+ * Cash-out efetivo. Um removido sem cash-out registrado vale 0 — ele saiu
+ * deixando as fichas na mesa, que é o que o diálogo de remoção promete.
+ * Só participante ativo é obrigado a ter cash-out pra mesa fechar.
+ */
+const cashOutOf = (p: BalanceParticipation): Prisma.Decimal =>
+  p.cashOut ? p.cashOut.amount : new Prisma.Decimal(0);
+
+const sumBuyIns = (p: BalanceParticipation): Prisma.Decimal =>
+  p.buyIns.reduce((acc, b) => acc.plus(b.amount), new Prisma.Decimal(0));
+
 @Injectable()
 export class TablesService {
   constructor(
@@ -146,34 +175,29 @@ export class TablesService {
   }
 
   /**
-   * Computes totalBuyIn / totalCashOut for active (non-left) participants and
-   * a `needsReconciliation` flag. The flag is true when an OPEN table has
-   * cash-outs for every active participant but the sums don't match — i.e.
-   * the auto-close fired and was rejected. Used by the app to render the
-   * host's reconciliation ("check") view.
+   * Computes totalBuyIn / totalCashOut over the participations that count for
+   * the balance (see `countsForBalance`) and a `needsReconciliation` flag. The
+   * flag is true when an OPEN table has cash-outs for every *active*
+   * participant but the sums don't match — i.e. the auto-close fired and was
+   * rejected. Used by the app to render the host's reconciliation ("check")
+   * view, which must list exactly this same set of participations.
    */
   private summarizeBalance(table: {
     status: TableStatus;
-    participations: {
-      leftAt: Date | null;
-      buyIns: { amount: Prisma.Decimal }[];
-      cashOut: { amount: Prisma.Decimal } | null;
-    }[];
+    participations: BalanceParticipation[];
   }) {
     let totalBuyIn = new Prisma.Decimal(0);
     let totalCashOut = new Prisma.Decimal(0);
-    let activeCount = 0;
-    let cashedOutCount = 0;
+    let counted = 0;
+    let pendingCashOut = 0;
     for (const p of table.participations) {
-      if (p.leftAt !== null) continue;
-      activeCount += 1;
-      for (const b of p.buyIns) totalBuyIn = totalBuyIn.plus(b.amount);
-      if (p.cashOut) {
-        cashedOutCount += 1;
-        totalCashOut = totalCashOut.plus(p.cashOut.amount);
-      }
+      if (!countsForBalance(p)) continue;
+      counted += 1;
+      totalBuyIn = totalBuyIn.plus(sumBuyIns(p));
+      totalCashOut = totalCashOut.plus(cashOutOf(p));
+      if (p.leftAt === null && !p.cashOut) pendingCashOut += 1;
     }
-    const allCashedOut = activeCount > 0 && cashedOutCount === activeCount;
+    const allCashedOut = counted > 0 && pendingCashOut === 0;
     const needsReconciliation =
       table.status === TableStatus.OPEN &&
       allCashedOut &&
@@ -311,11 +335,16 @@ export class TablesService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const active = await tx.tableParticipation.findMany({
-        where: { tableId, leftAt: null },
+      const participations = await tx.tableParticipation.findMany({
+        where: { tableId },
         include: { buyIns: true, cashOut: true },
       });
-      if (active.length === 0)
+      // A diferença é medida sobre tudo que conta pro caixa (inclusive
+      // removidos com lançamento), mas o ajuste só pode recair sobre quem
+      // ainda está na mesa — `active`.
+      const counted = participations.filter(countsForBalance);
+      const active = counted.filter((p) => p.leftAt === null);
+      if (counted.length === 0)
         throw new BadRequestException('Mesa sem participantes');
       const missing = active.filter((p) => !p.cashOut);
       if (missing.length > 0) {
@@ -323,12 +352,11 @@ export class TablesService {
           `Cash-out pendente para ${missing.length} participante(s) — reconciliação só funciona com todos cashados`,
         );
       }
-
       let totalBuyIn = new Prisma.Decimal(0);
       let totalCashOut = new Prisma.Decimal(0);
-      for (const p of active) {
-        for (const b of p.buyIns) totalBuyIn = totalBuyIn.plus(b.amount);
-        totalCashOut = totalCashOut.plus(p.cashOut!.amount);
+      for (const p of counted) {
+        totalBuyIn = totalBuyIn.plus(sumBuyIns(p));
+        totalCashOut = totalCashOut.plus(cashOutOf(p));
       }
 
       // diff > 0 means cash-outs are inflated vs buy-ins (need to subtract).
@@ -336,6 +364,11 @@ export class TablesService {
       const diff = totalCashOut.minus(totalBuyIn);
 
       if (!diff.isZero()) {
+        if (active.length === 0) {
+          throw new BadRequestException(
+            'Nenhum participante ativo para absorver a diferença',
+          );
+        }
         if (strategy === ReconcileStrategy.HOST_ABSORB) {
           const host = active.find((p) => p.userId === user.id);
           if (!host) {
@@ -382,7 +415,6 @@ export class TablesService {
       where: { id: tableId },
       include: {
         participations: {
-          where: { leftAt: null },
           include: {
             buyIns: true,
             cashOut: true,
@@ -395,11 +427,14 @@ export class TablesService {
     if (table.status !== TableStatus.OPEN) {
       throw new BadRequestException('Mesa já está fechada');
     }
-    if (table.participations.length === 0) {
+    const counted = table.participations.filter(countsForBalance);
+    if (counted.length === 0) {
       throw new BadRequestException('Mesa sem participantes');
     }
 
-    const missingCashOut = table.participations.filter((p) => !p.cashOut);
+    const missingCashOut = counted.filter(
+      (p) => p.leftAt === null && !p.cashOut,
+    );
     if (missingCashOut.length > 0) {
       throw new BadRequestException(
         `Cash-out pendente para ${missingCashOut.length} participante(s)`,
@@ -408,12 +443,9 @@ export class TablesService {
 
     let totalBuyIn = new Prisma.Decimal(0);
     let totalCashOut = new Prisma.Decimal(0);
-    const nets: ParticipantNet[] = table.participations.map((p) => {
-      const buyInSum = p.buyIns.reduce(
-        (acc, b) => acc.plus(b.amount),
-        new Prisma.Decimal(0),
-      );
-      const cashOutAmount = p.cashOut!.amount;
+    const nets: ParticipantNet[] = counted.map((p) => {
+      const buyInSum = sumBuyIns(p);
+      const cashOutAmount = cashOutOf(p);
       totalBuyIn = totalBuyIn.plus(buyInSum);
       totalCashOut = totalCashOut.plus(cashOutAmount);
       return { participationId: p.id, net: cashOutAmount.minus(buyInSum) };
@@ -428,7 +460,7 @@ export class TablesService {
     const plans = computeSettlements(nets);
 
     if (plans.length > 0) {
-      const byId = new Map(table.participations.map((p) => [p.id, p]));
+      const byId = new Map(counted.map((p) => [p.id, p]));
       await tx.settlement.createMany({
         data: plans.map((p) => {
           const from = byId.get(p.fromParticipationId)!;

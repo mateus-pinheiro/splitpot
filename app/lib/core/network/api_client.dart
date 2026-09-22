@@ -77,8 +77,9 @@ class ApiClient {
   Future<Map<String, dynamic>> put(
     String path, {
     Object? body,
+    Map<String, String>? query,
   }) async {
-    final response = await _send('PUT', path, body: body);
+    final response = await _send('PUT', path, body: body, query: query);
     return _decodeObject(response);
   }
 
@@ -127,12 +128,21 @@ class ApiClient {
 
   Uri _buildUri(String path, Map<String, String>? query) {
     final base = Uri.parse(_config.apiBaseUrl);
-    final joinedPath = path.startsWith('/')
-        ? '${base.path}$path'
-        : '${base.path}/$path';
+    // `Uri.replace(path:)` percent-encoda o `?`, então uma query embutida no
+    // path virava parte do caminho ("cash-out%3Ffoo=1") e a rota deixava de
+    // casar no servidor — 404 silencioso. Separa antes de montar.
+    final queryStart = path.indexOf('?');
+    final rawPath = queryStart == -1 ? path : path.substring(0, queryStart);
+    final inlineQuery = queryStart == -1
+        ? const <String, String>{}
+        : Uri.splitQueryString(path.substring(queryStart + 1));
+    final joinedPath = rawPath.startsWith('/')
+        ? '${base.path}$rawPath'
+        : '${base.path}/$rawPath';
+    final mergedQuery = <String, String>{...inlineQuery, ...?query};
     return base.replace(
       path: joinedPath,
-      queryParameters: query?.isNotEmpty ?? false ? query : null,
+      queryParameters: mergedQuery.isNotEmpty ? mergedQuery : null,
     );
   }
 

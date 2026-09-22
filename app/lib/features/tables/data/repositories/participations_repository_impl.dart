@@ -94,12 +94,11 @@ class ParticipationsRepositoryImpl implements ParticipationsRepository {
     required Decimal amount,
     bool skipAutoClose = false,
   }) async {
-    final path = skipAutoClose
-        ? '/participations/$participationId/cash-out?skipAutoClose=true'
-        : '/participations/$participationId/cash-out';
-    await _api.put(path, body: {
-      'amount': double.parse(amount.toString()),
-    });
+    await _api.put(
+      '/participations/$participationId/cash-out',
+      body: {'amount': double.parse(amount.toString())},
+      query: skipAutoClose ? const {'skipAutoClose': 'true'} : null,
+    );
   }
 
   @override

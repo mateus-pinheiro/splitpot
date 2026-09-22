@@ -129,6 +129,24 @@ export class ParticipationsService {
         'Sem permissão para remover essa participação',
       );
 
+    // Depois do primeiro aporte o dinheiro já está no pote e a saída passa a
+    // ser cash-out. Remover aqui deixaria a mesa com uma diferença sem dono —
+    // era exatamente o que travava o fechamento. Pra desfazer uma entrada
+    // errada, apague os buy-ins antes. Lançamento zerado não move o caixa,
+    // então não bloqueia.
+    const buyInTotal = await this.prisma.buyIn.aggregate({
+      where: { participationId },
+      _sum: { amount: true },
+    });
+    const invested = buyInTotal._sum.amount ?? new Prisma.Decimal(0);
+    if (invested.greaterThan(0)) {
+      throw new BadRequestException(
+        'Jogador com aporte registrado não pode ser removido — registre o ' +
+          'cash-out dele. Se a entrada foi lançada por engano, apague os ' +
+          'buy-ins primeiro.',
+      );
+    }
+
     const updated = await this.prisma.tableParticipation.update({
       where: { id: participationId },
       data: { leftAt: new Date() },
@@ -138,7 +156,15 @@ export class ParticipationsService {
       where: { tableId: participation.tableId, leftAt: null },
     });
     if (remaining === 0) {
-      await this.tables.closeBySystem(participation.tableId);
+      // Best-effort, igual ao auto-close do cash-out: o `leftAt` já foi
+      // gravado e não pode ser desfeito por um fechamento que não bate.
+      // A mesa fica OPEN em estado de conferência em vez de a remoção
+      // devolver erro pro host.
+      try {
+        await this.tables.closeBySystem(participation.tableId);
+      } catch (err) {
+        if (!(err instanceof BadRequestException)) throw err;
+      }
     }
 
     return updated;

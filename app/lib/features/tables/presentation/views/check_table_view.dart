@@ -273,10 +273,14 @@ class _ReadyBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.read<CheckTableCubit>();
     final table = state.table;
-    final active =
-        table.participations.where((p) => p.leftAt == null).toList();
+    // `counted` precisa ser exatamente o conjunto que a API usa pra fechar —
+    // inclui removidos com lançamento, senão a diferença aparece sem dono e
+    // o host não tem o que ajustar. `adjustable` é quem ainda está na mesa e
+    // portanto pode absorver a diferença.
+    final counted = CheckTableCubit.counted(table);
+    final adjustable = CheckTableCubit.adjustable(table);
 
-    final pot = _pot(active);
+    final pot = _pot(counted);
     final declared = _declared(state.outs);
     // diff > 0  → "Falta declarar" (cashouts < pot).
     // diff < 0  → "Sobra nas saídas" (cashouts > pot).
@@ -320,14 +324,14 @@ class _ReadyBody extends StatelessWidget {
                   const SizedBox(height: 22),
                   _MethodPicker(
                     selected: state.method,
-                    n: active.length,
+                    n: adjustable.length,
                     absDiff: absDiff,
                     onSelect: cubit.selectMethod,
                   ),
                   const SizedBox(height: 20),
                   if (state.method == ReconcileMethod.edit)
                     _EditPanel(
-                      active: active,
+                      participations: counted,
                       outs: state.outs,
                       lastParticipationId: last?.id,
                       balanced: balanced,
@@ -337,16 +341,16 @@ class _ReadyBody extends StatelessWidget {
                     )
                   else if (state.method == ReconcileMethod.split)
                     _SplitPanel(
-                      active: active,
+                      active: adjustable,
                       outs: state.outs,
                       absDiff: absDiff,
                       diff: diff,
                       balanced: balanced,
-                      n: active.length,
+                      n: adjustable.length,
                     )
                   else
                     _HostPanel(
-                      active: active,
+                      active: adjustable,
                       outs: state.outs,
                       table: table,
                       absDiff: absDiff,
@@ -377,12 +381,10 @@ class _ReadyBody extends StatelessWidget {
     );
   }
 
-  static Decimal _pot(List<TableParticipation> active) {
+  static Decimal _pot(List<TableParticipation> participations) {
     var sum = Decimal.zero;
-    for (final p in active) {
-      for (final b in p.buyIns) {
-        sum += b.amount;
-      }
+    for (final p in participations) {
+      sum += p.invested;
     }
     return sum;
   }
@@ -394,7 +396,7 @@ class _ReadyBody extends StatelessWidget {
   static TableParticipation? _lastCashOutParticipation(PokerTable table) {
     TableParticipation? last;
     DateTime? lastAt;
-    for (final p in table.participations.where((p) => p.leftAt == null)) {
+    for (final p in CheckTableCubit.adjustable(table)) {
       final co = p.cashOut;
       if (co == null) continue;
       if (lastAt == null || co.createdAt.isAfter(lastAt)) {
@@ -836,7 +838,7 @@ class _Radio extends StatelessWidget {
 
 class _EditPanel extends StatelessWidget {
   const _EditPanel({
-    required this.active,
+    required this.participations,
     required this.outs,
     required this.lastParticipationId,
     required this.balanced,
@@ -845,7 +847,7 @@ class _EditPanel extends StatelessWidget {
     required this.onQuickFix,
   });
 
-  final List<TableParticipation> active;
+  final List<TableParticipation> participations;
   final Map<String, Decimal> outs;
   final String? lastParticipationId;
   final bool balanced;
@@ -878,7 +880,7 @@ class _EditPanel extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        for (final p in active) ...[
+        for (final p in participations) ...[
           _EditableRow(
             participation: p,
             currentOut: outs[p.id] ?? Decimal.zero,
@@ -963,10 +965,7 @@ class _EditableRowState extends State<_EditableRow> {
   @override
   Widget build(BuildContext context) {
     final p = widget.participation;
-    final invested = p.buyIns.fold<Decimal>(
-      Decimal.zero,
-      (acc, b) => acc + b.amount,
-    );
+    final invested = p.invested;
     final pl = widget.currentOut - invested;
 
     return Container(
@@ -1007,6 +1006,10 @@ class _EditableRowState extends State<_EditableRow> {
                     if (widget.isLast) ...[
                       const SizedBox(width: 6),
                       const _Tag(label: 'FECHOU A MESA'),
+                    ],
+                    if (p.wasRemoved) ...[
+                      const SizedBox(width: 6),
+                      const _Tag(label: 'REMOVIDO'),
                     ],
                   ],
                 ),
@@ -1283,10 +1286,10 @@ class _SplitPanel extends StatelessWidget {
                 _BeforeAfterRow(
                   name: active[i].userName,
                   before: (outs[active[i].id] ?? Decimal.zero) -
-                      _invested(active[i]),
+                      active[i].invested,
                   after: (outs[active[i].id] ?? Decimal.zero) +
                       adjustment -
-                      _invested(active[i]),
+                      active[i].invested,
                 ),
                 if (i < active.length - 1)
                   Divider(
@@ -1328,10 +1331,6 @@ class _SplitPanel extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  static Decimal _invested(TableParticipation p) {
-    return p.buyIns.fold<Decimal>(Decimal.zero, (acc, b) => acc + b.amount);
   }
 }
 
@@ -1424,10 +1423,7 @@ class _HostPanel extends StatelessWidget {
     Decimal? hostBefore;
     Decimal? hostAfter;
     if (hostParticipation != null) {
-      final invested = hostParticipation.buyIns.fold<Decimal>(
-        Decimal.zero,
-        (acc, b) => acc + b.amount,
-      );
+      final invested = hostParticipation.invested;
       final out = outs[hostParticipation.id] ?? Decimal.zero;
       hostBefore = out - invested;
       // `diff = pot - declared`. Host adjusts their cash-out by `diff` so

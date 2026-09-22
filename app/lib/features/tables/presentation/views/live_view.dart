@@ -565,6 +565,10 @@ class _PlayerRow extends StatelessWidget {
                       const SizedBox(width: 6),
                       const _RoleBadge(role: 'CONVIDADO'),
                     ],
+                    if (participation.wasRemoved) ...[
+                      const SizedBox(width: 6),
+                      const _RoleBadge(role: 'REMOVIDO', removed: true),
+                    ],
                     if (pendingRequest != null) ...[
                       const SizedBox(width: 6),
                       const _RoleBadge(role: 'PENDENTE', pending: true),
@@ -651,16 +655,24 @@ class _PlayerRow extends StatelessWidget {
 }
 
 class _RoleBadge extends StatelessWidget {
-  const _RoleBadge({required this.role, this.pending = false});
+  const _RoleBadge({
+    required this.role,
+    this.pending = false,
+    this.removed = false,
+  });
   final String role;
   final bool pending;
+  final bool removed;
 
   @override
   Widget build(BuildContext context) {
     final isHost = role == 'HOST';
     final Color bg;
     final Color fg;
-    if (pending) {
+    if (removed) {
+      bg = SpColors.danger.withValues(alpha: 0.2);
+      fg = SpColors.dangerSoft;
+    } else if (pending) {
       bg = SpColors.goldDark.withValues(alpha: 0.25);
       fg = SpColors.goldDark;
     } else if (isHost) {
@@ -1580,7 +1592,8 @@ class _PlayerHostMenu extends StatelessWidget {
       builder: (_) => _ConfirmDialog(
         title: 'Remover ${participation.userName}?',
         message:
-            'O jogador sai da mesa sem cash-out registrado. Os buy-ins ficam no histórico.',
+            'O jogador ainda não tem aportes, então sai da mesa sem nenhum '
+            'efeito na conta.',
         confirmLabel: 'Remover',
       ),
     );
@@ -1602,6 +1615,11 @@ class _PlayerHostMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasCashOut = participation.cashOut != null;
+    // Assim que o jogador aporta, o dinheiro já está no pote e a saída dele
+    // passa a ser cash-out, não remoção. Deixar as duas opções conviverem foi
+    // o que gerou mesa travada com diferença sem dono. Aporte zerado não move
+    // o caixa, então ainda dá pra remover.
+    final canRemove = participation.invested <= Decimal.zero;
     return PopupMenuButton<String>(
       tooltip: 'Ações',
       color: SpColors.feltDeep,
@@ -1653,17 +1671,18 @@ class _PlayerHostMenu extends StatelessWidget {
             ),
           ),
         ),
-        const PopupMenuDivider(),
-        const PopupMenuItem<String>(
-          value: 'remove',
-          child: Text(
-            'Remover da mesa',
-            style: TextStyle(
-              fontFamily: SpTypography.uiFamily,
-              color: SpColors.dangerSoft,
+        if (canRemove) const PopupMenuDivider(),
+        if (canRemove)
+          const PopupMenuItem<String>(
+            value: 'remove',
+            child: Text(
+              'Remover da mesa',
+              style: TextStyle(
+                fontFamily: SpTypography.uiFamily,
+                color: SpColors.dangerSoft,
+              ),
             ),
           ),
-        ),
       ],
     );
   }
